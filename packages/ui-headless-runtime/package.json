@@ -1,0 +1,50 @@
+{
+  "name": "ui-headless-runtime",
+  "version": "0.1.0",
+  "description": "Framework-agnostic accessible headless UI controllers for TypeScript applications.",
+  "keywords": [
+    "headless",
+    "accessibility",
+    "typescript",
+    "ui",
+    "wai-aria"
+  ],
+  "license": "MIT",
+  "author": "Daniele Masone",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DanieleMasone/ui-headless-runtime.git"
+  },
+  "homepage": "https://danielemasone.github.io/ui-headless-runtime/",
+  "bugs": {
+    "url": "https://github.com/DanieleMasone/ui-headless-runtime/issues"
+  },
+  "type": "module",
+  "main": "./dist/ui-headless-runtime.cjs",
+  "module": "./dist/ui-headless-runtime.js",
+  "types": "./dist/index.d.ts",
+  "unpkg": "./dist/ui-headless-runtime.iife.js",
+  "jsdelivr": "./dist/ui-headless-runtime.iife.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/ui-headless-runtime.js",
+      "require": "./dist/ui-headless-runtime.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json && api-extractor run --local --config api-extractor.json"
+  }
+}

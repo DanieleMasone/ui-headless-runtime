@@ -1,0 +1,66 @@
+h1,
+h2,
+h3 {
+  line-height: 1.16;
+  letter-spacing: -0.025em;
+}
+
+h1 {
+  max-inline-size: 18ch;
+  font-size: clamp(2.25rem, 5vw, 4.5rem);
+  font-weight: 720;
+}
+
+h2 {
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+}
+
+h3 {
+  font-size: 1.1rem;
+}
+
+.lede {
+  max-inline-size: 68ch;
+  color: var(--text-muted);
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+}
+
+.eyebrow {
+  margin-block-end: var(--space-3);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+code,
+kbd,
+pre {
+  font-family: var(--font-mono);
+}
+
+code {
+  font-size: 0.88em;
+}
+
+kbd {
+  border: 1px solid var(--border-strong);
+  border-block-end-width: 2px;
+  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.35rem;
+  background: var(--surface-subtle);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+pre {
+  overflow: auto;
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  background: var(--code);
+  color: var(--code-text);
+  font-size: 0.82rem;
+  line-height: 1.65;
+  tab-size: 2;
+}

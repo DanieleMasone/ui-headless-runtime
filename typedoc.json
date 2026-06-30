@@ -1,0 +1,16 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["packages/ui-headless-runtime/src/index.ts"],
+  "tsconfig": "packages/ui-headless-runtime/tsconfig.json",
+  "out": "docs-dist/api",
+  "name": "UI Headless Runtime API",
+  "includeVersion": true,
+  "excludeInternal": true,
+  "cleanOutputDir": true,
+  "treatWarningsAsErrors": true,
+  "validation": {
+    "notDocumented": true,
+    "invalidLink": true,
+    "notExported": true
+  }
+}

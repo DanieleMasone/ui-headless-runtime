@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+site-dist/
+playwright-report/
+test-results/
+*.tgz
+*.log
+.DS_Store
+packages/ui-headless-runtime/temp/
+packages/ui-headless-runtime/.api-extractor/
+.tmp/
+docs-dist/

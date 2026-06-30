@@ -1,0 +1,38 @@
+.copy-status:empty {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a,
+  button,
+  .sidebar {
+    transition:
+      color var(--transition),
+      background-color var(--transition),
+      border-color var(--transition);
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --border: var(--border-strong);
+  }
+
+  button,
+  input,
+  select,
+  .laboratory > * {
+    border-width: 2px;
+  }
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline-color: Highlight;
+  }
+
+  .button.primary,
+  .brand > span {
+    border: 1px solid ButtonText;
+  }
+}

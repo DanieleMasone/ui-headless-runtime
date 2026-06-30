@@ -1,0 +1,84 @@
+name: Release npm package
+
+on:
+  release:
+    types: [published]
+
+concurrency:
+  group: npm-release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Verify and publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    environment:
+      name: npm
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+
+      - name: Set up Node.js and npm registry
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Use OIDC-capable npm CLI
+        run: npm install --global npm@11.17.0
+
+      - name: Verify tag, version, and release commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='${{ github.event.release.tag_name }}'
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)?$ ]]
+          version="$(node -p "require('./packages/ui-headless-runtime/package.json').version")"
+          test "$tag" = "v$version"
+          test "$(git rev-list -n 1 "$tag")" = "$(git rev-parse HEAD)"
+          git merge-base --is-ancestor "$(git rev-parse HEAD)" origin/main
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install browser for real-browser verification
+        run: npx playwright install --with-deps chromium
+
+      - name: Run release quality gates
+        run: npm run release:verify
+
+      - name: Pack and inspect release tarball
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir release-tarball
+          npm pack --workspace ui-headless-runtime --pack-destination release-tarball --json > release-tarball/metadata.json
+          tarball="$(node -p "require('./release-tarball/metadata.json')[0].filename")"
+          test -f "release-tarball/$tarball"
+          tar -tzf "release-tarball/$tarball"
+
+      - name: Ensure version is not already published
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./packages/ui-headless-runtime/package.json').version")"
+          if npm view "ui-headless-runtime@$version" version >/dev/null 2>&1; then
+            echo "ui-headless-runtime@$version already exists" >&2
+            exit 1
+          fi
+
+      - name: Publish with npm Trusted Publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./packages/ui-headless-runtime/package.json').version")"
+          tarball="$(node -p "require('./release-tarball/metadata.json')[0].filename")"
+          if [[ "$version" == *-* ]]; then dist_tag=next; else dist_tag=latest; fi
+          npm publish "release-tarball/$tarball" --access public --tag "$dist_tag"

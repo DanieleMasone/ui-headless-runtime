@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+site-dist
+playwright-report
+test-results
+packages/ui-headless-runtime/etc/ui-headless-runtime.api.md
+package-lock.json
+

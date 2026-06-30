@@ -1,590 +1,107 @@
-# ui-headless-runtime
+# UI Headless Runtime
 
-A framework-agnostic TypeScript library providing accessible, customizable, headless UI primitives for modern web applications.
+[![CI](https://github.com/DanieleMasone/ui-headless-runtime/actions/workflows/ci.yml/badge.svg)](https://github.com/DanieleMasone/ui-headless-runtime/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/ui-headless-runtime)](https://www.npmjs.com/package/ui-headless-runtime)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-The library focuses on behavior, accessibility and state management, leaving rendering and styling entirely to the consumer.
+Framework-agnostic TypeScript controllers for accessible, customizable UI behavior. The runtime owns state, lifecycle, keyboard interaction, focus, selection, overlay coordination, positioning, and cleanup. Your application owns markup, CSS, branding, animation, and rendering.
 
-No CSS framework.
+- [Live demo](https://danielemasone.github.io/ui-headless-runtime/)
+- [API documentation](https://danielemasone.github.io/ui-headless-runtime/api/)
+- [Coverage report](https://danielemasone.github.io/ui-headless-runtime/coverage/)
+- [Architecture documentation](docs/architecture/overview.md)
+- [npm package](https://www.npmjs.com/package/ui-headless-runtime)
+- [GitHub repository](https://github.com/DanieleMasone/ui-headless-runtime)
 
-No design system.
+## Install
 
-No UI opinions.
+```sh
+npm install ui-headless-runtime
+```
 
-Only reusable interaction logic.
-
----
-
-## Goals
-
-UI Headless Runtime is designed for developers who need complete control over rendering while avoiding reimplementing complex interaction logic.
-
-The project targets:
-
-- enterprise applications
-- design systems
-- internal platforms
-- frontend frameworks
-- legacy modernization
-- framework-agnostic web applications
-
----
-
-# Philosophy
-
-Rendering belongs to the application.
-
-Behavior belongs to the library.
-
-The library should never dictate:
-
-- HTML structure
-- CSS
-- design language
-- animations
-- branding
-
-Instead it provides:
-
-- accessibility
-- keyboard interactions
-- focus management
-- state management
-- event lifecycle
-- interaction logic
-
----
-
-# Design Principles
-
-- Framework agnostic
-- TypeScript first
-- Accessibility first
-- Tree shakeable
-- Zero runtime dependencies whenever possible
-- Small public API
-- Stable API contracts
-- Production ready
-- Fully documented
-- Fully tested
-
----
-
-# Target Environment
-
-The core library must work in:
-
-- Vanilla JavaScript
-- TypeScript
-- React
-- Angular
-- Vue
-- Svelte
-- Lit
-- Web Components
-- Micro Frontends
-
-without requiring adapters inside the core.
-
----
-
-# Supported Components
-
-## Dialog
-
-Features:
-
-- modal
-- non-modal
-- nested dialogs
-- escape handling
-- focus trap
-- restore focus
-- backdrop management
-- scroll lock
-
----
-
-## Popover
-
-Features:
-
-- positioning
-- outside click
-- keyboard support
-- focus management
-
----
-
-## Dropdown Menu
-
-Features:
-
-- nested menus
-- disabled items
-- separators
-- keyboard navigation
-- typeahead search
-
----
-
-## Context Menu
-
-Features:
-
-- right click
-- keyboard open
-- nested items
-- positioning
-
----
-
-## Tooltip
-
-Features:
-
-- hover
-- focus
-- delay
-- touch support
-
----
-
-## Accordion
-
-Features:
-
-- single
-- multiple
-- collapsible
-- keyboard navigation
-
----
-
-## Tabs
-
-Features:
-
-- manual activation
-- automatic activation
-- keyboard navigation
-- vertical
-- horizontal
-
----
-
-## Disclosure
-
-Features:
-
-- expandable panels
-- controlled
-- uncontrolled
-
----
-
-## Toast
-
-Features:
-
-- queue
-- priorities
-- dismiss
-- timeout
-- promise support
-
----
-
-## Command Palette
-
-Features:
-
-- keyboard shortcut
-- fuzzy search
-- grouping
-- custom renderer
-
----
-
-## Menu
-
-Features:
-
-- nested items
-- separators
-- disabled state
-
----
-
-## Listbox
-
-Features:
-
-- single select
-- multi select
-- keyboard support
-
----
-
-## Combobox
-
-Features:
-
-- autocomplete
-- async suggestions
-- filtering
-
----
-
-## Tree View
-
-Features:
-
-- expand collapse
-- keyboard navigation
-- selection
-
----
-
-## Navigation Menu
-
-Features:
-
-- mega menu support
-- responsive state
-
----
-
-## Collapsible
-
-Features:
-
-- simple expandable sections
-
----
-
-# Accessibility
-
-Accessibility is a primary design goal.
-
-Every component must implement:
-
-- correct ARIA roles
-- keyboard navigation
-- focus management
-- screen reader support
-- accessible announcements where appropriate
-
-Target:
-
-WCAG 2.2 AA
-
----
-
-# Browser Support
-
-Modern evergreen browsers.
-
-Graceful degradation where appropriate.
-
----
-
-# Public API Principles
-
-Every component exposes only behavior.
-
-Example:
+## Quick start
 
 ```ts
-const dialog = createDialog();
+import { createDisclosure } from 'ui-headless-runtime';
 
-dialog.open();
+const trigger = document.querySelector<HTMLButtonElement>('#trigger');
+const panel = document.querySelector<HTMLElement>('#panel');
+if (!trigger || !panel) throw new Error('Disclosure DOM is missing.');
 
-dialog.close();
+const disclosure = createDisclosure({ id: 'deployment-details' });
+const render = (): void => {
+  const snapshot = disclosure.getSnapshot();
+  trigger.id = snapshot.trigger.id;
+  trigger.setAttribute('aria-controls', snapshot.trigger.ariaControls);
+  trigger.setAttribute('aria-expanded', String(snapshot.expanded));
+  panel.id = snapshot.panel.id;
+  panel.hidden = snapshot.panel.hidden;
+  panel.setAttribute('aria-labelledby', snapshot.panel.ariaLabelledby);
+};
 
-dialog.toggle();
+render();
+const unsubscribe = disclosure.subscribe(render);
+trigger.addEventListener('click', disclosure.handleTriggerClick);
+
+// On unmount:
+trigger.removeEventListener('click', disclosure.handleTriggerClick);
+unsubscribe();
+disclosure.destroy();
 ```
 
-Rendering remains the responsibility of the application.
+No CSS is shipped. There are zero runtime dependencies.
 
----
+## Components
 
-# Custom Rendering
+Dialog, Popover, Dropdown Menu, Context Menu, Tooltip, Accordion, Tabs, Disclosure, Toast, Command Palette, Menu, Listbox, Combobox, Tree View, Navigation Menu, and Collapsible.
 
-Developers are free to use:
+Every component provides a typed factory, immutable snapshot, commands, subscriptions, cancellable lifecycle events, closed reason unions, controlled and uncontrolled state, accessibility metadata/behavior, keyboard interaction, and idempotent cleanup.
 
-- HTML
-- JSX
-- Angular templates
-- Vue templates
-- Web Components
+## API principles
 
-without restrictions.
-
----
-
-# Styling
-
-No CSS shipped.
-
-Consumers may use:
-
-- CSS
-- SCSS
-- Tailwind
-- CSS Modules
-- Styled Components
-- Emotion
-- UnoCSS
-
----
-
-# State Management
-
-Components support:
-
-- controlled mode
-- uncontrolled mode
-
-Example:
+All imports come from `ui-headless-runtime`; deep imports are unsupported. Controllers share:
 
 ```ts
-dialog.open();
-
-dialog.close();
-
-dialog.isOpen();
+interface RuntimeController<TSnapshot> {
+  getSnapshot(): Readonly<TSnapshot>;
+  subscribe(listener: (snapshot: Readonly<TSnapshot>) => void): () => void;
+  destroy(): void;
+}
 ```
 
----
+Controlled state uses `getValue`, `onValueChange`, and optional `subscribeValue`. Uncontrolled state uses `defaultValue`. Every material update carries a typed reason.
 
-# Event Lifecycle
+## Accessibility
 
-Components expose typed events.
+The runtime follows WAI-ARIA Authoring Practices interaction models and targets the behavior needed for WCAG 2.2 AA outcomes. It centralizes focus scopes, roving focus, active descendant, semantic relationships, keyboard handling, announcements, disabled state, and nested overlays.
 
-Example:
+Final conformance also depends on consumer-provided markup, labels, content, contrast, layout, and assistive-technology testing. See the [accessibility statement](docs/accessibility/conformance.md).
 
-```ts
-dialog.on("open");
+## Formats and browser support
 
-dialog.on("close");
+The package publishes ESM, CommonJS, IIFE (`UIHeadlessRuntime`), source maps, and a rolled-up declaration file. Import is SSR-safe. The tested browser engines are current Playwright Chromium, Firefox, and WebKit; build target is ES2022.
 
-dialog.on("beforeClose");
+## Development and testing
 
-dialog.on("afterClose");
+Requires Node 24 and npm 11.
+
+```sh
+npm ci
+npm run ci
 ```
 
----
+The quality pipeline runs formatting, ESLint, strict TypeScript, unit coverage (95% global thresholds), real-browser integration, ESM/CJS/IIFE build, API Extractor, TypeDoc, real-tarball consumer tests, demo/site checks, cross-browser E2E, and axe/manual accessibility assertions.
 
-# Focus Management
+Useful commands are documented in [CONTRIBUTING.md](CONTRIBUTING.md). Generated API docs and HTML coverage are composed with the demo into one GitHub Pages artifact.
 
-Provide utilities for:
+## Release
 
-- focus trap
-- restore focus
-- roving tabindex
-- active descendant
-- keyboard navigation
+Publishing occurs only from a published GitHub Release with a matching `vX.Y.Z` tag. The dedicated workflow uses npm Trusted Publishing OIDC on a GitHub-hosted runner; no persistent npm publish token is used. See [release operations](docs/releasing.md).
 
----
+## Contributing
 
-# Utilities
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md). Public API changes require an intentional API report update and semver review.
 
-The project also provides reusable utilities.
+## License
 
-Examples:
-
-- focus manager
-- keyboard manager
-- outside click detector
-- portal manager
-- scroll lock
-- id generator
-- aria helpers
-- event manager
-
----
-
-# Architecture
-
-```
-src/
-
-core/
-
-accessibility/
-
-events/
-
-focus/
-
-utils/
-
-components/
-
-dialog/
-
-tooltip/
-
-popover/
-
-accordion/
-
-tabs/
-
-menu/
-
-toast/
-
-tree/
-
-command/
-
-types/
-
-index.ts
-```
-
----
-
-# Build
-
-- Vite Library Mode
-- TypeScript
-- ESM
-- CJS
-- IIFE
-
----
-
-# Testing
-
-Unit Tests
-
-- Vitest
-
-Integration Tests
-
-- Vitest DOM
-
-E2E
-
-- Playwright
-
-Accessibility
-
-- axe-core
-
-Coverage target
-
-95%+
-
----
-
-# Documentation
-
-Every component must include:
-
-- overview
-- API
-- examples
-- accessibility notes
-- keyboard support
-- browser compatibility
-
----
-
-# Playground
-
-A demo application must showcase every component.
-
-Features:
-
-- light mode
-- dark mode
-- live examples
-- source snippets
-- accessibility panel
-
-Deploy on GitHub Pages.
-
----
-
-# CI/CD
-
-GitHub Actions
-
-Pipeline:
-
-- install
-- lint
-- typecheck
-- unit tests
-- accessibility tests
-- Playwright
-- build
-- documentation
-- deploy GitHub Pages
-
----
-
-# Performance Goals
-
-- Tree shakeable
-- Lazy load friendly
-- No unnecessary allocations
-- Minimal DOM operations
-
----
-
-# Code Quality
-
-- ESLint
-- Prettier
-- Strict TypeScript
-- API Extractor
-- Typedoc
-
----
-
-# Non Goals
-
-This project intentionally does NOT provide:
-
-- CSS framework
-- component styling
-- design tokens
-- animations
-- visual themes
-- icons
-- framework-specific wrappers
-- drag and drop
-- layout systems
-
----
-
-# Future Packages
-
-This library is part of a larger ecosystem.
-
-Planned packages:
-
-- validation-runtime
-- permissions-runtime
-- workflow-runtime
-- table-runtime
-- feature-flags-runtime
-- search-runtime
-
-All packages will share:
-
-- consistent API
-- documentation standards
-- testing strategy
-- CI pipeline
-- coding conventions
-
----
-
-# License
-
-MIT
+[MIT](LICENSE)
