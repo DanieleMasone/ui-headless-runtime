@@ -162,6 +162,16 @@ export function createCommandPalette(
       openControlled: dialogSnapshot.controlled,
     });
   };
+  const commitQuery = (
+    query: string,
+    changeDetails?: ChangeDetails<CommandPaletteReason>,
+  ): void => {
+    sync();
+    if (!changeDetails) return;
+    const payload = { query, details: changeDetails };
+    host.emit('queryChange', payload);
+    host.emit('stateChange', payload);
+  };
   const queryState = createControllableValue<string, CommandPaletteReason>(
     {
       defaultValue: options.defaultQuery ?? '',
@@ -169,7 +179,7 @@ export function createCommandPalette(
       ...(options.onQueryChange ? { onValueChange: options.onQueryChange } : {}),
       ...(options.subscribeQuery ? { subscribeValue: options.subscribeQuery } : {}),
     },
-    sync,
+    commitQuery,
   );
   host.resources.add(dialog.subscribe(sync));
   const openEvents = [
@@ -193,11 +203,7 @@ export function createCommandPalette(
     changeDetails: ChangeDetails<CommandPaletteReason> = { reason: 'programmatic' },
   ): void => {
     if (!host.alive() || queryState.get() === query) return;
-    queryState.set(query, changeDetails);
-    sync();
-    const payload = { query, details: changeDetails };
-    host.emit('queryChange', payload);
-    host.emit('stateChange', payload);
+    if (queryState.set(query, changeDetails)) commitQuery(query, changeDetails);
   };
   const select = (
     id: string,

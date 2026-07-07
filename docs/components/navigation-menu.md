@@ -16,4 +16,4 @@ Register, bind, open/close, schedule pointer intent, forward keyboard, and set m
 
 Mode changes cancel pending intent timers. Registration and controller destruction release every composed resource. Mobile drawer layout and breakpoint selection remain outside the package.
 
-Desktop intent, consumer-selected compact mode, and mega-menu examples execute from the shared [`createExample()` source](../../apps/demo/src/examples/create-example.ts).
+Desktop intent, consumer-selected compact mode, and mega-menu examples execute from the shared [`createExample()` source](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/create-example.ts).

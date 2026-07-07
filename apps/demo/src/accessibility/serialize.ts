@@ -3,7 +3,15 @@ export function serializeForInspector(value: unknown): string {
   return JSON.stringify(
     value,
     (_key, candidate: unknown) => {
-      if (candidate instanceof Element) return `[${candidate.tagName.toLocaleLowerCase()}]`;
+      if (
+        typeof candidate === 'object' &&
+        candidate !== null &&
+        'nodeType' in candidate &&
+        candidate.nodeType === 1 &&
+        'tagName' in candidate &&
+        typeof candidate.tagName === 'string'
+      )
+        return `[${candidate.tagName.toLocaleLowerCase()}]`;
       if (typeof candidate === 'object' && candidate !== null) {
         if (seen.has(candidate)) return '[Circular]';
         seen.add(candidate);

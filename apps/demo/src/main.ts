@@ -148,9 +148,17 @@ searchTrigger.addEventListener('click', () => {
   commandPalette.open({ reason: 'pointer' });
   commandInput.focus();
 });
-commandInput.addEventListener('input', () =>
-  commandPalette.setQuery(commandInput.value, { reason: 'input' }),
-);
+let commandComposing = false;
+commandInput.addEventListener('compositionstart', () => {
+  commandComposing = true;
+});
+commandInput.addEventListener('compositionend', () => {
+  commandComposing = false;
+  commandPalette.setQuery(commandInput.value, { reason: 'input' });
+});
+commandInput.addEventListener('input', () => {
+  if (!commandComposing) commandPalette.setQuery(commandInput.value, { reason: 'input' });
+});
 commandInput.addEventListener('keydown', (event) => commandPalette.handleKeyDown(event));
 renderCommands();
 

@@ -2,12 +2,16 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "types": ["node", "vite/client"]
+    "types": ["node", "vite/client"],
+    "paths": {
+      "ui-headless-runtime": ["./packages/ui-headless-runtime/src/index.ts"]
+    }
   },
   "include": [
     "packages/ui-headless-runtime/src/**/*.ts",
     "apps/demo/src/**/*.ts",
     "apps/demo/vite.config.ts",
+    "docs/**/*.ts",
     "packages/ui-headless-runtime/vite.config.ts",
     "tests/**/*.ts",
     "*.config.ts"

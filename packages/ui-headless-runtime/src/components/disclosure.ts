@@ -142,6 +142,17 @@ export function createDisclosure(options: DisclosureOptions = {}): DisclosureCon
   const sync = (): void => {
     host.update(snapshot(state.get(), state.controlled));
   };
+  const commit = (
+    expanded: boolean,
+    changeDetails?: ChangeDetails<DisclosureChangeReason>,
+  ): void => {
+    sync();
+    if (!changeDetails) return;
+    const payload = { expanded, details: changeDetails };
+    host.emit(expanded ? 'open' : 'close', payload);
+    host.emit('stateChange', payload);
+    host.emit(expanded ? 'afterOpen' : 'afterClose', payload);
+  };
   const state = createControllableValue<boolean, DisclosureChangeReason>(
     {
       defaultValue: options.defaultValue ?? false,
@@ -149,7 +160,7 @@ export function createDisclosure(options: DisclosureOptions = {}): DisclosureCon
       ...(options.onValueChange ? { onValueChange: options.onValueChange } : {}),
       ...(options.subscribeValue ? { subscribeValue: options.subscribeValue } : {}),
     },
-    sync,
+    commit,
   );
   const change = (
     expanded: boolean,
@@ -158,11 +169,7 @@ export function createDisclosure(options: DisclosureOptions = {}): DisclosureCon
     if (!host.alive() || disabled || state.get() === expanded) return;
     const payload = { expanded, details: changeDetails };
     if (!host.emit(expanded ? 'beforeOpen' : 'beforeClose', payload)) return;
-    state.set(expanded, changeDetails);
-    sync();
-    host.emit(expanded ? 'open' : 'close', payload);
-    host.emit('stateChange', payload);
-    host.emit(expanded ? 'afterOpen' : 'afterClose', payload);
+    if (state.set(expanded, changeDetails)) commit(expanded, changeDetails);
   };
   const fallback: ChangeDetails<DisclosureChangeReason> = { reason: 'programmatic' };
   host.resources.add(() => state.destroy());

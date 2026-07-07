@@ -5,6 +5,7 @@ import {
   createPopover,
   createToast,
   createTooltip,
+  type ToastRecord,
 } from '../../packages/ui-headless-runtime/src/index';
 
 beforeAll(() => {
@@ -49,6 +50,7 @@ describe('Dialog and Popover overlays', () => {
       modal: true,
       topmost: true,
       ariaModal: true,
+      hasBackdrop: false,
     });
     expect(document.activeElement).toBe(input);
     expect(document.documentElement.style.overflow).toBe('hidden');
@@ -75,6 +77,7 @@ describe('Dialog and Popover overlays', () => {
     child.bind({ trigger: triggerB, content: contentB });
     parent.open();
     child.open();
+    expect(parent.getSnapshot().ariaModal).toBeNull();
     expect(parent.getSnapshot().topmost).toBe(false);
     expect(child.getSnapshot().topmost).toBe(true);
     document.dispatchEvent(
@@ -168,6 +171,32 @@ describe('Dialog and Popover overlays', () => {
     outside.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
     invalidate();
     expect(open).toBe(false);
+    popover.destroy();
+  });
+
+  it('does not publish controlled overlay lifecycle before the external commit', () => {
+    let open = false;
+    let notify: () => void = () => undefined;
+    const request = vi.fn();
+    const popover = createPopover({
+      getValue: () => open,
+      onValueChange: request,
+      subscribeValue(listener) {
+        notify = listener;
+        return () => undefined;
+      },
+    });
+    const committed = vi.fn();
+    popover.on('open', committed);
+    popover.open({ reason: 'trigger' });
+    expect(request).toHaveBeenCalledWith(true, { reason: 'trigger' });
+    expect(popover.getSnapshot().open).toBe(false);
+    expect(committed).not.toHaveBeenCalled();
+
+    open = true;
+    notify();
+    expect(popover.getSnapshot().open).toBe(true);
+    expect(committed).toHaveBeenCalledOnce();
     popover.destroy();
   });
 });
@@ -299,6 +328,63 @@ describe('Toast queue', () => {
     toast.show({ message: 'After destroy', duration: 10 });
     expect(vi.getTimerCount()).toBe(0);
   });
+
+  it('pauses rendered toasts for pointer and focus interactions with scoped cleanup', () => {
+    vi.useFakeTimers();
+    const toast = createToast();
+    toast.show({ id: 'interactive', message: 'Interactive', duration: 100 });
+    const element = document.createElement('div');
+    const child = document.createElement('button');
+    element.append(child);
+    document.body.append(element);
+    const release = toast.bindPause('interactive', element);
+    element.dispatchEvent(new FocusEvent('focusin'));
+    element.dispatchEvent(new PointerEvent('pointerenter'));
+    expect(toast.getSnapshot().all[0]?.paused).toBe(true);
+    vi.advanceTimersByTime(500);
+    expect(toast.getSnapshot().all).toHaveLength(1);
+    element.dispatchEvent(new FocusEvent('focusout', { relatedTarget: child }));
+    expect(toast.getSnapshot().all[0]?.paused).toBe(true);
+    element.dispatchEvent(new PointerEvent('pointerleave'));
+    expect(toast.getSnapshot().all[0]?.paused).toBe(false);
+    release();
+    element.dispatchEvent(new PointerEvent('pointerenter'));
+    expect(toast.getSnapshot().all[0]?.paused).toBe(false);
+    vi.advanceTimersByTime(100);
+    expect(toast.getSnapshot().all).toEqual([]);
+    toast.show({ id: 'persistent', message: 'Persistent', duration: null });
+    toast.pause('persistent');
+    toast.resume('persistent');
+    toast.pause('missing');
+    toast.resume('missing');
+    toast.update('missing', { message: 'Missing' });
+    toast.destroy();
+    expect(toast.bindPause('persistent', element)()).toBeUndefined();
+  });
+
+  it('does not publish controlled Toast mutations until the external queue commits', () => {
+    let records: readonly ToastRecord[] = [];
+    let notify: () => void = () => undefined;
+    const request = vi.fn((next: readonly ToastRecord[]) => next);
+    const toast = createToast({
+      getToasts: () => records,
+      onToastsChange: request,
+      subscribeToasts(listener) {
+        notify = listener;
+        return () => undefined;
+      },
+    });
+    const shown = vi.fn();
+    toast.on('show', shown);
+    toast.show({ id: 'controlled', message: 'Controlled', duration: null });
+    expect(toast.getSnapshot().all).toEqual([]);
+    expect(shown).not.toHaveBeenCalled();
+    records = request.mock.calls[0]?.[0] ?? [];
+    notify();
+    expect(toast.getSnapshot().all[0]?.id).toBe('controlled');
+    expect(shown).toHaveBeenCalledOnce();
+    toast.destroy();
+  });
 });
 
 describe('Combobox async and input behavior', () => {
@@ -371,5 +457,105 @@ describe('Combobox async and input behavior', () => {
       selectionControlled: true,
     });
     combobox.destroy();
+  });
+
+  it('keeps rejected controlled Combobox input and selection authoritative', () => {
+    const inputRequest = vi.fn<(value: string) => void>();
+    const selectionRequest = vi.fn<(value: string | null) => void>();
+    const combobox = createCombobox({
+      getInputValue: () => '',
+      onInputValueChange: inputRequest,
+      getSelectedValue: () => null,
+      onSelectedValueChange: selectionRequest,
+    });
+    combobox.registerOption({ id: 'one', text: 'One', value: '1' });
+    const queryChanged = vi.fn();
+    combobox.on('queryChange', queryChanged);
+    combobox.setInputValue('One', { reason: 'input' });
+    combobox.select('one');
+    expect(inputRequest).toHaveBeenCalled();
+    expect(selectionRequest).toHaveBeenCalledWith('1', { reason: 'programmatic' });
+    expect(combobox.getSnapshot()).toMatchObject({ inputValue: '', selectedValue: null });
+    expect(queryChanged).not.toHaveBeenCalled();
+    combobox.destroy();
+  });
+
+  it('commits subscribed Combobox stores, preserves replacement registrations, and handles input edges', () => {
+    let inputValue = '';
+    let selectedValue: string | null = null;
+    let notifyInput: () => void = () => undefined;
+    let notifySelection: () => void = () => undefined;
+    const inputRequest = vi.fn<(value: string) => void>();
+    const selectionRequest = vi.fn<(value: string | null) => void>();
+    const combobox = createCombobox({
+      getInputValue: () => inputValue,
+      onInputValueChange: inputRequest,
+      subscribeInputValue(listener) {
+        notifyInput = listener;
+        return () => undefined;
+      },
+      getSelectedValue: () => selectedValue,
+      onSelectedValueChange: selectionRequest,
+      subscribeSelectedValue(listener) {
+        notifySelection = listener;
+        return () => undefined;
+      },
+      filter: (option, query) => option.text.toLowerCase().startsWith(query.toLowerCase()),
+    });
+    const stale = combobox.registerOption({ id: 'item', text: 'Old', value: 'old' });
+    const current = combobox.registerOption({ id: 'item', text: 'Item', value: 'item' });
+    stale();
+    inputValue = 'External';
+    notifyInput();
+    selectedValue = 'external-selection';
+    notifySelection();
+    combobox.setInputValue('It', { reason: 'input' });
+    inputValue = inputRequest.mock.calls.at(-1)?.[0] ?? '';
+    notifyInput();
+    expect(combobox.getSnapshot().query).toBe('It');
+    combobox.handleKeyDown(new KeyboardEvent('keydown', { key: 'ArrowDown', cancelable: true }));
+    combobox.handleKeyDown(new KeyboardEvent('keydown', { key: 'ArrowDown', cancelable: true }));
+    const div = document.createElement('div');
+    const invalidInput = new InputEvent('input');
+    Object.defineProperty(invalidInput, 'target', { value: div });
+    combobox.handleInput(invalidInput);
+    combobox.handleCompositionStart();
+    const invalidComposition = new CompositionEvent('compositionend');
+    Object.defineProperty(invalidComposition, 'target', { value: div });
+    combobox.handleCompositionEnd(invalidComposition);
+    combobox.select('item', {
+      reason: 'keyboard',
+      event: new KeyboardEvent('keydown', { key: 'Enter' }),
+    });
+    selectedValue = selectionRequest.mock.calls.at(-1)?.[0] ?? null;
+    notifySelection();
+    expect(combobox.getSnapshot().selectedValue).toBe('item');
+    current();
+    current();
+    combobox.destroy();
+
+    const closed = createCombobox();
+    const cancelOpen = closed.on('beforeOpen', (event) => event.preventDefault());
+    closed.handleKeyDown(new KeyboardEvent('keydown', { key: 'ArrowDown', cancelable: true }));
+    expect(closed.getSnapshot().open).toBe(false);
+    cancelOpen();
+    closed.handleKeyDown(new KeyboardEvent('keydown', { key: 'ArrowDown', cancelable: true }));
+    expect(closed.getSnapshot().open).toBe(true);
+    closed.destroy();
+    closed.handleCompositionEnd(new CompositionEvent('compositionend'));
+  });
+
+  it('swallows only AbortError from async Combobox loaders', async () => {
+    const aborted = createCombobox({
+      loadOptions: () => Promise.reject(new DOMException('cancelled', 'AbortError')),
+    });
+    await expect(aborted.refresh()).resolves.toBeUndefined();
+    aborted.destroy();
+
+    const failed = createCombobox({
+      loadOptions: () => Promise.reject(new Error('network failed')),
+    });
+    await expect(failed.refresh()).rejects.toThrow('network failed');
+    failed.destroy();
   });
 });

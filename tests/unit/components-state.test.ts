@@ -74,6 +74,29 @@ describe('Disclosure and Collapsible', () => {
     expect(disclosure.getSnapshot()).toMatchObject({ expanded: true, controlled: true });
     disclosure.destroy();
   });
+
+  it('keeps controlled Disclosure closed until the consumer commits', () => {
+    let expanded = false;
+    let notify: () => void = () => undefined;
+    const disclosure = createDisclosure({
+      getValue: () => expanded,
+      onValueChange: vi.fn(),
+      subscribeValue(listener) {
+        notify = listener;
+        return () => undefined;
+      },
+    });
+    const opened = vi.fn();
+    disclosure.on('open', opened);
+    disclosure.expand({ reason: 'trigger' });
+    expect(disclosure.getSnapshot().expanded).toBe(false);
+    expect(opened).not.toHaveBeenCalled();
+    expanded = true;
+    notify();
+    expect(disclosure.getSnapshot().expanded).toBe(true);
+    expect(opened).toHaveBeenCalledOnce();
+    disclosure.destroy();
+  });
 });
 
 describe('Accordion', () => {
@@ -184,10 +207,41 @@ describe('Listbox and Menu engines', () => {
     listbox.destroy();
   });
 
+  it('keeps rejected controlled Listbox selection authoritative until notification', () => {
+    let values: readonly string[] = [];
+    let notify: () => void = () => undefined;
+    const request = vi.fn<(next: readonly string[]) => void>();
+    const listbox = createListbox({
+      getValue: () => values,
+      onValueChange: request,
+      subscribeValue(listener) {
+        notify = listener;
+        return () => undefined;
+      },
+    });
+    listbox.registerOption({ id: 'alpha', text: 'Alpha', value: 'a' });
+    const selected = vi.fn();
+    listbox.on('select', selected);
+    listbox.select('alpha', { reason: 'keyboard' });
+    expect(listbox.getSnapshot().selectedValues).toEqual([]);
+    expect(selected).not.toHaveBeenCalled();
+    values = request.mock.calls[0]?.[0] ?? [];
+    notify();
+    expect(listbox.getSnapshot().selectedValues).toEqual(['a']);
+    expect(selected).toHaveBeenCalledOnce();
+    listbox.destroy();
+  });
+
   it('shares item navigation, separators, submenus, lifecycle, and wrappers', () => {
     vi.useFakeTimers();
     const menu = createMenu({ closeOnSelect: false });
-    menu.registerItem({ id: 'new', text: 'New', submenuId: 'new-sub' });
+    const parentItem = document.createElement('button');
+    const childItem = document.createElement('button');
+    document.body.append(parentItem, childItem);
+    menu.registerItem({ id: 'new', text: 'New', submenuId: 'new-sub' }, parentItem);
+    const submenu = createMenu();
+    submenu.registerItem({ id: 'child', text: 'Child' }, childItem);
+    menu.registerSubmenu('new', submenu);
     menu.registerItem({ id: 'separator', text: '', kind: 'separator' });
     menu.registerItem({ id: 'disabled', text: 'Disabled', disabled: true });
     const removeOpen = menu.registerItem({ id: 'open', text: 'Open' });
@@ -198,7 +252,11 @@ describe('Listbox and Menu engines', () => {
     menu.handleKeyDown(keyboard('Home'));
     menu.handleKeyDown(keyboard('ArrowRight'));
     expect(menu.getSnapshot().openSubmenuId).toBe('new-sub');
-    menu.handleKeyDown(keyboard('ArrowLeft'));
+    expect(submenu.getSnapshot().open).toBe(true);
+    expect(document.activeElement).toBe(childItem);
+    submenu.handleKeyDown(keyboard('ArrowLeft'));
+    expect(submenu.getSnapshot().open).toBe(false);
+    expect(document.activeElement).toBe(parentItem);
     menu.handleKeyDown(keyboard('o'));
     expect(menu.getSnapshot().activeId).toBe('open');
     menu.handleKeyDown(keyboard(' '));
@@ -210,6 +268,7 @@ describe('Listbox and Menu engines', () => {
     vi.advanceTimersByTime(500);
     removeOpen();
     menu.destroy();
+    submenu.destroy();
 
     const dropdown = createDropdownMenu();
     dropdown.registerItem({ id: 'a', text: 'A' });
@@ -234,6 +293,107 @@ describe('Listbox and Menu engines', () => {
     context.handleKeyboardOpen(keyboard('x'), trigger, content);
     context.handleKeyboardOpen(keyboard('F10', { shiftKey: true }), trigger, content)();
     context.destroy();
+  });
+
+  it('covers menu edge navigation, submenu switching, scoped releases, and destroyed wrappers', () => {
+    vi.useFakeTimers();
+    const menu = createMenu({ loop: false });
+    menu.open();
+    menu.handleKeyDown(keyboard('Home'));
+    menu.handleKeyDown(keyboard('End'));
+    menu.handleKeyDown(keyboard('ArrowDown'));
+    menu.toggle();
+    menu.toggle();
+    menu.setActive(null);
+    const orphanSubmenu = createMenu();
+    const invalidSubmenu = menu.registerSubmenu('missing', orphanSubmenu);
+    invalidSubmenu();
+    orphanSubmenu.destroy();
+
+    const firstElement = document.createElement('button');
+    const secondElement = document.createElement('button');
+    document.body.append(firstElement, secondElement);
+    const removeFirst = menu.registerItem(
+      { id: 'first', text: 'First', submenuId: 'first-submenu' },
+      firstElement,
+    );
+    menu.registerItem({ id: 'second', text: 'Second', submenuId: 'second-submenu' }, secondElement);
+    menu.registerItem({ id: 'disabled', text: 'Disabled', disabled: true });
+    menu.registerItem({ id: 'separator', text: '', kind: 'separator' });
+    const staleLeafElement = document.createElement('button');
+    const leafElement = document.createElement('button');
+    const staleLeaf = menu.registerItem({ id: 'leaf', text: 'Old leaf' }, staleLeafElement);
+    menu.registerItem({ id: 'leaf', text: 'Leaf' }, leafElement);
+    staleLeaf();
+    const firstSubmenu = createMenu();
+    firstSubmenu.registerItem({ id: 'first-child', text: 'First child' });
+    const secondSubmenu = createMenu();
+    secondSubmenu.registerItem({ id: 'second-child', text: 'Second child' });
+    const releaseFirstSubmenu = menu.registerSubmenu('first', firstSubmenu);
+    const releaseSecondSubmenu = menu.registerSubmenu('second', secondSubmenu);
+
+    menu.open();
+    menu.setActive('disabled');
+    menu.setActive('separator');
+    expect(menu.getSnapshot().activeId).toBe('first');
+    menu.handleKeyDown(keyboard('End'));
+    expect(menu.getSnapshot().activeId).toBe('leaf');
+    menu.handleKeyDown(keyboard('ArrowDown'));
+    expect(menu.getSnapshot().activeId).toBeNull();
+    menu.handleKeyDown(keyboard('ArrowUp'));
+    expect(menu.getSnapshot().activeId).toBe('leaf');
+    menu.handleKeyDown(keyboard('Home'));
+    menu.select('first', { reason: 'pointer' });
+    menu.select('second', { reason: 'keyboard', event: keyboard('ArrowRight') });
+    expect(firstSubmenu.getSnapshot().open).toBe(false);
+    expect(secondSubmenu.getSnapshot().open).toBe(true);
+    menu.handleKeyDown(keyboard('ArrowLeft'));
+    expect(secondSubmenu.getSnapshot().open).toBe(false);
+    menu.setActive('leaf');
+    menu.handleKeyDown(keyboard('ArrowRight'));
+    const cancelLeaf = menu.on('beforeSelect', (event) => event.preventDefault());
+    menu.select('leaf');
+    cancelLeaf();
+    menu.select('leaf');
+    menu.open();
+    menu.handleKeyDown(keyboard('x', { altKey: true }));
+    menu.setActive(null);
+    menu.handleKeyDown(keyboard('Enter'));
+    menu.toggle();
+    menu.toggle();
+    const replacementSubmenu = createMenu();
+    const releaseReplacement = menu.registerSubmenu('first', replacementSubmenu);
+    releaseFirstSubmenu();
+    releaseFirstSubmenu();
+    releaseReplacement();
+    releaseSecondSubmenu();
+    removeFirst();
+    removeFirst();
+    menu.destroy();
+    expect(menu.registerItem({ id: 'late', text: 'Late' })()).toBeUndefined();
+    expect(menu.registerSubmenu('first', firstSubmenu)()).toBeUndefined();
+    firstSubmenu.destroy();
+    secondSubmenu.destroy();
+    replacementSubmenu.destroy();
+
+    const upward = createDropdownMenu();
+    upward.registerItem({ id: 'one', text: 'One' });
+    upward.registerItem({ id: 'two', text: 'Two' });
+    upward.handleTrigger(keyboard('ArrowUp'));
+    expect(upward.getSnapshot().activeId).toBe('two');
+    upward.destroy();
+    const emptyUpward = createDropdownMenu();
+    emptyUpward.handleTrigger(keyboard('ArrowUp'));
+    expect(emptyUpward.getSnapshot().activeId).toBeNull();
+    emptyUpward.destroy();
+
+    const context = createContextMenu();
+    const content = document.createElement('div');
+    const invalid = new MouseEvent('contextmenu', { cancelable: true });
+    expect(context.handleContextMenu(invalid, content)()).toBeUndefined();
+    context.destroy();
+    context.destroy();
+    expect(context.handleContextMenu(invalid, content)()).toBeUndefined();
   });
 });
 
@@ -338,5 +498,43 @@ describe('Command Palette and Navigation Menu composition', () => {
     expect(navigation.getSnapshot().openId).toBeNull();
     remove();
     navigation.destroy();
+  });
+
+  it('commits controlled navigation only after notification and supports zero-delay pointer events', () => {
+    let openId: string | null = null;
+    let notify: () => void = () => undefined;
+    const request = vi.fn<(next: string | null) => void>();
+    const controlled = createNavigationMenu({
+      getValue: () => openId,
+      onValueChange: request,
+      subscribeValue(listener) {
+        notify = listener;
+        return () => undefined;
+      },
+    });
+    controlled.registerItem({ id: 'disabled', text: 'Disabled', disabled: true, hasContent: true });
+    controlled.registerItem({ id: 'products', text: 'Products', hasContent: true });
+    controlled.openItem('missing');
+    controlled.openItem('disabled');
+    controlled.close();
+    controlled.openItem('products', { reason: 'keyboard' });
+    expect(controlled.getSnapshot().openId).toBeNull();
+    openId = request.mock.calls.at(-1)?.[0] ?? null;
+    notify();
+    expect(controlled.getSnapshot().openId).toBe('products');
+    controlled.destroy();
+
+    const immediate = createNavigationMenu({ openDelay: 0, closeDelay: 0 });
+    const release = immediate.registerItem({ id: 'services', text: 'Services', hasContent: true });
+    const pointer = new PointerEvent('pointermove');
+    immediate.scheduleOpen('services', pointer);
+    expect(immediate.getSnapshot().openId).toBe('services');
+    immediate.scheduleClose(pointer);
+    expect(immediate.getSnapshot().openId).toBeNull();
+    release();
+    release();
+    immediate.scheduleOpen('services');
+    immediate.destroy();
+    immediate.scheduleClose();
   });
 });

@@ -46,7 +46,7 @@ export interface PopoverController
 
 /** Creates a collision-aware Popover that treats descendant overlay branches as inside. @public */
 export function createPopover(options: PopoverOptions = {}): PopoverController {
-  const base = createOpenController<OpenChangeReason>({
+  const base = createOpenController({
     role: 'dialog',
     modal: false,
     trapFocus: false,

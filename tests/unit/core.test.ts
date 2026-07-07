@@ -15,6 +15,7 @@ import {
   focusInitial,
   fuzzyScore,
   getOwnerDocument,
+  getOwnerWindow,
   getScrollableAncestors,
   getTabbableElements,
   hasDOM,
@@ -68,6 +69,28 @@ describe('core resource ownership and events', () => {
     expect(scope.disposed).toBe(true);
   });
 
+  it('continues reverse cleanup after errors and reports every failure', () => {
+    const calls: number[] = [];
+    const scope = createDisposableScope();
+    scope.add(() => {
+      calls.push(1);
+      throw new Error('first');
+    });
+    scope.add(() => {
+      calls.push(2);
+      throw new Error('second');
+    });
+    expect(() => scope.dispose()).toThrow(AggregateError);
+    expect(calls).toEqual([2, 1]);
+    expect(scope.disposed).toBe(true);
+    const single = createDisposableScope();
+    const failure = new Error('single');
+    single.add(() => {
+      throw failure;
+    });
+    expect(() => single.dispose()).toThrow(failure);
+  });
+
   it('supports deterministic on/off/once, cancellation, and listener mutation', () => {
     type Events = { change: { value: number } };
     const emitter = createEventEmitter<Events>();
@@ -119,7 +142,7 @@ describe('core resource ownership and events', () => {
     expect(cell.set(4, { reason: 'set' })).toBe(false);
 
     let external = 5;
-    let invalidate = () => undefined;
+    let invalidate: () => void = () => undefined;
     const unsubscribe = vi.fn();
     const controlledChanges: number[] = [];
     const controlled = createControllableValue(
@@ -143,6 +166,90 @@ describe('core resource ownership and events', () => {
     expect(controlled.get()).toBe(6);
     controlled.destroy();
     expect(unsubscribe).toHaveBeenCalledOnce();
+  });
+
+  it('treats null and undefined as authoritative and waits for controlled commits', () => {
+    let nullable: string | null = null;
+    const nullableCell = createControllableValue<string | null, 'set'>(
+      { defaultValue: 'fallback', getValue: () => nullable },
+      vi.fn(),
+    );
+    expect(nullableCell.get()).toBeNull();
+
+    const external: { optional?: string } = {};
+    let notify: () => void = () => undefined;
+    const observed = vi.fn();
+    const optionalCell = createControllableValue<string | undefined, 'set'>(
+      {
+        defaultValue: 'fallback',
+        getValue: () => external.optional,
+        onValueChange: vi.fn(),
+        subscribeValue(listener) {
+          notify = listener;
+          listener();
+          return () => undefined;
+        },
+      },
+      observed,
+    );
+    expect(optionalCell.get()).toBeUndefined();
+    expect(optionalCell.set('accepted', { reason: 'set' })).toBe(false);
+    expect(observed).not.toHaveBeenCalled();
+    external.optional = 'accepted';
+    notify();
+    expect(observed).toHaveBeenCalledWith('accepted', { reason: 'set' });
+    nullable = 'next';
+    expect(nullableCell.get()).toBe('next');
+    nullableCell.destroy();
+    optionalCell.destroy();
+  });
+
+  it('restores controllable update state when a change callback throws', () => {
+    let shouldThrow = true;
+    const cell = createControllableValue<number, 'set'>(
+      {
+        defaultValue: 0,
+        onValueChange() {
+          if (shouldThrow) throw new Error('change failed');
+        },
+      },
+      vi.fn(),
+    );
+    expect(() => cell.set(1, { reason: 'set' })).toThrow('change failed');
+    shouldThrow = false;
+    expect(cell.set(2, { reason: 'set' })).toBe(true);
+    expect(cell.get()).toBe(2);
+    cell.destroy();
+  });
+
+  it('separates unrelated external commits from pending controlled requests', () => {
+    let external = 0;
+    let notify: () => void = () => undefined;
+    const observed = vi.fn();
+    const cell = createControllableValue<number, 'set'>(
+      {
+        defaultValue: -1,
+        getValue: () => external,
+        onValueChange: vi.fn(),
+        subscribeValue(listener) {
+          notify = listener;
+          return () => undefined;
+        },
+      },
+      observed,
+    );
+    expect(cell.set(1, { reason: 'set' })).toBe(false);
+    external = 2;
+    notify();
+    expect(observed).toHaveBeenLastCalledWith(2, undefined);
+    notify();
+    expect(observed).toHaveBeenCalledOnce();
+    cell.destroy();
+    cell.destroy();
+    external = 3;
+    notify();
+    expect(observed).toHaveBeenCalledOnce();
+    expect(cell.set(4, { reason: 'set' })).toBe(false);
   });
 });
 
@@ -312,6 +419,10 @@ describe('DOM and focus utilities', () => {
   it('keeps imports DOM-aware only at invocation and owns listeners', () => {
     expect(hasDOM()).toBe(true);
     expect(getOwnerDocument()).toBe(document);
+    expect(getOwnerWindow(document)).toBe(window);
+    expect(getOwnerWindow(document.body)).toBe(window);
+    const detachedDocument = document.implementation.createHTMLDocument('detached');
+    expect(getOwnerWindow(detachedDocument)).toBeUndefined();
     const button = document.createElement('button');
     document.body.append(button);
     expect(getOwnerDocument(button)).toBe(document);
@@ -401,6 +512,18 @@ describe('DOM and focus utilities', () => {
       new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }),
     );
     expect(document.activeElement).toBe(last);
+    const outside = document.createElement('button');
+    document.body.append(outside);
+    outside.focus();
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }),
+    );
+    expect(document.activeElement).toBe(last);
+    outside.focus();
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }),
+    );
+    expect(document.activeElement).toBe(first);
     release();
     expect(restoreFocus(first)).toBe(true);
     first.remove();
@@ -422,6 +545,54 @@ describe('DOM and focus utilities', () => {
     disabled.disabled = true;
     document.body.append(disabled);
     expect(restoreFocus(disabled)).toBe(false);
+
+    const variants = document.createElement('div');
+    const hiddenParent = document.createElement('div');
+    hiddenParent.hidden = true;
+    hiddenParent.append(document.createElement('button'));
+    const inertParent = document.createElement('div');
+    inertParent.setAttribute('inert', '');
+    inertParent.append(document.createElement('button'));
+    const ariaHiddenParent = document.createElement('div');
+    ariaHiddenParent.setAttribute('aria-hidden', 'true');
+    ariaHiddenParent.append(document.createElement('button'));
+    const displayNone = document.createElement('button');
+    displayNone.style.display = 'none';
+    const invisible = document.createElement('button');
+    invisible.style.visibility = 'hidden';
+    const details = document.createElement('details');
+    const summary = document.createElement('summary');
+    const summaryButton = document.createElement('button');
+    summary.append(summaryButton);
+    details.append(summary, document.createElement('button'));
+    const unnamedRadio = document.createElement('input');
+    unnamedRadio.type = 'radio';
+    const firstRadio = document.createElement('input');
+    firstRadio.type = 'radio';
+    firstRadio.name = 'group';
+    const checkedRadio = document.createElement('input');
+    checkedRadio.type = 'radio';
+    checkedRadio.name = 'group';
+    variants.append(
+      hiddenParent,
+      inertParent,
+      ariaHiddenParent,
+      displayNone,
+      invisible,
+      details,
+      unnamedRadio,
+      firstRadio,
+      checkedRadio,
+    );
+    document.body.append(variants);
+    for (const element of variants.querySelectorAll<HTMLElement>('button,input')) {
+      vi.spyOn(element, 'getClientRects').mockReturnValue({ length: 1 } as DOMRectList);
+    }
+    expect(getTabbableElements(variants)).toEqual([summaryButton, unnamedRadio, firstRadio]);
+    checkedRadio.checked = true;
+    expect(getTabbableElements(variants)).toEqual([summaryButton, unnamedRadio, checkedRadio]);
+    expect(focusInitial(variants, displayNone)).toBe(summaryButton);
+    expect(restoreFocus(invisible)).toBe(false);
   });
 
   it('generates deterministic unique IDs', () => {

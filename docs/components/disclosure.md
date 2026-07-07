@@ -12,4 +12,4 @@ Options cover deterministic ID, disabled state, and controlled/uncontrolled expa
 
 Enter and Space toggle when a non-native trigger needs forwarding; native button activation can use click. Focus remains on the trigger. Destroy is idempotent and external subscriptions are released. Consumers should use a real button and meaningful heading context.
 
-Uncontrolled, controlled, and disabled examples execute from the shared [`createExample()` source](../../apps/demo/src/examples/create-example.ts).
+Uncontrolled, controlled, and disabled examples execute from the shared [`createExample()` source](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/create-example.ts).

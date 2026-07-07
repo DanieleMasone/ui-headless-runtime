@@ -204,6 +204,32 @@ export function createTreeView(options: TreeOptions = {}): TreeController {
   const sync = (): void => {
     host.update(build(expanded.get(), selected.get(), expanded.controlled, selected.controlled));
   };
+  let pendingExpansion: TreeChangeEvent | undefined;
+  let pendingSelection: TreeChangeEvent | undefined;
+  const commitExpansion = (
+    _expandedIds: readonly string[],
+    changeDetails?: ChangeDetails<TreeChangeReason>,
+  ): void => {
+    sync();
+    if (!changeDetails || !pendingExpansion) return;
+    const payload = { ...pendingExpansion, details: changeDetails };
+    pendingExpansion = undefined;
+    host.emit('expand', payload);
+    host.emit('stateChange', payload);
+  };
+  const commitSelection = (
+    _selectedIds: readonly string[],
+    changeDetails?: ChangeDetails<TreeChangeReason>,
+  ): void => {
+    sync();
+    if (!changeDetails || !pendingSelection) return;
+    activeId = pendingSelection.node.id;
+    const payload = { ...pendingSelection, details: changeDetails };
+    pendingSelection = undefined;
+    sync();
+    host.emit('select', payload);
+    host.emit('stateChange', payload);
+  };
   const expanded = createControllableValue<readonly string[], TreeChangeReason>(
     {
       defaultValue: initialExpanded,
@@ -211,7 +237,7 @@ export function createTreeView(options: TreeOptions = {}): TreeController {
       ...(options.onExpandedIdsChange ? { onValueChange: options.onExpandedIdsChange } : {}),
       ...(options.subscribeExpandedIds ? { subscribeValue: options.subscribeExpandedIds } : {}),
     },
-    sync,
+    commitExpansion,
   );
   const selected = createControllableValue<readonly string[], TreeChangeReason>(
     {
@@ -220,7 +246,7 @@ export function createTreeView(options: TreeOptions = {}): TreeController {
       ...(options.onSelectedIdsChange ? { onValueChange: options.onSelectedIdsChange } : {}),
       ...(options.subscribeSelectedIds ? { subscribeValue: options.subscribeSelectedIds } : {}),
     },
-    sync,
+    commitSelection,
   );
   const setActive = (id: string | null): void => {
     if (!host.alive()) return;
@@ -238,10 +264,8 @@ export function createTreeView(options: TreeOptions = {}): TreeController {
     const next = current.includes(id) ? current.filter((item) => item !== id) : [...current, id];
     const payload = { node, details: changeDetails };
     if (!host.emit('beforeExpand', payload)) return;
-    expanded.set(next, changeDetails);
-    sync();
-    host.emit('expand', payload);
-    host.emit('stateChange', payload);
+    pendingExpansion = payload;
+    if (expanded.set(next, changeDetails)) commitExpansion(next, changeDetails);
   };
   const selectNode = (
     id: string,
@@ -257,11 +281,8 @@ export function createTreeView(options: TreeOptions = {}): TreeController {
       : [id];
     const payload = { node, details: changeDetails };
     if (!host.emit('beforeSelect', payload)) return;
-    activeId = id;
-    selected.set(next, changeDetails);
-    sync();
-    host.emit('select', payload);
-    host.emit('stateChange', payload);
+    pendingSelection = payload;
+    if (selected.set(next, changeDetails)) commitSelection(next, changeDetails);
   };
   const visibleEnabled = (): readonly TreeNode[] =>
     flatten(expanded.get())

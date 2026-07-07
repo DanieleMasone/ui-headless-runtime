@@ -6,11 +6,11 @@ Install Node 24 and npm 11, clone the repository, and run `npm ci`. Use `npm run
 
 ## Development checks
 
-Run `npm run format`, `npm run lint`, and `npm run typecheck`. Unit tests use `npm run test:unit`; coverage uses `npm run test:coverage`; real-browser integration uses `npm run test:browser`. Playwright uses the production `site-dist` artifact, so run coverage, `npm run build`, `npm run build:site`, and `npm run site:check` before E2E/a11y.
+Run `npm run format`, `npm run lint`, `npm run unused:check`, and `npm run typecheck`. Unit tests use `npm run test:unit`; coverage uses `npm run test:coverage`; real-browser integration uses `npm run test:browser`. Playwright uses the production `site-dist` artifact, so run coverage, `npm run build`, `npm run docs:check`, `npm run build:site`, and `npm run site:check` before `npm run test:acceptance`.
 
 ## Public API and docs
 
-Add TSDoc before exporting a symbol. Run `npm run api:check`; when the intended surface changes, run `npm run api:update` and review the diff. Build TypeDoc with `npm run docs:api`. Update the relevant architecture, component, and integration documentation.
+Add TSDoc before exporting a symbol. Run `npm run api:check`; when the intended surface changes, run `npm run api:update` once and review the diff. Build TypeDoc with `npm run docs:api`, the static documentation with `npm run docs:site`, and validate it with `npm run docs:check`. Update the relevant architecture, component, and integration documentation.
 
 ## Accessibility
 
@@ -19,7 +19,7 @@ Test keyboard-only interaction, focus entry/containment/restoration, Arrow/Home/
 ## Pull request checklist
 
 - The change reuses shared layers and has complete cleanup.
-- No avoidable `any`, broad lint suppression, placeholder, TODO, or import-time DOM access was added.
+- No avoidable `any`, broad lint suppression, placeholder note, or import-time DOM access was added.
 - Public API/TSDoc/API report and demo registry are coherent.
 - Unit, browser, production E2E, accessibility, package smoke, and coverage gates pass.
 - README/architecture/component/operations docs match actual behavior.

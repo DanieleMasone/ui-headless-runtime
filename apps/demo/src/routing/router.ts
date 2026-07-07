@@ -7,7 +7,7 @@ const normalize = (hash: string): string => {
   return path === '/' || path.length === 0 ? '/' : path.replace(/\/+$/u, '');
 };
 
-export function currentPath(): string {
+function currentPath(): string {
   return normalize(location.hash);
 }
 

@@ -22,4 +22,4 @@ Opening does not move focus by default. Set `focusContent` only when the popover
 
 Binding owns document listeners, resize/scroll observation, and focus behavior only while open. Coordinates are viewport-relative; the consumer applies styles and animation.
 
-The demo scenarios exercise anchored, viewport-edge, and controlled-state behavior using the same [`createExample()` implementation](../../apps/demo/src/examples/create-example.ts) executed by the Pages site.
+The demo scenarios exercise anchored, viewport-edge, and controlled-state behavior using the same [`createExample()` implementation](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/create-example.ts) executed by the Pages site.

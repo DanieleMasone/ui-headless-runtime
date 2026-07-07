@@ -6,7 +6,7 @@ export const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const packageMetadata = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
 const repositoryUrl = packageMetadata.repository.url;
-export const repositoryName =
+const repositoryName =
   process.env.SITE_REPOSITORY ??
   repositoryUrl
     .replace(/\.git$/u, '')

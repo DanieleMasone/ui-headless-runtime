@@ -1,9 +1,7 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../tsconfig.workspace.json",
   "compilerOptions": {
-    "composite": true,
-    "noEmit": true,
-    "tsBuildInfoFile": "../../node_modules/.cache/demo.tsbuildinfo"
+    "noEmit": true
   },
   "include": ["src/**/*.ts", "vite.config.ts"]
 }

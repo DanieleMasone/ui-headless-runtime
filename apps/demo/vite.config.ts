@@ -7,5 +7,6 @@ const normalizeBase = (value: string | undefined): string => {
 
 export default defineConfig({
   base: normalizeBase(process.env.BASE_PATH),
+  resolve: { tsconfigPaths: true },
   build: { outDir: 'dist', target: 'es2022', sourcemap: true },
 });

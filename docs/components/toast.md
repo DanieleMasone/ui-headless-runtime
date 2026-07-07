@@ -18,4 +18,4 @@ Timeout ownership begins when a record enters the deterministic queue, including
 
 Render polite records as status and assertive records as alert. Do not auto-focus. Provide a reachable dismiss control for persistent actionable content. Destroy clears every timer and external subscription.
 
-The Pages laboratory runs priority, promise, and pause/resume examples from the same [`createExample()` source](../../apps/demo/src/examples/create-example.ts) shown in its source panel.
+The Pages laboratory runs priority, promise, and pause/resume examples from the same [`createExample()` source](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/create-example.ts) shown in its source panel.

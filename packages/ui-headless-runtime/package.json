@@ -45,6 +45,9 @@
     "access": "public"
   },
   "scripts": {
-    "build": "vite build && tsc -p tsconfig.build.json && api-extractor run --local --config api-extractor.json"
+    "build": "npm run build:bundles && npm run build:types",
+    "build:bundles": "vite build",
+    "emit:types": "tsc -p tsconfig.build.json",
+    "build:types": "npm run emit:types && api-extractor run --config api-extractor.json"
   }
 }

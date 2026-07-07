@@ -24,4 +24,4 @@ Render a labelled `role=dialog`; apply `aria-modal` from the snapshot. Modal bin
 
 Release `bind()` and call `destroy()`. Removed triggers, no tabbables, invalid focus targets, nested dialogs, programmatic close, and double destroy are safe. The consumer supplies the accessible name and backdrop markup.
 
-The modal, non-modal, nested, and no-tabbable examples use the production controller through the shared [`createExample()` source](../../apps/demo/src/examples/create-example.ts).
+The modal, non-modal, nested, and no-tabbable examples use the production controller through the shared [`createExample()` source](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/create-example.ts).

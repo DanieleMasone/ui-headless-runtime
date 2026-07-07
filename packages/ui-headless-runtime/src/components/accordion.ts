@@ -136,6 +136,17 @@ export function createAccordion(options: AccordionOptions = {}): AccordionContro
   const sync = (): void => {
     host.update(build(state.get(), state.controlled));
   };
+  let pendingChange: AccordionChangeEvent | undefined;
+  const commit = (
+    expandedIds: readonly string[],
+    changeDetails?: ChangeDetails<AccordionChangeReason>,
+  ): void => {
+    sync();
+    if (!changeDetails || !pendingChange) return;
+    const payload = { ...pendingChange, expandedIds, details: changeDetails };
+    pendingChange = undefined;
+    host.emit('stateChange', payload);
+  };
   const state = createControllableValue<readonly string[], AccordionChangeReason>(
     {
       defaultValue: options.defaultValue ?? [],
@@ -143,7 +154,7 @@ export function createAccordion(options: AccordionOptions = {}): AccordionContro
       ...(options.onValueChange ? { onValueChange: options.onValueChange } : {}),
       ...(options.subscribeValue ? { subscribeValue: options.subscribeValue } : {}),
     },
-    sync,
+    commit,
   );
   const focus = (id: string): void => {
     const item = collection.get(id);
@@ -167,9 +178,8 @@ export function createAccordion(options: AccordionOptions = {}): AccordionContro
     } else next = type === 'single' ? [itemId] : [...current, itemId];
     const payload = { expandedIds: next, itemId, details: changeDetails };
     if (!host.emit('beforeChange', payload)) return;
-    state.set(next, changeDetails);
-    sync();
-    host.emit('stateChange', payload);
+    pendingChange = payload;
+    if (state.set(next, changeDetails)) commit(next, changeDetails);
   };
   host.resources.add(() => state.destroy());
   host.resources.add(() => collection.clear());
@@ -185,7 +195,10 @@ export function createAccordion(options: AccordionOptions = {}): AccordionContro
       if (trigger) triggers.set(item.id, trigger);
       if (!focusedId && !item.disabled) focusedId = item.id;
       sync();
+      let active = true;
       return () => {
+        if (!active) return;
+        active = false;
         unregister();
         if (triggers.get(item.id) === trigger) triggers.delete(item.id);
         if (focusedId === item.id) focusedId = collection.edge('first') ?? null;

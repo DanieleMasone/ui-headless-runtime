@@ -7,7 +7,13 @@ import type {
   EventSource,
   RuntimeController,
 } from '../core/types';
-import { inertSiblings, listen, lockDocumentScroll, observeOutsideInteraction } from '../dom/dom';
+import {
+  inertSiblings,
+  isHTMLElement,
+  listen,
+  lockDocumentScroll,
+  observeOutsideInteraction,
+} from '../dom/dom';
 import { focusInitial, restoreFocus, trapFocus } from '../focus/focus';
 import { createControllableValue } from '../state/controllable';
 import {
@@ -88,8 +94,8 @@ export interface OpenSnapshot {
 }
 
 /** Shared options used by overlay-style component factories. @public */
-export interface OpenControllerOptions<TReason extends OpenChangeReason> extends Partial<
-  ControllableValueOptions<boolean, TReason>
+export interface OpenControllerOptions extends Partial<
+  ControllableValueOptions<boolean, OpenChangeReason>
 > {
   /** Consumer-provided deterministic content ID. */
   readonly id?: string;
@@ -118,11 +124,11 @@ export interface OpenControllerOptions<TReason extends OpenChangeReason> extends
 }
 
 /** Internal overlay primitive reused by all public overlay controllers. */
-export interface OpenController<TReason extends OpenChangeReason>
-  extends RuntimeController<OpenSnapshot>, EventSource<OpenLifecycleEvents<TReason>> {
-  open(details: ChangeDetails<TReason>): void;
-  close(details: ChangeDetails<TReason>): void;
-  toggle(details: ChangeDetails<TReason>): void;
+export interface OpenController
+  extends RuntimeController<OpenSnapshot>, EventSource<OpenLifecycleEvents> {
+  open(details: ChangeDetails<OpenChangeReason>): void;
+  close(details: ChangeDetails<OpenChangeReason>): void;
+  toggle(details: ChangeDetails<OpenChangeReason>): void;
   bind(elements: OverlayElements): () => void;
   updatePosition(): void;
 }
@@ -140,11 +146,9 @@ const details = <TReason extends OpenChangeReason>(
   event?: Event,
 ): ChangeDetails<TReason> => (event ? { reason, event } : { reason });
 
-export function createOpenController<TReason extends OpenChangeReason>(
-  options: OpenControllerOptions<TReason>,
-): OpenController<TReason> {
+export function createOpenController(options: OpenControllerOptions): OpenController {
   const id = options.id ?? createRuntimeId(options.role);
-  const host = createControllerHost<OpenSnapshot, OpenLifecycleEvents<TReason>>({
+  const host = createControllerHost<OpenSnapshot, OpenLifecycleEvents>({
     open: options.defaultValue ?? false,
     controlled: options.getValue !== undefined,
     topmost: false,
@@ -167,17 +171,14 @@ export function createOpenController<TReason extends OpenChangeReason>(
       return;
     host.update({ ...current, open, topmost, position });
   };
-  const state = createControllableValue<boolean, TReason>(
+  const state = createControllableValue<boolean, OpenChangeReason>(
     {
       defaultValue: options.defaultValue ?? false,
       ...(options.getValue ? { getValue: options.getValue } : {}),
       ...(options.onValueChange ? { onValueChange: options.onValueChange } : {}),
       ...(options.subscribeValue ? { subscribeValue: options.subscribeValue } : {}),
     },
-    () => {
-      refreshSnapshot();
-      syncResources();
-    },
+    (open, changeDetails) => commit(open, changeDetails),
   );
 
   const updatePosition = (): void => {
@@ -186,11 +187,18 @@ export function createOpenController<TReason extends OpenChangeReason>(
     if (!anchor) return;
     const rectangle = anchor.getBoundingClientRect();
     const floating = bound.content.getBoundingClientRect();
+    const ownerWindow = bound.content.ownerDocument.defaultView;
+    const viewportWidth = options.positioning?.viewportWidth ?? ownerWindow?.innerWidth;
+    const viewportHeight = options.positioning?.viewportHeight ?? ownerWindow?.innerHeight;
     refreshSnapshot(
       calculatePosition(
         rectangle,
         { width: floating.width, height: floating.height },
-        options.positioning,
+        {
+          ...options.positioning,
+          ...(viewportWidth !== undefined ? { viewportWidth } : {}),
+          ...(viewportHeight !== undefined ? { viewportHeight } : {}),
+        },
       ),
     );
   };
@@ -218,7 +226,9 @@ export function createOpenController<TReason extends OpenChangeReason>(
     const ownerDocument = content.ownerDocument;
     restoreTarget =
       trigger ??
-      (ownerDocument.activeElement instanceof HTMLElement ? ownerDocument.activeElement : null);
+      (isHTMLElement(ownerDocument.activeElement, ownerDocument)
+        ? ownerDocument.activeElement
+        : null);
     const stack = overlayStacks.get(ownerDocument) ?? [];
     const entry: StackEntry = { id, content, sync: () => refreshSnapshot() };
     stack.push(entry);
@@ -239,7 +249,7 @@ export function createOpenController<TReason extends OpenChangeReason>(
             stack.at(-1)?.id === id
           ) {
             event.preventDefault();
-            change(false, details('escape-key' as TReason, event));
+            change(false, details('escape-key', event));
           }
         },
         true,
@@ -255,13 +265,13 @@ export function createOpenController<TReason extends OpenChangeReason>(
           const higher = stack.slice(stack.findIndex((item) => item.id === id) + 1);
           if (higher.some((item) => event.composedPath().includes(item.content))) return;
           if (options.closeOnOutsidePointer ?? true) {
-            change(false, details('outside-pointer' as TReason, event));
+            change(false, details('outside-pointer', event));
           }
         },
         onFocusOutside(event) {
           const higher = stack.slice(stack.findIndex((item) => item.id === id) + 1);
           if (higher.some((item) => event.composedPath().includes(item.content))) return;
-          if (options.closeOnFocusOutside) change(false, details('focus-out' as TReason, event));
+          if (options.closeOnFocusOutside) change(false, details('focus-out', event));
         },
       }),
     );
@@ -280,13 +290,11 @@ export function createOpenController<TReason extends OpenChangeReason>(
     }
   };
 
-  const change = (open: boolean, changeDetails: ChangeDetails<TReason>): void => {
-    if (!host.alive() || state.get() === open) return;
-    const payload = { open, details: changeDetails };
-    if (!host.emit(open ? 'beforeOpen' : 'beforeClose', payload)) return;
-    state.set(open, changeDetails);
+  const commit = (open: boolean, changeDetails?: ChangeDetails<OpenChangeReason>): void => {
     refreshSnapshot(open ? host.getSnapshot().position : null);
     syncResources();
+    if (!changeDetails) return;
+    const payload = { open, details: changeDetails };
     host.emit(open ? 'open' : 'close', payload);
     host.emit('stateChange', payload);
     const dismissedOutside =
@@ -299,6 +307,13 @@ export function createOpenController<TReason extends OpenChangeReason>(
       restoreFocus(restoreTarget);
     }
     host.emit(open ? 'afterOpen' : 'afterClose', payload);
+  };
+
+  const change = (open: boolean, changeDetails: ChangeDetails<OpenChangeReason>): void => {
+    if (!host.alive() || state.get() === open) return;
+    const payload = { open, details: changeDetails };
+    if (!host.emit(open ? 'beforeOpen' : 'beforeClose', payload)) return;
+    if (state.set(open, changeDetails)) commit(open, changeDetails);
   };
 
   host.resources.add(() => state.destroy());

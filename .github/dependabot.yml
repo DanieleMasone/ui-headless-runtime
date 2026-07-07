@@ -10,6 +10,9 @@ updates:
       npm-non-breaking:
         patterns: ['*']
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
     directory: /

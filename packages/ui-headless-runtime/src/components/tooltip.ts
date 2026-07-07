@@ -61,7 +61,7 @@ const activeScopes = new Map<string, () => void>();
 export function createTooltip(options: TooltipOptions = {}): TooltipController {
   const id = options.id ?? createRuntimeId('tooltip');
   const scope = options.scope ?? 'default';
-  const overlay = createOpenController<OpenChangeReason>({
+  const overlay = createOpenController({
     id: `${id}-content`,
     role: 'tooltip',
     closeOnFocusOutside: false,

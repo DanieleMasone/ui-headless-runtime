@@ -2,6 +2,7 @@ import { createRuntimeId } from '../accessibility/ids';
 import { createControllerHost } from '../core/host';
 import type { ChangeDetails, EventSource, RuntimeController, Unsubscribe } from '../core/types';
 import { createControllableValue } from '../state/controllable';
+import { listen } from '../dom/dom';
 
 /** Toast visual/announcement lifecycle state. @public */
 export type ToastStatus = 'loading' | 'success' | 'error' | 'info';
@@ -120,6 +121,8 @@ export interface ToastController
   pause(id: string): void;
   /** Resumes an auto-dismiss timeout from its preserved remaining duration. */
   resume(id: string): void;
+  /** Pauses on hover/focus and resumes when interaction leaves the rendered toast. */
+  bindPause(id: string, element: HTMLElement): () => void;
   /** Tracks a promise while preserving its original fulfillment or rejection. */
   promise<TValue>(
     promise: Promise<TValue>,
@@ -154,6 +157,25 @@ export function createToast(options: ToastOptions = {}): ToastController {
     host.update(build(state.get(), state.controlled));
     reconcileTimers();
   };
+  let pendingMutation:
+    | {
+        readonly type: 'show' | 'update' | 'dismiss';
+        readonly payload: ToastEvent;
+        readonly onCommit?: () => void;
+      }
+    | undefined;
+  const commit = (
+    _records: readonly ToastRecord[],
+    changeDetails?: ChangeDetails<ToastChangeReason>,
+  ): void => {
+    if (changeDetails && pendingMutation) pendingMutation.onCommit?.();
+    sync();
+    if (!changeDetails || !pendingMutation) return;
+    const { type, payload } = pendingMutation;
+    pendingMutation = undefined;
+    host.emit(type, { ...payload, details: changeDetails });
+    host.emit('stateChange', { ...payload, details: changeDetails });
+  };
   const state = createControllableValue<readonly ToastRecord[], ToastChangeReason>(
     {
       defaultValue: [],
@@ -161,7 +183,7 @@ export function createToast(options: ToastOptions = {}): ToastController {
       ...(options.onToastsChange ? { onValueChange: options.onToastsChange } : {}),
       ...(options.subscribeToasts ? { subscribeValue: options.subscribeToasts } : {}),
     },
-    sync,
+    commit,
   );
   const clearTimer = (id: string): void => {
     const active = timers.get(id);
@@ -175,15 +197,10 @@ export function createToast(options: ToastOptions = {}): ToastController {
     if (!host.alive()) return;
     const record = state.get().find((toast) => toast.id === id);
     if (!record) return;
-    clearTimer(id);
-    state.set(
-      state.get().filter((toast) => toast.id !== id),
-      changeDetails,
-    );
-    sync();
     const payload = { toast: record, details: changeDetails };
-    host.emit('dismiss', payload);
-    host.emit('stateChange', payload);
+    pendingMutation = { type: 'dismiss', payload, onCommit: () => clearTimer(id) };
+    const next = state.get().filter((toast) => toast.id !== id);
+    if (state.set(next, changeDetails)) commit(next, changeDetails);
   };
   const startTimer = (record: ToastRecord, remaining = record.duration): void => {
     clearTimer(record.id);
@@ -235,10 +252,9 @@ export function createToast(options: ToastOptions = {}): ToastController {
     });
     const payload = { toast: record, details: { reason: 'programmatic' as const } };
     if (!host.emit('beforeShow', payload)) return record.id;
-    state.set([...state.get(), record], payload.details);
-    sync();
-    host.emit('show', payload);
-    host.emit('stateChange', payload);
+    pendingMutation = { type: 'show', payload };
+    const next = [...state.get(), record];
+    if (state.set(next, payload.details)) commit(next, payload.details);
     return record.id;
   };
   const updateRecord = (
@@ -249,20 +265,54 @@ export function createToast(options: ToastOptions = {}): ToastController {
     if (!host.alive()) return;
     const previous = state.get().find((toast) => toast.id === id);
     if (!previous) return;
-    clearTimer(id);
     const record: ToastRecord = Object.freeze({
       ...previous,
       ...input,
       duration: input.duration === undefined ? previous.duration : input.duration,
     });
-    state.set(
-      state.get().map((toast) => (toast.id === id ? record : toast)),
-      changeDetails,
-    );
-    sync();
     const payload = { toast: record, details: changeDetails };
-    host.emit('update', payload);
-    host.emit('stateChange', payload);
+    pendingMutation = { type: 'update', payload, onCommit: () => clearTimer(id) };
+    const next = state.get().map((toast) => (toast.id === id ? record : toast));
+    if (state.set(next, changeDetails)) commit(next, changeDetails);
+  };
+  const pause = (id: string): void => {
+    if (!host.alive()) return;
+    const record = state.get().find((toast) => toast.id === id);
+    if (!record || record.paused) return;
+    const active = timers.get(id);
+    const remaining = active
+      ? Math.max(0, active.remaining - (Date.now() - active.started))
+      : record.duration;
+    const paused = Object.freeze({ ...record, paused: true });
+    const payload = { toast: paused, details: { reason: 'update' as const } };
+    pendingMutation = {
+      type: 'update',
+      payload,
+      onCommit: () => {
+        clearTimer(id);
+        if (remaining !== null) timers.set(id, { started: Date.now(), remaining });
+      },
+    };
+    const next = state.get().map((toast) => (toast.id === id ? paused : toast));
+    if (state.set(next, payload.details)) commit(next, payload.details);
+  };
+  const resume = (id: string): void => {
+    if (!host.alive()) return;
+    const record = state.get().find((toast) => toast.id === id);
+    if (!record?.paused) return;
+    const remaining = timers.get(id)?.remaining ?? record.duration;
+    const resumed = Object.freeze({ ...record, paused: false });
+    const payload = { toast: resumed, details: { reason: 'update' as const } };
+    pendingMutation = {
+      type: 'update',
+      payload,
+      onCommit: () => {
+        clearTimer(id);
+        if (remaining !== null) timers.set(id, { started: Date.now(), remaining });
+      },
+    };
+    const next = state.get().map((toast) => (toast.id === id ? resumed : toast));
+    if (state.set(next, payload.details)) commit(next, payload.details);
   };
   host.resources.add(() => state.destroy());
   host.resources.add(() => [...timers.keys()].forEach(clearTimer));
@@ -275,38 +325,27 @@ export function createToast(options: ToastOptions = {}): ToastController {
     show,
     update: (id, input) => updateRecord(id, input, { reason: 'update' }),
     dismiss,
-    pause(id) {
-      if (!host.alive()) return;
-      const record = state.get().find((toast) => toast.id === id);
-      if (!record || record.paused) return;
-      const remaining = stopTimer(id) ?? record.duration;
-      const paused = Object.freeze({ ...record, paused: true });
-      state.set(
-        state.get().map((toast) => (toast.id === id ? paused : toast)),
-        { reason: 'update' },
-      );
-      if (remaining !== null) timers.set(id, { started: Date.now(), remaining });
-      sync();
-      const payload = { toast: paused, details: { reason: 'update' as const } };
-      host.emit('update', payload);
-      host.emit('stateChange', payload);
-    },
-    resume(id) {
-      if (!host.alive()) return;
-      const record = state.get().find((toast) => toast.id === id);
-      if (!record?.paused) return;
-      const remaining = timers.get(id)?.remaining ?? record.duration;
-      clearTimer(id);
-      if (remaining !== null) timers.set(id, { started: Date.now(), remaining });
-      const resumed = Object.freeze({ ...record, paused: false });
-      state.set(
-        state.get().map((toast) => (toast.id === id ? resumed : toast)),
-        { reason: 'update' },
-      );
-      sync();
-      const payload = { toast: resumed, details: { reason: 'update' as const } };
-      host.emit('update', payload);
-      host.emit('stateChange', payload);
+    pause,
+    resume,
+    bindPause(id, element) {
+      if (!host.alive()) return () => undefined;
+      const cleanups = [
+        listen<PointerEvent>(element, 'pointerenter', () => pause(id)),
+        listen<PointerEvent>(element, 'pointerleave', () => resume(id)),
+        listen<FocusEvent>(element, 'focusin', () => pause(id)),
+        listen<FocusEvent>(element, 'focusout', (event) => {
+          const related = event.relatedTarget;
+          if (
+            related &&
+            typeof related === 'object' &&
+            'nodeType' in related &&
+            element.contains(related as Node)
+          )
+            return;
+          resume(id);
+        }),
+      ];
+      return host.resources.add(() => cleanups.splice(0).forEach((cleanup) => cleanup()));
     },
     async promise<TValue>(
       promise: Promise<TValue>,

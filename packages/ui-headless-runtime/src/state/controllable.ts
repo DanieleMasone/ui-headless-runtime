@@ -22,16 +22,30 @@ export interface ControllableValue<TValue, TReason extends string> {
  */
 export function createControllableValue<TValue, TReason extends string>(
   options: ControllableValueOptions<TValue, TReason>,
-  onExternalChange: () => void,
+  onExternalChange: (value: TValue, details?: ChangeDetails<TReason>) => void,
 ): ControllableValue<TValue, TReason> {
   let internal = options.defaultValue;
   let destroyed = false;
   let notifying = false;
+  let requesting = false;
   let queued: { value: TValue; details: ChangeDetails<TReason> } | undefined;
-  const controlled = options.getValue !== undefined;
-  const externalUnsubscribe: Unsubscribe =
-    options.subscribeValue?.(onExternalChange) ?? (() => undefined);
-  const get = (): TValue => options.getValue?.() ?? internal;
+  let pendingRequest: { value: TValue; details: ChangeDetails<TReason> } | undefined;
+  const externalReader = options.getValue;
+  const controlled = externalReader !== undefined;
+  const get = (): TValue => (externalReader ? externalReader() : internal);
+  let lastObserved = get();
+  const notifyExternal = (): void => {
+    if (destroyed) return;
+    const value = get();
+    if (Object.is(lastObserved, value)) return;
+    lastObserved = value;
+    const details =
+      pendingRequest && Object.is(pendingRequest.value, value) ? pendingRequest.details : undefined;
+    if (details) pendingRequest = undefined;
+    if (!requesting) onExternalChange(value, details);
+  };
+  let externalUnsubscribe: Unsubscribe = () => undefined;
+  externalUnsubscribe = options.subscribeValue?.(notifyExternal) ?? externalUnsubscribe;
   const commit = (value: TValue, details: ChangeDetails<TReason>): boolean => {
     if (destroyed || Object.is(get(), value)) return false;
     if (notifying) {
@@ -39,19 +53,42 @@ export function createControllableValue<TValue, TReason extends string>(
       return true;
     }
     notifying = true;
-    let next: { value: TValue; details: ChangeDetails<TReason> } | undefined = { value, details };
-    let changed = false;
-    while (next) {
-      queued = undefined;
-      if (!Object.is(get(), next.value)) {
-        if (!controlled) internal = next.value;
-        options.onValueChange?.(next.value, next.details);
-        changed = true;
+    try {
+      let next: { value: TValue; details: ChangeDetails<TReason> } | undefined = {
+        value,
+        details,
+      };
+      let changed = false;
+      while (next) {
+        queued = undefined;
+        const before = get();
+        if (!Object.is(before, next.value)) {
+          if (controlled) pendingRequest = next;
+          else internal = next.value;
+          requesting = true;
+          try {
+            options.onValueChange?.(next.value, next.details);
+          } finally {
+            requesting = false;
+          }
+          const observed = get();
+          if (!Object.is(before, observed)) {
+            lastObserved = observed;
+            if (controlled && Object.is(observed, next.value)) pendingRequest = undefined;
+            changed = true;
+          }
+        }
+        next = queued;
       }
-      next = queued;
+      return changed;
+    } catch (error) {
+      queued = undefined;
+      pendingRequest = undefined;
+      throw error;
+    } finally {
+      notifying = false;
+      requesting = false;
     }
-    notifying = false;
-    return changed;
   };
   return {
     get,
@@ -61,6 +98,7 @@ export function createControllableValue<TValue, TReason extends string>(
       if (destroyed) return;
       destroyed = true;
       queued = undefined;
+      pendingRequest = undefined;
       externalUnsubscribe();
     },
   };

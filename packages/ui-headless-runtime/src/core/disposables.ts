@@ -36,8 +36,17 @@ export function createDisposableScope(): DisposableScope {
     dispose() {
       if (disposed) return;
       disposed = true;
-      for (const dispose of [...disposers].reverse()) dispose();
+      const errors: unknown[] = [];
+      for (const dispose of [...disposers].reverse()) {
+        try {
+          dispose();
+        } catch (error) {
+          errors.push(error);
+        }
+      }
       disposers.clear();
+      if (errors.length === 1) throw errors[0];
+      if (errors.length > 1) throw new AggregateError(errors, 'Multiple resource cleanups failed.');
     },
   };
 }

@@ -12,4 +12,4 @@ Context Menu reuses Menu behavior with a pointer-coordinate virtual anchor. It s
 
 Render role menu/menuitem and an accessible conventional action alternative. Arrow keys, Home/End, typeahead, selection, and Escape come from Menu. Release the returned binding and destroy the controller. Mobile long-press behavior is intentionally consumer/platform-specific.
 
-Pointer-coordinate, keyboard-open, and submenu examples execute from the shared [`createExample()` source](../../apps/demo/src/examples/create-example.ts).
+Pointer-coordinate, keyboard-open, and submenu examples execute from the shared [`createExample()` source](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/create-example.ts).

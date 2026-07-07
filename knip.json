@@ -1,0 +1,31 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignore": [
+    "**/dist/**",
+    "coverage/**",
+    "docs-dist/**",
+    "docs/.vitepress/**",
+    "site-dist/**",
+    ".tmp/**"
+  ],
+  "workspaces": {
+    ".": {
+      "entry": [
+        "eslint.config.js",
+        "playwright.config.ts",
+        "docs/.vitepress/config.ts",
+        "vitest.config.ts",
+        "vitest.browser.config.ts",
+        "scripts/*.mjs",
+        "tests/**/*.ts"
+      ],
+      "project": ["*.{ts,js}", "docs/**/*.ts", "scripts/**/*.mjs", "tests/**/*.ts"]
+    },
+    "apps/demo": {
+      "entry": ["src/main.ts", "vite.config.ts"]
+    },
+    "packages/ui-headless-runtime": {
+      "entry": ["src/index.ts", "vite.config.ts"]
+    }
+  }
+}

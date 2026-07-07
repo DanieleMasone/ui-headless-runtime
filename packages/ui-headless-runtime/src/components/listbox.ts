@@ -135,6 +135,20 @@ export function createListbox(options: ListboxOptions = {}): ListboxController {
   const sync = (): void => {
     host.update(build(state.get(), state.controlled));
   };
+  let pendingSelection: ListboxSelectEvent | undefined;
+  const commit = (
+    selectedValues: readonly string[],
+    changeDetails?: ChangeDetails<ListboxChangeReason>,
+  ): void => {
+    sync();
+    if (!changeDetails || !pendingSelection) return;
+    activeId = pendingSelection.option.id;
+    const payload = { ...pendingSelection, selectedValues, details: changeDetails };
+    pendingSelection = undefined;
+    sync();
+    host.emit('select', payload);
+    host.emit('stateChange', payload);
+  };
   const state = createControllableValue<readonly string[], ListboxChangeReason>(
     {
       defaultValue: options.defaultValue ?? [],
@@ -142,7 +156,7 @@ export function createListbox(options: ListboxOptions = {}): ListboxController {
       ...(options.onValueChange ? { onValueChange: options.onValueChange } : {}),
       ...(options.subscribeValue ? { subscribeValue: options.subscribeValue } : {}),
     },
-    sync,
+    commit,
   );
   const setActive = (nextId: string | null): void => {
     if (!host.alive()) return;
@@ -169,11 +183,8 @@ export function createListbox(options: ListboxOptions = {}): ListboxController {
       return;
     const payload = { option, selectedValues: next, details: changeDetails };
     if (!host.emit('beforeSelect', payload)) return;
-    activeId = optionId;
-    state.set(next, changeDetails);
-    sync();
-    host.emit('select', payload);
-    host.emit('stateChange', payload);
+    pendingSelection = payload;
+    if (state.set(next, changeDetails)) commit(next, changeDetails);
   };
   const resetTypeahead = (): void => {
     typeahead = '';

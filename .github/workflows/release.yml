@@ -12,6 +12,7 @@ jobs:
   publish:
     name: Verify and publish
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
       id-token: write
@@ -19,10 +20,11 @@ jobs:
       name: npm
     steps:
       - name: Checkout release tag
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.release.tag_name }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Node.js and npm registry
         uses: actions/setup-node@v6
@@ -31,8 +33,13 @@ jobs:
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
 
-      - name: Use OIDC-capable npm CLI
-        run: npm install --global npm@11.17.0
+      - name: Use the repository npm CLI version
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="$(node -p "require('./package.json').packageManager.split('@').at(-1)")"
+          if [[ "$(npm --version)" != "$expected" ]]; then npm install --global "npm@$expected"; fi
+          test "$(npm --version)" = "$expected"
 
       - name: Verify tag, version, and release commit
         shell: bash
@@ -65,14 +72,7 @@ jobs:
           tar -tzf "release-tarball/$tarball"
 
       - name: Ensure version is not already published
-        shell: bash
-        run: |
-          set -euo pipefail
-          version="$(node -p "require('./packages/ui-headless-runtime/package.json').version")"
-          if npm view "ui-headless-runtime@$version" version >/dev/null 2>&1; then
-            echo "ui-headless-runtime@$version already exists" >&2
-            exit 1
-          fi
+        run: node scripts/check-package-version.mjs
 
       - name: Publish with npm Trusted Publishing
         shell: bash

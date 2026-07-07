@@ -10,7 +10,7 @@
 
 ## Commands
 
-Use `npm ci` for reproducible installs. `npm run typecheck`, `lint`, `test:coverage`, `test:browser`, `build`, `api:check`, `package:check`, `build:site`, `site:check`, `test:e2e`, and `test:a11y` are individual gates. `npm run ci` runs the local CI sequence. `npm run release:verify` covers publish gates without publishing.
+Use `npm ci` for reproducible installs. `npm run typecheck`, `lint`, `unused:check`, `test:coverage`, `test:browser`, `build`, `api:check`, `docs:check`, `package:check`, `build:site`, `site:check`, and `test:acceptance` are individual gates. `npm run ci` runs the local CI sequence. `npm run release:verify` covers publish gates without publishing.
 
 ## Invariants
 

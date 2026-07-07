@@ -16,4 +16,4 @@ Register, select, focus, and forward keydown. beforeSelect is cancellable. Horiz
 
 Render tablist, tab, and tabpanel with snapshot IDs and selected state. Removal selects/focuses a valid enabled peer. Release registrations and destroy.
 
-Automatic, manual, and vertical examples are executed from the shared [`createExample()` source](../../apps/demo/src/examples/create-example.ts).
+Automatic, manual, and vertical examples are executed from the shared [`createExample()` source](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/create-example.ts).

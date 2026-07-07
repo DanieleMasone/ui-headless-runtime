@@ -16,4 +16,4 @@ Bind trigger and menu content. Pointer click, ArrowDown, Enter, or Space opens; 
 
 Release item registrations and binding, then destroy. The consumer renders submenu DOM and uses the exposed submenu ID. Menu content should contain actions, not arbitrary form controls.
 
-Pointer/keyboard trigger, disabled item, and submenu examples execute from the shared [`createExample()` source](../../apps/demo/src/examples/create-example.ts).
+Pointer/keyboard trigger, disabled item, and submenu examples execute from the shared [`createExample()` source](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/create-example.ts).

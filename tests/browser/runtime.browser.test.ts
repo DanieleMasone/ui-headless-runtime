@@ -2,10 +2,13 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   createCombobox,
   createDialog,
+  createDropdownMenu,
   createListbox,
   createPopover,
   createTabs,
   createTooltip,
+  getOwnerWindow,
+  getTabbableElements,
 } from '../../packages/ui-headless-runtime/src/index';
 
 afterEach(() => {
@@ -88,12 +91,10 @@ describe('real-browser runtime integration', () => {
     const content = document.createElement('div');
     document.body.append(trigger, content);
     trigger.focus();
-
     const popover = createPopover();
     popover.bind({ trigger, content });
     popover.open();
     expect(document.activeElement).toBe(trigger);
-
     const tooltip = createTooltip({ openDelay: 0, closeDelay: 0 });
     tooltip.bind(trigger, content);
     tooltip.scheduleOpen('focus');
@@ -112,7 +113,6 @@ describe('real-browser runtime integration', () => {
     const combobox = createCombobox();
     combobox.registerOption({ id: 'tokyo', text: 'Tokyo', value: 'tokyo' });
     const unbind = combobox.bind({ trigger: input, content: popup });
-
     combobox.handleCompositionStart();
     input.value = '東';
     input.dispatchEvent(new InputEvent('input', { bubbles: true, data: '東' }));
@@ -120,10 +120,63 @@ describe('real-browser runtime integration', () => {
     input.addEventListener('compositionend', (event) => combobox.handleCompositionEnd(event));
     input.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '東' }));
     expect(combobox.getSnapshot().query).toBe('東');
-
     unbind();
     document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
     combobox.destroy();
     expect(combobox.getSnapshot().query).toBe('東');
+  });
+
+  it('uses each bound node realm for DOM classes, events, and owner window', () => {
+    const iframe = document.createElement('iframe');
+    document.body.append(iframe);
+    const realmDocument = iframe.contentDocument;
+    const realmWindow = iframe.contentWindow;
+    expect(realmDocument).not.toBeNull();
+    expect(realmWindow).not.toBeNull();
+    if (!realmDocument || !realmWindow) return;
+    const trigger = realmDocument.createElement('button');
+    const content = realmDocument.createElement('div');
+    const item = realmDocument.createElement('button');
+    content.append(item);
+    realmDocument.body.append(trigger, content);
+    const menu = createDropdownMenu();
+    menu.registerItem({ id: 'realm-item', text: 'Realm item' }, item);
+    menu.bind({ trigger, content });
+    const KeyboardEventConstructor = (realmWindow as Window & typeof globalThis).KeyboardEvent;
+    const event = new KeyboardEventConstructor('keydown', {
+      key: 'ArrowDown',
+      cancelable: true,
+    });
+    menu.handleTrigger(event);
+    expect(menu.getSnapshot()).toMatchObject({ open: true, activeId: 'realm-item' });
+    expect(event.defaultPrevented).toBe(true);
+    expect(getOwnerWindow(trigger)).toBe(realmWindow);
+    menu.destroy();
+  });
+
+  it('filters unavailable elements, closed details, and duplicate radio tab stops', () => {
+    const container = document.createElement('div');
+    const visible = document.createElement('button');
+    const hiddenParent = document.createElement('div');
+    hiddenParent.hidden = true;
+    hiddenParent.append(document.createElement('button'));
+    const ariaHiddenParent = document.createElement('div');
+    ariaHiddenParent.setAttribute('aria-hidden', 'true');
+    ariaHiddenParent.append(document.createElement('button'));
+    const details = document.createElement('details');
+    const summary = document.createElement('summary');
+    const summaryButton = document.createElement('button');
+    summary.append(summaryButton);
+    details.append(summary, document.createElement('button'));
+    const firstRadio = document.createElement('input');
+    firstRadio.type = 'radio';
+    firstRadio.name = 'choice';
+    const checkedRadio = document.createElement('input');
+    checkedRadio.type = 'radio';
+    checkedRadio.name = 'choice';
+    checkedRadio.checked = true;
+    container.append(visible, hiddenParent, ariaHiddenParent, details, firstRadio, checkedRadio);
+    document.body.append(container);
+    expect(getTabbableElements(container)).toEqual([visible, summaryButton, checkedRadio]);
   });
 });

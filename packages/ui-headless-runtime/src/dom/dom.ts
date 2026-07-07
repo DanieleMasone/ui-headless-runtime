@@ -27,6 +27,39 @@ export function getOwnerDocument(element?: Node | null): Document | undefined {
   return element?.ownerDocument ?? (hasDOM() ? document : undefined);
 }
 
+/** Resolves a node's owning window without preferring the ambient global realm. @public */
+export function getOwnerWindow(element?: Node | null): Window | undefined {
+  if (element?.nodeType === 9) return (element as Document).defaultView ?? undefined;
+  return getOwnerDocument(element)?.defaultView ?? undefined;
+}
+
+/** @internal */
+export function isHTMLElement(value: unknown, ownerDocument?: Document): value is HTMLElement {
+  if (!value || typeof value !== 'object') return false;
+  const document = ownerDocument ?? (value as Node).ownerDocument;
+  const Constructor = document?.defaultView?.HTMLElement;
+  return Boolean(Constructor && value instanceof Constructor);
+}
+
+/** @internal */
+export function isHTMLInputElement(value: unknown): value is HTMLInputElement {
+  if (!value || typeof value !== 'object') return false;
+  const Constructor = (value as Node).ownerDocument?.defaultView?.HTMLInputElement;
+  return Boolean(Constructor && value instanceof Constructor);
+}
+
+/** @internal */
+export function isKeyboardLikeEvent(event: Event): event is KeyboardEvent {
+  return 'key' in event && typeof event.key === 'string';
+}
+
+/** @internal */
+export function isAbortError(error: unknown): boolean {
+  return Boolean(
+    error && typeof error === 'object' && 'name' in error && error.name === 'AbortError',
+  );
+}
+
 /** Tests containment across shadow DOM using the event composed path when available. @public */
 export function eventTargets(event: Event, boundary: Node): boolean {
   return event.composedPath().includes(boundary) || boundary.contains(event.target as Node | null);

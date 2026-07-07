@@ -16,4 +16,4 @@ Each request gets an AbortController and generation. A stale or destroyed reques
 
 Render an input role combobox controlling the listbox. Arrow keys navigate, Enter selects, Escape closes. Release registration/binding and destroy to abort work. Consumers own debounce, network caching, display-value policy, and error UI.
 
-The local, stale-response, and empty-state examples execute directly from [`createExample()`](../../apps/demo/src/examples/create-example.ts); the async scenario deliberately gives the earlier query a longer latency.
+The local, stale-response, and empty-state examples execute directly from [`createExample()`](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/create-example.ts); the async scenario deliberately gives the earlier query a longer latency.

@@ -60,6 +60,22 @@ describe('controller host edge policies', () => {
     host.off('change', vi.fn());
   });
 
+  it('restores publication state after listener errors and deeply freezes plain snapshots', () => {
+    const host = createControllerHost<
+      { nested: { values: number[] }; value: number },
+      { change: number }
+    >({ nested: { values: [0] }, value: 0 });
+    const release = host.subscribe(() => {
+      throw new Error('listener failed');
+    });
+    expect(() => host.update({ nested: { values: [1] }, value: 1 })).toThrow('listener failed');
+    release();
+    expect(host.update({ nested: { values: [2] }, value: 2 })).toBe(true);
+    expect(Object.isFrozen(host.getSnapshot().nested)).toBe(true);
+    expect(Object.isFrozen(host.getSnapshot().nested.values)).toBe(true);
+    host.destroy();
+  });
+
   it('keeps component registrations and delayed commands inert after destroy', async () => {
     vi.useFakeTimers();
     const listbox = createListbox();

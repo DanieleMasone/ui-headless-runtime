@@ -4,6 +4,7 @@ import type {
   EventSource,
   RuntimeController,
 } from '../core/types';
+import { createSnapshotProjection } from '../core/projection';
 import {
   createOpenController,
   type OpenChangeReason,
@@ -17,7 +18,7 @@ export interface DialogSnapshot extends OpenSnapshot {
   /** Whether the dialog is modal. */
   readonly modal: boolean;
   /** Value for consumer-rendered `aria-modal`. */
-  readonly ariaModal: boolean;
+  readonly ariaModal: true | null;
   /** Metadata indicating whether a backdrop belongs to this dialog. */
   readonly hasBackdrop: boolean;
 }
@@ -56,7 +57,7 @@ export interface DialogController
 /** Creates a modal-by-default Dialog with topmost Escape handling and shared focus management. @public */
 export function createDialog(options: DialogOptions = {}): DialogController {
   const modal = options.modal ?? true;
-  const base = createOpenController<OpenChangeReason>({
+  const base = createOpenController({
     role: 'dialog',
     modal,
     trapFocus: modal,
@@ -75,44 +76,37 @@ export function createDialog(options: DialogOptions = {}): DialogController {
     ...(options.initialFocus ? { initialFocus: options.initialFocus } : {}),
     ...(options.restoreFocus !== undefined ? { restoreFocus: options.restoreFocus } : {}),
   });
-  const map = (snapshot: OpenSnapshot): DialogSnapshot => ({
+  let boundElements: OverlayElements | undefined;
+  const projection = createSnapshotProjection(base, (snapshot: OpenSnapshot): DialogSnapshot => ({
     ...snapshot,
     modal,
-    ariaModal: modal,
-    hasBackdrop: modal,
-  });
-  let current = map(base.getSnapshot());
-  let destroyed = false;
-  const listeners = new Set<(snapshot: Readonly<DialogSnapshot>) => void>();
-  const unsubscribe = base.subscribe((snapshot) => {
-    current = map(snapshot);
-    for (const listener of [...listeners]) listener(current);
-  });
+    ariaModal: modal ? true : null,
+    hasBackdrop: boundElements?.backdrop !== undefined,
+  }));
   return {
-    getSnapshot: () => current,
-    subscribe(listener) {
-      if (destroyed) return () => undefined;
-      listeners.add(listener);
-      let active = true;
-      return () => {
-        if (!active) return;
-        active = false;
-        listeners.delete(listener);
-      };
-    },
+    getSnapshot: projection.getSnapshot,
+    subscribe: projection.subscribe,
     on: base.on,
     off: base.off,
     once: base.once,
     open: (changeDetails = { reason: 'programmatic' }) => base.open(changeDetails),
     close: (changeDetails = { reason: 'programmatic' }) => base.close(changeDetails),
     toggle: (changeDetails = { reason: 'programmatic' }) => base.toggle(changeDetails),
-    bind: base.bind,
-    destroy() {
-      if (destroyed) return;
-      destroyed = true;
-      unsubscribe();
-      listeners.clear();
-      base.destroy();
+    bind(elements) {
+      boundElements = elements;
+      projection.refresh();
+      const unbind = base.bind(elements);
+      let active = true;
+      return () => {
+        if (!active) return;
+        active = false;
+        unbind();
+        if (boundElements === elements) {
+          boundElements = undefined;
+          projection.refresh();
+        }
+      };
     },
+    destroy: projection.destroy,
   };
 }

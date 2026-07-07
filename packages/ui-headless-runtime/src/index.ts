@@ -24,6 +24,7 @@ export { createRuntimeId } from './accessibility/ids';
 export {
   eventTargets,
   getOwnerDocument,
+  getOwnerWindow,
   getScrollableAncestors,
   hasDOM,
   inertSiblings,

@@ -16,4 +16,4 @@ Register, toggle, focus, and forward trigger keyboard events. beforeChange may c
 
 ArrowUp/Down, Home/End move enabled trigger focus; Enter/Space toggles. Consumers render each trigger in a heading and pair it with the panel. Dynamic removal repairs focused ID. Release registrations and destroy.
 
-Single, multiple, and dynamic-registration examples are executed from the shared [`createExample()` source](../../apps/demo/src/examples/create-example.ts).
+Single, multiple, and dynamic-registration examples are executed from the shared [`createExample()` source](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/create-example.ts).

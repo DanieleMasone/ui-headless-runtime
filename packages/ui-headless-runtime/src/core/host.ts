@@ -16,8 +16,18 @@ export interface ControllerHost<TSnapshot extends object, TEvents extends object
   emit<TKey extends keyof TEvents>(type: TKey, detail: TEvents[TKey]): boolean;
 }
 
-const freezeSnapshot = <TSnapshot extends object>(snapshot: TSnapshot): Readonly<TSnapshot> =>
-  Object.freeze(snapshot);
+const freezeSnapshot = <TSnapshot extends object>(snapshot: TSnapshot): Readonly<TSnapshot> => {
+  const visit = (value: unknown): void => {
+    if (!value || typeof value !== 'object' || Object.isFrozen(value)) return;
+    const prototype = Object.getPrototypeOf(value) as unknown;
+    if (Array.isArray(value) || prototype === Object.prototype || prototype === null) {
+      for (const nested of Object.values(value)) visit(nested);
+      Object.freeze(value);
+    }
+  };
+  visit(snapshot);
+  return snapshot;
+};
 
 export function createControllerHost<TSnapshot extends object, TEvents extends object>(
   initial: TSnapshot,
@@ -36,15 +46,21 @@ export function createControllerHost<TSnapshot extends object, TEvents extends o
       return true;
     }
     publishing = true;
-    let candidate: TSnapshot | undefined = next;
-    while (candidate) {
+    try {
+      let candidate: TSnapshot | undefined = next;
+      while (candidate) {
+        pending = undefined;
+        current = freezeSnapshot(candidate);
+        for (const listener of [...listeners]) listener(current);
+        candidate = pending;
+      }
+      return true;
+    } catch (error) {
       pending = undefined;
-      current = freezeSnapshot(candidate);
-      for (const listener of [...listeners]) listener(current);
-      candidate = pending;
+      throw error;
+    } finally {
+      publishing = false;
     }
-    publishing = false;
-    return true;
   };
   return {
     resources,

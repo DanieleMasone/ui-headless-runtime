@@ -133,6 +133,20 @@ export function createTabs(options: TabsOptions = {}): TabsController {
   const sync = (): void => {
     host.update(build(state.get(), state.controlled));
   };
+  let pendingChange: TabsChangeEvent | undefined;
+  const commit = (
+    selectedId: string | null,
+    changeDetails?: ChangeDetails<TabsChangeReason>,
+  ): void => {
+    if (selectedId && collection.get(selectedId) && !collection.get(selectedId)?.disabled)
+      focusedId = selectedId;
+    sync();
+    if (!selectedId || !changeDetails || !pendingChange) return;
+    const payload = { selectedId, details: changeDetails };
+    pendingChange = undefined;
+    host.emit('select', payload);
+    host.emit('stateChange', payload);
+  };
   const state = createControllableValue<string | null, TabsChangeReason>(
     {
       defaultValue: options.defaultValue ?? null,
@@ -140,7 +154,7 @@ export function createTabs(options: TabsOptions = {}): TabsController {
       ...(options.onValueChange ? { onValueChange: options.onValueChange } : {}),
       ...(options.subscribeValue ? { subscribeValue: options.subscribeValue } : {}),
     },
-    sync,
+    commit,
   );
   const select = (
     id: string,
@@ -150,11 +164,8 @@ export function createTabs(options: TabsOptions = {}): TabsController {
     if (!item || item.disabled || state.get() === id) return;
     const payload = { selectedId: id, details: changeDetails };
     if (!host.emit('beforeSelect', payload)) return;
-    state.set(id, changeDetails);
-    focusedId = id;
-    sync();
-    host.emit('select', payload);
-    host.emit('stateChange', payload);
+    pendingChange = payload;
+    if (state.set(id, changeDetails)) commit(id, changeDetails);
   };
   const focus = (
     id: string,

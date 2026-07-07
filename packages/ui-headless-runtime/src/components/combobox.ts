@@ -1,6 +1,7 @@
 import { fuzzyScore } from '../collections/collection';
 import { createControllerHost } from '../core/host';
 import type { ChangeDetails, EventSource, RuntimeController } from '../core/types';
+import { isAbortError, isHTMLInputElement } from '../dom/dom';
 import type { PositionOptions, PositionResult } from '../positioning/positioning';
 import { createControllableValue } from '../state/controllable';
 import {
@@ -12,7 +13,6 @@ import {
 import {
   createOpenController,
   type OpenChangeEvent,
-  type OpenChangeReason,
   type OpenLifecycleEvents,
   type OverlayElements,
 } from './openable';
@@ -144,7 +144,7 @@ export interface ComboboxController
 /** Creates an editable Combobox with stale-response protection and shared Listbox behavior. @public */
 export function createCombobox(options: ComboboxOptions = {}): ComboboxController {
   const listbox = createListbox(options.id ? { id: `${options.id}-listbox` } : {});
-  const overlay = createOpenController<OpenChangeReason>({
+  const overlay = createOpenController({
     role: 'listbox',
     closeOnFocusOutside: true,
     ...(options.positioning ? { positioning: options.positioning } : {}),
@@ -194,6 +194,44 @@ export function createCombobox(options: ComboboxOptions = {}): ComboboxControlle
       position: overlaySnapshot.position,
     });
   };
+  let pendingSelection: ComboboxSelectEvent | undefined;
+  const commitInput = (value: string, changeDetails?: ChangeDetails<ComboboxInputReason>): void => {
+    query = value;
+    rebuildVisible();
+    if (!changeDetails) {
+      void refresh();
+      return;
+    }
+    const payload = { query, details: changeDetails };
+    host.emit('queryChange', payload);
+    host.emit('stateChange', payload);
+    overlay.open({
+      reason: changeDetails.reason === 'input' ? 'trigger' : 'programmatic',
+      ...(changeDetails.event ? { event: changeDetails.event } : {}),
+    });
+    void refresh();
+  };
+  const commitSelection = (
+    _value: string | null,
+    changeDetails?: ChangeDetails<ListboxChangeReason>,
+  ): void => {
+    sync();
+    if (!changeDetails || !pendingSelection) return;
+    const payload = { ...pendingSelection, details: changeDetails };
+    pendingSelection = undefined;
+    const inputDetails: ChangeDetails<ComboboxInputReason> = {
+      reason: 'selection',
+      ...(changeDetails.event ? { event: changeDetails.event } : {}),
+    };
+    if (inputState.set(payload.option.text, inputDetails))
+      commitInput(payload.option.text, inputDetails);
+    host.emit('select', payload);
+    host.emit('stateChange', payload);
+    overlay.close({
+      reason: 'selection',
+      ...(changeDetails.event ? { event: changeDetails.event } : {}),
+    });
+  };
   const inputState = createControllableValue<string, ComboboxInputReason>(
     {
       defaultValue: options.defaultInputValue ?? '',
@@ -201,7 +239,7 @@ export function createCombobox(options: ComboboxOptions = {}): ComboboxControlle
       ...(options.onInputValueChange ? { onValueChange: options.onInputValueChange } : {}),
       ...(options.subscribeInputValue ? { subscribeValue: options.subscribeInputValue } : {}),
     },
-    sync,
+    commitInput,
   );
   const selectedState = createControllableValue<string | null, ListboxChangeReason>(
     {
@@ -210,7 +248,7 @@ export function createCombobox(options: ComboboxOptions = {}): ComboboxControlle
       ...(options.onSelectedValueChange ? { onValueChange: options.onSelectedValueChange } : {}),
       ...(options.subscribeSelectedValue ? { subscribeValue: options.subscribeSelectedValue } : {}),
     },
-    sync,
+    commitSelection,
   );
   const rebuildVisible = (): void => {
     visibleCleanups.splice(0).forEach((cleanup) => cleanup());
@@ -237,7 +275,7 @@ export function createCombobox(options: ComboboxOptions = {}): ComboboxControlle
       asyncOptions = Object.freeze([...result]);
       rebuildVisible();
     } catch (error) {
-      if (!(error instanceof DOMException && error.name === 'AbortError')) throw error;
+      if (!isAbortError(error)) throw error;
     } finally {
       if (currentRequest === requestId) {
         loading = false;
@@ -250,17 +288,7 @@ export function createCombobox(options: ComboboxOptions = {}): ComboboxControlle
     changeDetails: ChangeDetails<ComboboxInputReason> = { reason: 'programmatic' },
   ): void => {
     if (!host.alive() || inputState.get() === value) return;
-    inputState.set(value, changeDetails);
-    query = value;
-    rebuildVisible();
-    const payload = { query, details: changeDetails };
-    host.emit('queryChange', payload);
-    host.emit('stateChange', payload);
-    overlay.open({
-      reason: changeDetails.reason === 'input' ? 'trigger' : 'programmatic',
-      ...(changeDetails.event ? { event: changeDetails.event } : {}),
-    });
-    void refresh();
+    if (inputState.set(value, changeDetails)) commitInput(value, changeDetails);
   };
   const selectOption = (
     id: string,
@@ -300,20 +328,10 @@ export function createCombobox(options: ComboboxOptions = {}): ComboboxControlle
         localOptions.get(selection.option.id) ??
         asyncOptions.find((item) => item.id === selection.option.id);
       if (!option) return;
-      selectedState.set(option.value, selection.details);
-      inputState.set(option.text, {
-        reason: 'selection',
-        ...(selection.details.event ? { event: selection.details.event } : {}),
-      });
-      query = option.text;
       const payload = { option, details: selection.details };
-      sync();
-      host.emit('select', payload);
-      host.emit('stateChange', payload);
-      overlay.close({
-        reason: 'selection',
-        ...(selection.details.event ? { event: selection.details.event } : {}),
-      });
+      pendingSelection = payload;
+      if (selectedState.set(option.value, selection.details))
+        commitSelection(option.value, selection.details);
     }),
   );
   host.resources.add(() => inputState.destroy());
@@ -346,8 +364,7 @@ export function createCombobox(options: ComboboxOptions = {}): ComboboxControlle
     handleInput(event) {
       if (composing) return;
       const target = event.target;
-      if (target instanceof HTMLInputElement)
-        setInputValue(target.value, { reason: 'input', event });
+      if (isHTMLInputElement(target)) setInputValue(target.value, { reason: 'input', event });
     },
     handleKeyDown(event) {
       if (!host.alive()) return;
@@ -369,8 +386,7 @@ export function createCombobox(options: ComboboxOptions = {}): ComboboxControlle
       composing = false;
       const target = event.target;
       sync();
-      if (target instanceof HTMLInputElement)
-        setInputValue(target.value, { reason: 'input', event });
+      if (isHTMLInputElement(target)) setInputValue(target.value, { reason: 'input', event });
     },
     select: selectOption,
     refresh,

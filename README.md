@@ -1,19 +1,20 @@
 # UI Headless Runtime
 
 [![CI](https://github.com/DanieleMasone/ui-headless-runtime/actions/workflows/ci.yml/badge.svg)](https://github.com/DanieleMasone/ui-headless-runtime/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/ui-headless-runtime)](https://www.npmjs.com/package/ui-headless-runtime)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Framework-agnostic TypeScript controllers for accessible, customizable UI behavior. The runtime owns state, lifecycle, keyboard interaction, focus, selection, overlay coordination, positioning, and cleanup. Your application owns markup, CSS, branding, animation, and rendering.
 
-- [Live demo](https://danielemasone.github.io/ui-headless-runtime/)
-- [API documentation](https://danielemasone.github.io/ui-headless-runtime/api/)
-- [Coverage report](https://danielemasone.github.io/ui-headless-runtime/coverage/)
+- [Local interactive demo](apps/demo) (`npm run dev`)
+- [API and architecture source documentation](docs) (`npm run build:docs`)
+- [Coverage report](coverage) (`npm run test:coverage`)
 - [Architecture documentation](docs/architecture/overview.md)
-- [npm package](https://www.npmjs.com/package/ui-headless-runtime)
+- [npm destination after the first release](https://www.npmjs.com/package/ui-headless-runtime)
 - [GitHub repository](https://github.com/DanieleMasone/ui-headless-runtime)
 
 ## Install
+
+The package is not yet present on npm. After the first verified release:
 
 ```sh
 npm install ui-headless-runtime
@@ -92,11 +93,11 @@ npm run ci
 
 The quality pipeline runs formatting, ESLint, strict TypeScript, unit coverage (95% global thresholds), real-browser integration, ESM/CJS/IIFE build, API Extractor, TypeDoc, real-tarball consumer tests, demo/site checks, cross-browser E2E, and axe/manual accessibility assertions.
 
-Useful commands are documented in [CONTRIBUTING.md](CONTRIBUTING.md). Generated API docs and HTML coverage are composed with the demo into one GitHub Pages artifact.
+Useful commands are documented in [CONTRIBUTING.md](CONTRIBUTING.md). Generated API docs, the static documentation site, and HTML coverage are composed with the demo into one locally verified GitHub Pages artifact. The public Pages URL requires the first successful deployment.
 
 ## Release
 
-Publishing occurs only from a published GitHub Release with a matching `vX.Y.Z` tag. The dedicated workflow uses npm Trusted Publishing OIDC on a GitHub-hosted runner; no persistent npm publish token is used. See [release operations](docs/releasing.md).
+Publishing is configured to occur only from a published GitHub Release with a matching `vX.Y.Z` tag. The dedicated workflow uses npm Trusted Publishing OIDC on a GitHub-hosted runner; no persistent npm publish token is used. npm Trusted Publisher and GitHub Environment setup remain external prerequisites. See [release operations](docs/releasing.md).
 
 ## Contributing
 

@@ -16,13 +16,13 @@ export type ComponentId =
   | 'navigation-menu'
   | 'collapsible';
 
-export interface ExampleScenario {
+interface ExampleScenario {
   readonly id: string;
   readonly label: string;
   readonly description: string;
 }
 
-export interface KeyboardInteraction {
+interface KeyboardInteraction {
   readonly keys: string;
   readonly action: string;
 }

@@ -41,6 +41,8 @@ async function walk(directory) {
       if (extname(path) === '.html') {
         const html = await readFile(path, 'utf8');
         if (/localhost|127\.0\.0\.1/u.test(html)) throw new Error(`Localhost reference in ${path}`);
+        if (/href="[^"]+\.md(?:[?#"])/u.test(html))
+          throw new Error(`Raw Markdown link in generated HTML: ${path}`);
         const links = [...html.matchAll(/(?:src|href)="([^"]+)"/gu)].map((match) => match[1]);
         for (const link of links) {
           if (/^(?:https?:|mailto:|data:|javascript:|#)/u.test(link)) continue;

@@ -1,4 +1,3 @@
 {
-  "files": [],
-  "references": [{ "path": "packages/ui-headless-runtime" }, { "path": "apps/demo" }]
+  "extends": "./tsconfig.workspace.json"
 }

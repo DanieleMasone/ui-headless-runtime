@@ -133,6 +133,33 @@ export function createNavigationMenu(
       position: menuSnapshot.position,
     });
   };
+  const commit = (
+    openId: string | null,
+    changeDetails?: ChangeDetails<NavigationMenuReason>,
+  ): void => {
+    const previousId = host.getSnapshot().openId;
+    if (previousId && previousId !== openId)
+      disclosures.get(previousId)?.collapse({ reason: 'programmatic' });
+    if (openId) {
+      disclosures.get(openId)?.expand({ reason: 'programmatic' });
+      menu.open({
+        reason: changeDetails?.reason === 'keyboard' ? 'keyboard' : 'trigger',
+        ...(changeDetails?.event ? { event: changeDetails.event } : {}),
+      });
+    } else {
+      menu.close({
+        reason: changeDetails?.reason === 'outside-pointer' ? 'outside-pointer' : 'programmatic',
+        ...(changeDetails?.event ? { event: changeDetails.event } : {}),
+      });
+    }
+    sync();
+    if (!changeDetails) return;
+    const item = items.get(openId ?? previousId ?? '');
+    if (!item) return;
+    const payload = { item, openId, details: changeDetails };
+    host.emit(openId ? 'open' : 'close', payload);
+    host.emit('stateChange', payload);
+  };
   const state = createControllableValue<string | null, NavigationMenuReason>(
     {
       defaultValue: options.defaultValue ?? null,
@@ -140,7 +167,7 @@ export function createNavigationMenu(
       ...(options.onValueChange ? { onValueChange: options.onValueChange } : {}),
       ...(options.subscribeValue ? { subscribeValue: options.subscribeValue } : {}),
     },
-    sync,
+    commit,
   );
   const change = (
     openId: string | null,
@@ -152,22 +179,8 @@ export function createNavigationMenu(
     if (!item || item.disabled) return;
     const payload = { item, openId, details: changeDetails };
     if (!host.emit(openId ? 'beforeOpen' : 'beforeClose', payload)) return;
-    if (previousId) disclosures.get(previousId)?.collapse({ reason: 'programmatic' });
-    state.set(openId, changeDetails);
-    if (openId) {
-      disclosures.get(openId)?.expand({ reason: 'programmatic' });
-      menu.open({
-        reason: changeDetails.reason === 'keyboard' ? 'keyboard' : 'trigger',
-        ...(changeDetails.event ? { event: changeDetails.event } : {}),
-      });
-    } else
-      menu.close({
-        reason: changeDetails.reason === 'outside-pointer' ? 'outside-pointer' : 'programmatic',
-        ...(changeDetails.event ? { event: changeDetails.event } : {}),
-      });
-    sync();
-    host.emit(openId ? 'open' : 'close', payload);
-    host.emit('stateChange', payload);
+    if (state.set(openId, changeDetails)) commit(openId, changeDetails);
+    else commit(state.get());
   };
   host.resources.add(menu.subscribe(sync));
   host.resources.add(

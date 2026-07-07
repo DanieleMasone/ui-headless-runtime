@@ -294,7 +294,7 @@ export function createCommandPalette(options?: CommandPaletteOptions): CommandPa
 export function createContextMenu(options?: MenuOptions): ContextMenuController;
 
 // @public
-export function createControllableValue<TValue, TReason extends string>(options: ControllableValueOptions<TValue, TReason>, onExternalChange: () => void): ControllableValue<TValue, TReason>;
+export function createControllableValue<TValue, TReason extends string>(options: ControllableValueOptions<TValue, TReason>, onExternalChange: (value: TValue, details?: ChangeDetails<TReason>) => void): ControllableValue<TValue, TReason>;
 
 // @public
 export function createDialog(options?: DialogOptions): DialogController;
@@ -364,7 +364,7 @@ export interface DialogOptions extends Partial<ControllableValueOptions<boolean,
 
 // @public
 export interface DialogSnapshot extends OpenSnapshot {
-    readonly ariaModal: boolean;
+    readonly ariaModal: true | null;
     readonly hasBackdrop: boolean;
     readonly modal: boolean;
 }
@@ -473,6 +473,9 @@ export function fuzzyScore(value: string, query: string): number;
 export function getOwnerDocument(element?: Node | null): Document | undefined;
 
 // @public
+export function getOwnerWindow(element?: Node | null): Window | undefined;
+
+// @public
 export function getScrollableAncestors(element: Element): readonly Element[];
 
 // @public
@@ -558,6 +561,7 @@ export interface MenuController extends RuntimeController<MenuSnapshot>, EventSo
     handleKeyDown(event: KeyboardEvent): void;
     open(details?: ChangeDetails<OpenChangeReason>): void;
     registerItem(item: MenuItem, element?: HTMLElement): () => void;
+    registerSubmenu(itemId: string, submenu: MenuController): () => void;
     select(id: string, details?: ChangeDetails<MenuSelectReason>): void;
     setActive(id: string | null): void;
     toggle(details?: ChangeDetails<OpenChangeReason>): void;
@@ -859,6 +863,7 @@ export type ToastChangeReason = 'programmatic' | 'timeout' | 'dismiss' | 'promis
 
 // @public
 export interface ToastController extends RuntimeController<ToastSnapshot>, EventSource_2<ToastEvents> {
+    bindPause(id: string, element: HTMLElement): () => void;
     dismiss(id: string, details?: ChangeDetails<ToastChangeReason>): void;
     pause(id: string): void;
     promise<TValue>(promise: Promise<TValue>, messages: ToastPromiseMessages<TValue>, input?: Omit<ToastInput, 'message' | 'status'>): Promise<TValue>;

@@ -125,7 +125,8 @@ export function createExample(
       const releaseRender = nested.subscribe((snapshot) => {
         nestedContent.hidden = !snapshot.open;
         nestedContent.setAttribute('role', snapshot.role);
-        nestedContent.setAttribute('aria-modal', String(snapshot.ariaModal));
+        if (snapshot.ariaModal) nestedContent.setAttribute('aria-modal', 'true');
+        else nestedContent.removeAttribute('aria-modal');
       });
       nestedContent.hidden = true;
       destroyNested = () => {
@@ -141,7 +142,8 @@ export function createExample(
       (snapshot) => {
         content.hidden = !snapshot.open;
         content.setAttribute('role', snapshot.role);
-        content.setAttribute('aria-modal', String(snapshot.ariaModal));
+        if (snapshot.ariaModal) content.setAttribute('aria-modal', 'true');
+        else content.removeAttribute('aria-modal');
       },
       onEvent,
       () => {
@@ -393,6 +395,7 @@ export function createExample(
     region.className = 'toast-region';
     region.setAttribute('role', 'region');
     region.setAttribute('aria-label', 'Notifications');
+    const pauseBindings: (() => void)[] = [];
     let pausableId: string | undefined;
     let paused = false;
     const action =
@@ -436,6 +439,7 @@ export function createExample(
     return adapt(
       controller,
       (snapshot) => {
+        pauseBindings.splice(0).forEach((cleanup) => cleanup());
         region.replaceChildren(
           ...snapshot.visible.map((toast) => {
             const item = element('div');
@@ -445,11 +449,13 @@ export function createExample(
               element('span', toast.message),
               button(`Dismiss ${toast.message}`, () => controller.dismiss(toast.id)),
             );
+            pauseBindings.push(controller.bindPause(toast.id, item));
             return item;
           }),
         );
       },
       onEvent,
+      () => pauseBindings.splice(0).forEach((cleanup) => cleanup()),
     );
   }
 
@@ -829,6 +835,7 @@ export function createExample(
     );
   }
   const submenuStatus = element('p', 'Submenu closed');
+  const itemElements = new Map<string, HTMLButtonElement>();
   for (const [itemId, label] of itemDefinitions) {
     const item = button(label, () => menu.select(itemId, { reason: 'pointer' }));
     item.setAttribute('role', 'menuitem');
@@ -836,6 +843,7 @@ export function createExample(
     const disabled = scenario === 'disabled' && itemId === 'archive';
     item.disabled = disabled;
     item.setAttribute('aria-disabled', String(disabled));
+    itemElements.set(itemId, item);
     content.append(item);
     cleanups.push(
       menu.registerItem(
@@ -851,7 +859,43 @@ export function createExample(
       ),
     );
   }
-  stage.append(trigger, content, submenuStatus);
+  const submenuContent = element('div');
+  submenuContent.id = 'duplicate-actions';
+  submenuContent.className = 'menu-surface';
+  submenuContent.setAttribute('role', 'menu');
+  submenuContent.setAttribute('aria-label', 'Duplicate actions');
+  submenuContent.tabIndex = 0;
+  submenuContent.hidden = true;
+  if (scenario === 'submenu') {
+    const submenu = createMenu({ id: 'duplicate-actions' });
+    const duplicateTrigger = itemElements.get('duplicate');
+    if (duplicateTrigger) {
+      duplicateTrigger.setAttribute('aria-haspopup', 'menu');
+      duplicateTrigger.setAttribute('aria-controls', 'duplicate-actions');
+      const submenuItems = [
+        ['same-project', 'Duplicate in this project'],
+        ['another-project', 'Duplicate to another project'],
+      ] as const;
+      for (const [itemId, label] of submenuItems) {
+        const item = button(label, () => submenu.select(itemId, { reason: 'pointer' }));
+        item.setAttribute('role', 'menuitem');
+        item.tabIndex = -1;
+        submenuContent.append(item);
+        cleanups.push(submenu.registerItem({ id: itemId, text: label }, item));
+      }
+      submenuContent.addEventListener('keydown', (event) => submenu.handleKeyDown(event));
+      cleanups.push(submenu.bind({ trigger: duplicateTrigger, content: submenuContent }));
+      cleanups.push(menu.registerSubmenu('duplicate', submenu));
+      cleanups.push(
+        submenu.subscribe((snapshot) => {
+          submenuContent.hidden = !snapshot.open;
+          duplicateTrigger.setAttribute('aria-expanded', String(snapshot.open));
+        }),
+      );
+      cleanups.push(() => submenu.destroy());
+    }
+  }
+  stage.append(trigger, content, submenuContent, submenuStatus);
   const unbind = menu.bind({ trigger, content });
   return adapt(
     menu,
@@ -859,7 +903,7 @@ export function createExample(
       content.hidden = !snapshot.open;
       submenuStatus.hidden = scenario !== 'submenu';
       submenuStatus.textContent = snapshot.openSubmenuId
-        ? `Requested submenu: ${snapshot.openSubmenuId}`
+        ? `Open submenu: ${snapshot.openSubmenuId}`
         : 'Submenu closed';
     },
     onEvent,
