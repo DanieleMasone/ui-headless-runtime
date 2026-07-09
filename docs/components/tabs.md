@@ -111,6 +111,12 @@ The production demo loads the exact executable module from [`apps/demo/src/examp
 
 - The runtime does not lazy-load panel content; consumers decide rendering policy.
 
+## Related links
+
+- [Live demo](https://DanieleMasone.github.io/ui-headless-runtime/#/components/tabs)
+- [User Guide: controllers](../guide/controllers)
+- [User Guide: rendering contract](../guide/rendering-contract)
+
 ## API reference
 
 See [`createTabs`](https://DanieleMasone.github.io/ui-headless-runtime/api/functions/createTabs.html).

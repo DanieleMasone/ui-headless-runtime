@@ -220,7 +220,7 @@ const renderHome = (): void => {
     <section class="hero">
       <div>${heading('Behavior infrastructure for interfaces you own.', 'UI Headless Runtime')}
         <p class="lede">Accessible, framework-agnostic TypeScript controllers for overlays, collections, selection, disclosure, and feedback—without CSS, JSX, or renderer lock-in.</p>
-        <div class="actions"><a class="button primary" href="#/components">Explore components</a><a class="button" href="${siteLink('docs/')}">Read docs</a></div>
+        <div class="actions"><a class="button primary" href="#/components">Explore components</a><a class="button" href="${siteLink('docs/guide/')}">Read the User Guide</a></div>
       </div>
       <div class="install"><span>Package status</span><code>npm release pending</code><p>The tarball is verified locally; npm publication is intentionally release-driven.</p></div>
     </section>
@@ -253,7 +253,7 @@ const renderComponent = (definition: DemoComponentDefinition): void => {
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="#/components">Components</a><span aria-hidden="true">/</span><span>${definition.name}</span></nav>
     ${heading(definition.name, `${definition.category} · ${definition.status}`)}
     <p class="lede">${definition.summary}</p>
-    <div class="lab-toolbar"><label>Scenario<select class="scenario-select">${definition.scenarios.map((item) => `<option value="${item.id}">${item.label}</option>`).join('')}</select></label><a href="${siteLink(definition.apiPath)}">API reference</a></div>
+    <div class="lab-toolbar"><label>Scenario<select class="scenario-select">${definition.scenarios.map((item) => `<option value="${item.id}">${item.label}</option>`).join('')}</select></label><a href="${siteLink(`docs/components/${definition.id}.html`)}">Component docs</a><a href="${siteLink('docs/guide/controllers.html')}">User Guide</a><a href="${siteLink(definition.apiPath)}">API reference</a></div>
     <div class="laboratory">
       <section class="lab-example lab-panel" data-panel="example" aria-labelledby="live-heading"><h2 id="live-heading">Live example</h2><p class="scenario-description"></p><div class="example-mount"></div></section>
       <aside class="lab-inspector lab-panel" data-panel="state" aria-label="Runtime inspector"><div class="panel-heading"><h2>State inspector</h2><span>Live</span></div><pre class="state-output" tabindex="0"></pre></aside>
@@ -356,7 +356,7 @@ const unsubscribe = controller.subscribe(render);
 // framework unmount
 unsubscribe();
 controller.destroy();</code></pre>
-      <p><a href="${siteLink(`docs/${article.docsPath}`)}">Read the complete source documentation</a></p>
+      <p><a href="${siteLink(`docs/${article.docsPath}`)}">Read the generated documentation</a></p>
     </section>`;
 };
 

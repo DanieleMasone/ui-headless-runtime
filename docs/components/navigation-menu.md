@@ -111,6 +111,12 @@ The production demo loads the exact executable module from [`apps/demo/src/examp
 
 - The runtime does not choose responsive breakpoints or mobile drawer layout.
 
+## Related links
+
+- [Live demo](https://DanieleMasone.github.io/ui-headless-runtime/#/components/navigation-menu)
+- [User Guide: controllers](../guide/controllers)
+- [User Guide: rendering contract](../guide/rendering-contract)
+
 ## API reference
 
 See [`createNavigationMenu`](https://DanieleMasone.github.io/ui-headless-runtime/api/functions/createNavigationMenu.html).

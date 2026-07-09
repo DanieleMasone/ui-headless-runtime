@@ -9,6 +9,7 @@ All notable changes follow Keep a Changelog structure and semantic versioning.
 - Hardened workspace TypeScript, ESLint, demo resolution, API Extractor, TypeDoc, package verification, Pages composition, CI, and release verification gates.
 - Centralized additional runtime behavior for controlled commits, derived snapshots, DOM ownership, focus availability, submenu composition, toast timers, async combobox results, and cleanup error handling.
 - Added real coverage for controlled rejections, async state commits, stale combobox responses, toast pause/resume bindings, submenu behavior, focus filtering, SSR/package consumers, and generated docs/site verification.
+- Added a navigable User Guide and tightened documentation link policy so the public demo points to generated HTML docs rather than raw Markdown files.
 
 ## [0.1.0] - 2026-06-29
 

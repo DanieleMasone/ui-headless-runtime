@@ -122,6 +122,12 @@ The production demo loads the exact executable module from [`apps/demo/src/examp
 
 - The runtime cannot provide the dialog title, validate copy, or guarantee final WCAG conformance for consumer markup.
 
+## Related links
+
+- [Live demo](https://DanieleMasone.github.io/ui-headless-runtime/#/components/dialog)
+- [User Guide: controllers](../guide/controllers)
+- [User Guide: rendering contract](../guide/rendering-contract)
+
 ## API reference
 
 See [`createDialog`](https://DanieleMasone.github.io/ui-headless-runtime/api/functions/createDialog.html).

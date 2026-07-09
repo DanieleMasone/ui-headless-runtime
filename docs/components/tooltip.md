@@ -109,6 +109,12 @@ The production demo loads the exact executable module from [`apps/demo/src/examp
 
 - Touch behavior is intentionally conservative; do not depend on hover-only information for essential tasks.
 
+## Related links
+
+- [Live demo](https://DanieleMasone.github.io/ui-headless-runtime/#/components/tooltip)
+- [User Guide: controllers](../guide/controllers)
+- [User Guide: rendering contract](../guide/rendering-contract)
+
 ## API reference
 
 See [`createTooltip`](https://DanieleMasone.github.io/ui-headless-runtime/api/functions/createTooltip.html).

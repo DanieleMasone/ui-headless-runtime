@@ -18,5 +18,5 @@ dialog.destroy();
 ```
 
 The package includes no CSS and has zero runtime dependencies. See the
-[project documentation](https://danielemasone.github.io/ui-headless-runtime/) for complete DOM
-binding and accessibility responsibilities.
+[User Guide](https://danielemasone.github.io/ui-headless-runtime/docs/guide/) for controller
+lifecycle, DOM binding, cleanup, SSR, framework integration, and accessibility responsibilities.

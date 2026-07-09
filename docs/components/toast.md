@@ -109,6 +109,12 @@ The production demo loads the exact executable module from [`apps/demo/src/examp
 
 - The runtime does not persist notifications across page loads.
 
+## Related links
+
+- [Live demo](https://DanieleMasone.github.io/ui-headless-runtime/#/components/toast)
+- [User Guide: controllers](../guide/controllers)
+- [User Guide: rendering contract](../guide/rendering-contract)
+
 ## API reference
 
 See [`createToast`](https://DanieleMasone.github.io/ui-headless-runtime/api/functions/createToast.html).

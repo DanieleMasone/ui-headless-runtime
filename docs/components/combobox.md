@@ -111,6 +111,12 @@ The production demo loads the exact executable module from [`apps/demo/src/examp
 
 - The runtime does not debounce network calls automatically; consumers choose fetch policy.
 
+## Related links
+
+- [Live demo](https://DanieleMasone.github.io/ui-headless-runtime/#/components/combobox)
+- [User Guide: controllers](../guide/controllers)
+- [User Guide: rendering contract](../guide/rendering-contract)
+
 ## API reference
 
 See [`createCombobox`](https://DanieleMasone.github.io/ui-headless-runtime/api/functions/createCombobox.html).

@@ -109,6 +109,12 @@ The production demo loads the exact executable module from [`apps/demo/src/examp
 
 - Animation, height measurement, and visual persistence are intentionally outside the runtime.
 
+## Related links
+
+- [Live demo](https://DanieleMasone.github.io/ui-headless-runtime/#/components/disclosure)
+- [User Guide: controllers](../guide/controllers)
+- [User Guide: rendering contract](../guide/rendering-contract)
+
 ## API reference
 
 See [`createDisclosure`](https://DanieleMasone.github.io/ui-headless-runtime/api/functions/createDisclosure.html).

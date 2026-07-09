@@ -110,6 +110,12 @@ The production demo loads the exact executable module from [`apps/demo/src/examp
 
 - Browser or OS context-menu behavior outside the bound region is intentionally untouched.
 
+## Related links
+
+- [Live demo](https://DanieleMasone.github.io/ui-headless-runtime/#/components/context-menu)
+- [User Guide: controllers](../guide/controllers)
+- [User Guide: rendering contract](../guide/rendering-contract)
+
 ## API reference
 
 See [`createContextMenu`](https://DanieleMasone.github.io/ui-headless-runtime/api/functions/createContextMenu.html).

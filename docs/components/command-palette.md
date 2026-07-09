@@ -112,6 +112,12 @@ The production demo loads the exact executable module from [`apps/demo/src/examp
 
 - It does not index remote documents or perform async fetching; consumers provide commands.
 
+## Related links
+
+- [Live demo](https://DanieleMasone.github.io/ui-headless-runtime/#/components/command-palette)
+- [User Guide: controllers](../guide/controllers)
+- [User Guide: rendering contract](../guide/rendering-contract)
+
 ## API reference
 
 See [`createCommandPalette`](https://DanieleMasone.github.io/ui-headless-runtime/api/functions/createCommandPalette.html).

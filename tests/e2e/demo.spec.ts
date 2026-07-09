@@ -54,6 +54,11 @@ test('home, links, theme, search, history, and direct routes work', async ({ pag
   await page.goForward();
   await expect(page.getByRole('heading', { level: 1, name: 'Combobox' })).toBeVisible();
 
+  await page.getByRole('button', { name: 'Search documentation' }).click();
+  await page.getByRole('searchbox', { name: 'Search pages' }).fill('User Guide');
+  await page.getByRole('option', { name: /Guides.*User Guide/u }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'User Guide' })).toBeVisible();
+
   await visit(page, '/components/dialog');
   await expect(page.getByRole('heading', { level: 1, name: 'Dialog' })).toBeVisible();
 });
@@ -69,6 +74,13 @@ for (const component of componentCatalog) {
     await expect(
       page.locator('#main').getByRole('link', { name: 'API reference' }),
     ).toHaveAttribute('href', /api\//u);
+    await expect(
+      page.locator('#main').getByRole('link', { name: 'Component docs' }),
+    ).toHaveAttribute('href', new RegExp(`docs/components/${component.id}\\.html`, 'u'));
+    await expect(page.locator('#main').getByRole('link', { name: 'User Guide' })).toHaveAttribute(
+      'href',
+      /docs\/guide\/controllers\.html/u,
+    );
     await expect(page.getByRole('heading', { name: 'Executed source' })).toBeVisible();
   });
 }
@@ -152,9 +164,9 @@ test('article registry and accessibility contract render from centralized metada
   await expect(
     page.getByRole('heading', { level: 1, name: 'Cleanup and ownership' }),
   ).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Source documentation' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: 'Generated documentation' })).toHaveAttribute(
     'href',
-    /docs\//u,
+    /docs\/architecture\/cleanup-and-ownership\.html/u,
   );
 
   await visit(page, '/components/combobox');
@@ -242,7 +254,14 @@ test('mobile search and theme controls remain visible and functional', async ({ 
 });
 
 test('composed docs, API, and coverage sections avoid horizontal overflow', async ({ page }) => {
-  const routes = ['docs/', 'api/', 'coverage/'];
+  const routes = [
+    'docs/',
+    'docs/guide/',
+    'docs/components/dialog.html',
+    'docs/architecture/overview.html',
+    'api/',
+    'coverage/',
+  ];
   const viewports = [
     { width: 768, height: 1024 },
     { width: 390, height: 844 },

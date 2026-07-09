@@ -12,10 +12,43 @@ import {
 } from '../../metadata/site';
 
 const documentationRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const pages = (directory: string): DefaultTheme.SidebarItem[] =>
+const guideOrder = [
+  'index',
+  'getting-started',
+  'core-concepts',
+  'controllers',
+  'rendering-contract',
+  'state-management',
+  'controlled-vs-uncontrolled',
+  'events-and-reasons',
+  'dom-binding',
+  'accessibility',
+  'focus-management',
+  'overlays',
+  'collections',
+  'positioning',
+  'ssr',
+  'framework-integration',
+  'testing',
+  'troubleshooting',
+  'release-and-package',
+];
+const pages = (directory: string, order: readonly string[] = []): DefaultTheme.SidebarItem[] =>
   readdirSync(resolve(documentationRoot, directory))
     .filter((file) => file.endsWith('.md'))
-    .sort((left, right) => left.localeCompare(right))
+    .sort((left, right) => {
+      const leftSlug = left.replace(/\.md$/u, '');
+      const rightSlug = right.replace(/\.md$/u, '');
+      const leftIndex = order.indexOf(leftSlug);
+      const rightIndex = order.indexOf(rightSlug);
+      if (leftIndex !== -1 || rightIndex !== -1) {
+        return (
+          (leftIndex === -1 ? Number.MAX_SAFE_INTEGER : leftIndex) -
+          (rightIndex === -1 ? Number.MAX_SAFE_INTEGER : rightIndex)
+        );
+      }
+      return left.localeCompare(right);
+    })
     .map((file) => {
       const markdown = readFileSync(resolve(documentationRoot, directory, file), 'utf8');
       const title = /^#\s+(.+)$/mu.exec(markdown)?.[1] ?? file.replace(/\.md$/u, '');
@@ -23,6 +56,7 @@ const pages = (directory: string): DefaultTheme.SidebarItem[] =>
     });
 
 const sidebar: DefaultTheme.SidebarItem[] = [
+  { text: 'User Guide', collapsed: false, items: pages('guide', guideOrder) },
   { text: 'Components', collapsed: false, items: pages('components') },
   { text: 'Architecture', collapsed: false, items: pages('architecture') },
   { text: 'Guides', collapsed: false, items: pages('guides') },
@@ -42,6 +76,7 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: 'Documentation', link: '/' },
+      { text: 'User Guide', link: '/guide/' },
       { text: 'Interactive demo', link: siteUrl },
       { text: 'API', link: apiUrl },
       { text: 'Coverage', link: coverageUrl },

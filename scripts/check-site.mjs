@@ -10,6 +10,10 @@ const required = [
   'api/index.html',
   'coverage/index.html',
   'docs/index.html',
+  'docs/guide/index.html',
+  'docs/guide/getting-started.html',
+  'docs/components/dialog.html',
+  'docs/architecture/overview.html',
 ];
 for (const file of required) await access(resolve(site, file));
 
@@ -38,11 +42,18 @@ async function walk(directory) {
     else {
       const details = await stat(path);
       if (details.size > 15 * 1024 * 1024) throw new Error(`Unexpectedly large site file: ${path}`);
-      if (extname(path) === '.html') {
+      const extension = extname(path);
+      if (extension === '.html' || extension === '.js') {
         const html = await readFile(path, 'utf8');
         if (/localhost|127\.0\.0\.1/u.test(html)) throw new Error(`Localhost reference in ${path}`);
         if (/href="[^"]+\.md(?:[?#"])/u.test(html))
           throw new Error(`Raw Markdown link in generated HTML: ${path}`);
+        if (extension === '.js' && /docs\/[^'"`]+\.md(?:['"`?#)]|$)/u.test(html)) {
+          throw new Error(`Demo bundle contains a Markdown documentation route: ${path}`);
+        }
+      }
+      if (extension === '.html') {
+        const html = await readFile(path, 'utf8');
         const links = [...html.matchAll(/(?:src|href)="([^"]+)"/gu)].map((match) => match[1]);
         for (const link of links) {
           if (/^(?:https?:|mailto:|data:|javascript:|#)/u.test(link)) continue;

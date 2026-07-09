@@ -111,6 +111,12 @@ The production demo loads the exact executable module from [`apps/demo/src/examp
 
 - It does not impose visual layout or action side effects.
 
+## Related links
+
+- [Live demo](https://DanieleMasone.github.io/ui-headless-runtime/#/components/menu)
+- [User Guide: controllers](../guide/controllers)
+- [User Guide: rendering contract](../guide/rendering-contract)
+
 ## API reference
 
 See [`createMenu`](https://DanieleMasone.github.io/ui-headless-runtime/api/functions/createMenu.html).

@@ -5,7 +5,7 @@
 - `packages/ui-headless-runtime`: the only publishable package and only public API entry point.
 - `apps/demo`: private Vanilla TypeScript component laboratory; it imports only the package name.
 - `tests`: unit, real-browser, E2E, accessibility, and package-consumer verification.
-- `docs`: architecture, accessibility, component contracts, guides, ADRs, and release operations.
+- `docs`: User Guide, architecture, accessibility, component contracts, framework guides, ADRs, and release operations.
 - `scripts`: portable build/site/package checks with verified workspace boundaries.
 
 ## Commands
@@ -14,6 +14,7 @@ Use `npm ci` for reproducible installs. `npm run setup:browsers`, `typecheck`, `
 
 ## Invariants
 
+- Repository documentation is written in English.
 - No DOM global access or side effect during package evaluation.
 - Zero runtime dependencies and no runtime CSS.
 - One controllable-state layer, emitter, collection engine, focus layer, DOM ownership layer, and positioning engine.
@@ -22,12 +23,17 @@ Use `npm ci` for reproducible installs. `npm run setup:browsers`, `typecheck`, `
 - Demo imports never target package source or internal paths.
 - Shared component metadata lives in `metadata/components.ts`; demo-specific prose belongs in the demo registry or Markdown.
 - Demo examples are lazily loaded component modules under `apps/demo/src/examples`; source panels must load the exact module used by the current component.
+- Demo documentation links must point to generated HTML routes under `/docs/`, `/api/`, or `/coverage/`; never link local `.md` files from the public demo. GitHub source links are allowed only when labelled as source.
 - Storybook is intentionally not part of the repository; keep the Vanilla TypeScript laboratory as the single behavior demo surface unless an ADR supersedes `docs/adr/no-storybook-for-runtime-demo.md`.
 - Dependency version updates are manual: run `npm outdated` quarterly, before release, and immediately when a security alert requires action.
 
 ## Public API and TSDoc
 
-Export intentionally through `src/index.ts`; avoid implementation exports and deep-import dependencies. Public symbols need meaningful TSDoc describing behavior, state ownership, lifecycle, reason, accessibility, invalid conditions, cleanup, and limitations. Run `npm run api:update` only for intentional public changes and review the committed report.
+Export intentionally through `src/index.ts`; avoid implementation exports and deep-import dependencies. Public symbols need meaningful TSDoc describing behavior, state ownership, lifecycle, reason, accessibility, invalid conditions, cleanup, SSR constraints, and limitations. TypeDoc is the API reference source of truth; run `npm run docs:api` and `npm run docs:check` for docs validation. Run `npm run api:update` only for intentional public changes and review the committed report.
+
+## Documentation policy
+
+Keep `README.md` short: positioning, truthful badges, links, install status, quick start, component list, quality commands, release summary, contributing, and license. Put lifecycle details, controlled/uncontrolled behavior, framework integration, accessibility responsibilities, troubleshooting, and package details in `docs/guide/`. Component pages should stay component-specific and link to the live demo, User Guide, and TypeDoc API reference. Badges must be verifiable: no npm badge before npm publication, no hardcoded coverage badge, and no absolute WCAG compliance badge.
 
 ## Accessibility and demo
 

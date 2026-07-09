@@ -6,6 +6,28 @@ import { root } from './shared.mjs';
 const output = resolve(root, 'docs-dist', 'site');
 await access(resolve(output, 'index.html'));
 
+const requiredGuidePages = [
+  'index',
+  'getting-started',
+  'core-concepts',
+  'controllers',
+  'rendering-contract',
+  'state-management',
+  'controlled-vs-uncontrolled',
+  'events-and-reasons',
+  'dom-binding',
+  'accessibility',
+  'focus-management',
+  'overlays',
+  'collections',
+  'positioning',
+  'ssr',
+  'framework-integration',
+  'testing',
+  'troubleshooting',
+  'release-and-package',
+];
+
 const requiredComponentSections = [
   'Overview',
   'When to use',
@@ -29,6 +51,7 @@ const requiredComponentSections = [
   'Complete example',
   'Edge cases',
   'Limitations',
+  'Related links',
   'API reference',
 ];
 
@@ -49,15 +72,33 @@ for (const component of componentCatalog) {
   await access(resolve(root, 'apps', 'demo', 'src', 'examples', `${component.id}.ts`));
 }
 
-const files = [];
-const walk = async (directory) => {
+for (const page of requiredGuidePages) {
+  await access(resolve(root, 'docs', 'guide', `${page}.md`));
+  await access(resolve(output, 'guide', page === 'index' ? 'index.html' : `${page}.html`));
+}
+
+const collectFiles = async (directory, files = []) => {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const path = resolve(directory, entry.name);
-    if (entry.isDirectory()) await walk(path);
+    if (entry.isDirectory()) await collectFiles(path, files);
     else files.push(path);
   }
+  return files;
 };
-await walk(output);
+
+const demoSources = [
+  ...(await collectFiles(resolve(root, 'apps', 'demo', 'src'))),
+  ...(await collectFiles(resolve(root, 'metadata'))),
+].filter((file) => /\.(?:ts|js)$/u.test(file));
+
+for (const path of demoSources) {
+  const source = await readFile(path, 'utf8');
+  if (/\.md(?:['"`),\]\s]|$)/u.test(source)) {
+    throw new Error(`Demo or metadata source contains a Markdown documentation route: ${path}`);
+  }
+}
+
+const files = await collectFiles(output);
 
 for (const path of files.filter((file) => file.endsWith('.html'))) {
   const html = await readFile(path, 'utf8');

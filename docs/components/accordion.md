@@ -111,6 +111,12 @@ The production demo loads the exact executable module from [`apps/demo/src/examp
 
 - Heading level and content hierarchy are consumer responsibilities.
 
+## Related links
+
+- [Live demo](https://DanieleMasone.github.io/ui-headless-runtime/#/components/accordion)
+- [User Guide: controllers](../guide/controllers)
+- [User Guide: rendering contract](../guide/rendering-contract)
+
 ## API reference
 
 See [`createAccordion`](https://DanieleMasone.github.io/ui-headless-runtime/api/functions/createAccordion.html).

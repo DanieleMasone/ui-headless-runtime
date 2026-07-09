@@ -111,6 +111,12 @@ The production demo loads the exact executable module from [`apps/demo/src/examp
 
 - The runtime does not fetch child data; it only records loading state and ignores stale registrations.
 
+## Related links
+
+- [Live demo](https://DanieleMasone.github.io/ui-headless-runtime/#/components/tree-view)
+- [User Guide: controllers](../guide/controllers)
+- [User Guide: rendering contract](../guide/rendering-contract)
+
 ## API reference
 
 See [`createTreeView`](https://DanieleMasone.github.io/ui-headless-runtime/api/functions/createTreeView.html).

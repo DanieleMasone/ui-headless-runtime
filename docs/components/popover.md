@@ -112,6 +112,12 @@ The production demo loads the exact executable module from [`apps/demo/src/examp
 
 - It is not a menu engine; item navigation and selection belong to Menu or Listbox controllers.
 
+## Related links
+
+- [Live demo](https://DanieleMasone.github.io/ui-headless-runtime/#/components/popover)
+- [User Guide: controllers](../guide/controllers)
+- [User Guide: rendering contract](../guide/rendering-contract)
+
 ## API reference
 
 See [`createPopover`](https://DanieleMasone.github.io/ui-headless-runtime/api/functions/createPopover.html).

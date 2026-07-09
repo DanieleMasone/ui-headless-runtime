@@ -108,6 +108,12 @@ The production demo loads the exact executable module from [`apps/demo/src/examp
 
 - It intentionally adds no state model beyond Disclosure.
 
+## Related links
+
+- [Live demo](https://DanieleMasone.github.io/ui-headless-runtime/#/components/collapsible)
+- [User Guide: controllers](../guide/controllers)
+- [User Guide: rendering contract](../guide/rendering-contract)
+
 ## API reference
 
 See [`createCollapsible`](https://DanieleMasone.github.io/ui-headless-runtime/api/functions/createCollapsible.html).

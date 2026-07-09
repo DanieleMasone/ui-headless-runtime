@@ -36,7 +36,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Immutable snapshots and idempotent destruction.',
       'Shared layers instead of component-local infrastructure.',
     ],
-    'architecture/overview.md',
+    'architecture/overview.html',
   ),
   article(
     'Architecture',
@@ -48,7 +48,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Final snapshots remain readable.',
       'Re-entrant publication is deterministic.',
     ],
-    'architecture/overview.md',
+    'architecture/overview.html',
   ),
   article(
     'Architecture',
@@ -60,7 +60,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'External subscriptions invalidate snapshots.',
       'Every accepted request carries a reason.',
     ],
-    'architecture/state-model.md',
+    'architecture/state-model.html',
   ),
   article(
     'Architecture',
@@ -72,7 +72,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Cleanup is idempotent.',
       'Consumers own returned release functions.',
     ],
-    'architecture/events.md',
+    'architecture/events.html',
   ),
   article(
     'Architecture',
@@ -84,7 +84,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Roving focus skips disabled items.',
       'Restore targets must remain connected.',
     ],
-    'architecture/focus-management.md',
+    'architecture/focus-management.html',
   ),
   article(
     'Architecture',
@@ -96,7 +96,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Disabled entries are skipped.',
       'Text matching is normalized.',
     ],
-    'architecture/collections.md',
+    'architecture/collections.html',
   ),
   article(
     'Architecture',
@@ -108,7 +108,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Child overlays remain inside parents.',
       'Scroll and inert state are reference-counted.',
     ],
-    'architecture/overlay-stack.md',
+    'architecture/overlay-stack.html',
   ),
   article(
     'Architecture',
@@ -120,7 +120,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Flip and shift are deterministic.',
       'Virtual anchors support context menus.',
     ],
-    'architecture/positioning.md',
+    'architecture/positioning.html',
   ),
   article(
     'Architecture',
@@ -132,7 +132,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Owner documents support multiple realms.',
       'DOM commands remain explicit.',
     ],
-    'architecture/dom-and-ssr.md',
+    'architecture/dom-and-ssr.html',
   ),
   article(
     'Architecture',
@@ -144,7 +144,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Destroy releases composed controllers.',
       'Late commands are no-ops.',
     ],
-    'architecture/cleanup-and-ownership.md',
+    'architecture/cleanup-and-ownership.html',
   ),
   article(
     'Architecture',
@@ -156,7 +156,19 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Axe supplements keyboard and focus assertions.',
       'Conformance depends on the rendered product.',
     ],
-    'accessibility/conformance.md',
+    'accessibility/conformance.html',
+  ),
+  article(
+    'Guides',
+    '',
+    'User Guide',
+    'A practical path through installation, controller lifecycle, rendering, state, accessibility, SSR, testing, and package verification.',
+    [
+      'Start with the controller lifecycle.',
+      'Apply snapshots to your own markup.',
+      'Use framework lifecycles without official adapters.',
+    ],
+    'guide/index.html',
   ),
   article(
     'Guides',
@@ -164,7 +176,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
     'Installation',
     'Install the single public package and import only its root entrypoint.',
     ['No runtime dependencies.', 'No runtime CSS.', 'Node 20.19+ for package consumers.'],
-    'guides/typescript.md',
+    'guide/getting-started.html',
   ),
   article(
     'Guides',
@@ -176,7 +188,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Forward native events explicitly.',
       'Release bindings before removing DOM.',
     ],
-    'guides/vanilla-javascript.md',
+    'guides/vanilla-javascript.html',
   ),
   article(
     'Guides',
@@ -184,7 +196,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
     'TypeScript',
     'Use typed options, reason unions, snapshots, and lifecycle payloads.',
     ['Avoid deep imports.', 'Narrow reasons exhaustively.', 'Treat snapshots as readonly.'],
-    'guides/typescript.md',
+    'guides/typescript.html',
   ),
   article(
     'Guides',
@@ -192,7 +204,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
     'React integration',
     'Integrate with effects and external-store subscriptions; no official adapter is required.',
     ['Create per mounted component.', 'Bind after DOM commit.', 'Destroy in effect cleanup.'],
-    'guides/react.md',
+    'guides/react.html',
   ),
   article(
     'Guides',
@@ -200,7 +212,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
     'Angular integration',
     'Own controllers in component lifecycle hooks and render snapshots through application state.',
     ['Bind in AfterViewInit.', 'Release in OnDestroy.', 'Keep templates consumer-owned.'],
-    'guides/angular.md',
+    'guides/angular.html',
   ),
   article(
     'Guides',
@@ -208,7 +220,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
     'Vue integration',
     'Store the controller outside reactive proxying and mirror snapshots into shallow state.',
     ['Bind after mount.', 'Unsubscribe before unmount.', 'No Vue adapter is shipped.'],
-    'guides/vue.md',
+    'guides/vue.html',
   ),
   article(
     'Guides',
@@ -216,7 +228,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
     'Svelte integration',
     'Bridge controller subscriptions to component state and actions.',
     ['Mount once.', 'Return action cleanup.', 'Render ARIA from snapshots.'],
-    'guides/svelte.md',
+    'guides/svelte.html',
   ),
   article(
     'Guides',
@@ -228,7 +240,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Forward keyboard events.',
       'Release on disconnectedCallback.',
     ],
-    'guides/lit-web-components.md',
+    'guides/lit-web-components.html',
   ),
   article(
     'Guides',
@@ -240,7 +252,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'The external store remains authoritative.',
       'Notify after store updates.',
     ],
-    'guides/controlled-state.md',
+    'guide/controlled-vs-uncontrolled.html',
   ),
   article(
     'Guides',
@@ -252,7 +264,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Use deterministic IDs when hydrating.',
       'Position only after layout.',
     ],
-    'guides/ssr.md',
+    'guide/ssr.html',
   ),
   article(
     'Guides',
@@ -264,7 +276,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Keep visual state in CSS.',
       'Do not copy internal state.',
     ],
-    'guides/custom-renderer.md',
+    'guide/rendering-contract.html',
   ),
   article(
     'Guides',
@@ -276,7 +288,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Consumers apply transforms/styles.',
       'Call update after size changes.',
     ],
-    'guides/custom-positioning.md',
+    'guide/positioning.html',
   ),
   article(
     'Quality',
@@ -288,7 +300,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Coverage thresholds are global.',
       'Release verification never publishes.',
     ],
-    'architecture/testing-strategy.md',
+    'guide/testing.html',
   ),
   article(
     'Quality',
@@ -300,7 +312,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Chromium integration covers platform focus/events.',
       'Playwright covers the production site.',
     ],
-    'architecture/testing-strategy.md',
+    'architecture/testing-strategy.html',
   ),
   article(
     'Quality',
@@ -312,7 +324,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Disabled behavior is exercised.',
       'Consumer responsibilities remain explicit.',
     ],
-    'accessibility/conformance.md',
+    'guide/accessibility.html',
   ),
   article(
     'Quality',
@@ -324,7 +336,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'HTML reports publish under /coverage/.',
       'Threshold failures block CI.',
     ],
-    'architecture/testing-strategy.md',
+    'architecture/testing-strategy.html',
   ),
   article(
     'Quality',
@@ -336,7 +348,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Real DOM tests cover focus and events.',
       'Engine failures block Pages deployment.',
     ],
-    'architecture/testing-strategy.md',
+    'architecture/testing-strategy.html',
   ),
   article(
     'Quality',
@@ -348,7 +360,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Deep imports are unsupported.',
       'Intentional changes update the committed report.',
     ],
-    'architecture/public-api.md',
+    'architecture/public-api.html',
   ),
   article(
     'Quality',
@@ -360,7 +372,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'SSR import is checked.',
       'Only publishable files may ship.',
     ],
-    'architecture/testing-strategy.md',
+    'architecture/testing-strategy.html',
   ),
   article(
     'Quality',
@@ -372,7 +384,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Prereleases use next.',
       'External Trusted Publisher setup remains manual.',
     ],
-    'releasing.md',
+    'releasing.html',
   ),
 ];
 

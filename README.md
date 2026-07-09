@@ -1,21 +1,26 @@
 # UI Headless Runtime
 
 [![CI](https://github.com/DanieleMasone/ui-headless-runtime/actions/workflows/ci.yml/badge.svg)](https://github.com/DanieleMasone/ui-headless-runtime/actions/workflows/ci.yml)
-[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/github/license/DanieleMasone/ui-headless-runtime)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)](https://www.typescriptlang.org/)
+[![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-brightgreen)](packages/ui-headless-runtime/package.json)
+[![Live documentation](https://img.shields.io/website?url=https%3A%2F%2Fdanielemasone.github.io%2Fui-headless-runtime%2F&label=GitHub%20Pages)](https://danielemasone.github.io/ui-headless-runtime/)
 
 Framework-agnostic TypeScript controllers for accessible, customizable UI behavior. The runtime owns state, lifecycle, keyboard interaction, focus, selection, overlay coordination, positioning, and cleanup. Your application owns markup, CSS, branding, animation, and rendering.
 
 - [Live demo](https://danielemasone.github.io/ui-headless-runtime/)
+- [User Guide](https://danielemasone.github.io/ui-headless-runtime/docs/guide/)
 - [Documentation](https://danielemasone.github.io/ui-headless-runtime/docs/)
 - [API reference](https://danielemasone.github.io/ui-headless-runtime/api/)
 - [Coverage report](https://danielemasone.github.io/ui-headless-runtime/coverage/)
-- [Architecture documentation](docs/architecture/overview.md)
+- [Architecture documentation](https://danielemasone.github.io/ui-headless-runtime/docs/architecture/overview.html)
 - [GitHub repository](https://github.com/DanieleMasone/ui-headless-runtime)
 
 ## Install
 
-The package is not yet present on npm. The verified tarball is release-ready, but public npm
-publication remains pending until the first Trusted Publishing release:
+The package is not yet present on npm, so this repository intentionally does not show an npm version badge or use npm as the primary call to action. The verified tarball is release-ready, but public npm publication remains pending until the first Trusted Publishing release.
+
+After the first release:
 
 ```sh
 npm install ui-headless-runtime
@@ -57,7 +62,7 @@ No CSS is shipped. There are zero runtime dependencies.
 
 Dialog, Popover, Dropdown Menu, Context Menu, Tooltip, Accordion, Tabs, Disclosure, Toast, Command Palette, Menu, Listbox, Combobox, Tree View, Navigation Menu, and Collapsible.
 
-Every component provides a typed factory, immutable snapshot, commands, subscriptions, cancellable lifecycle events, closed reason unions, controlled and uncontrolled state, accessibility metadata/behavior, keyboard interaction, and idempotent cleanup.
+Every component provides a typed factory, immutable snapshot, commands, subscriptions, lifecycle events, reason unions, controlled and uncontrolled state, accessibility metadata/behavior, keyboard interaction, and idempotent cleanup.
 
 ## API principles
 
@@ -77,7 +82,7 @@ Controlled state uses `getValue`, `onValueChange`, and optional `subscribeValue`
 
 The runtime follows WAI-ARIA Authoring Practices interaction models and targets the behavior needed for WCAG 2.2 AA outcomes. It centralizes focus scopes, roving focus, active descendant, semantic relationships, keyboard handling, announcements, disabled state, and nested overlays.
 
-Final conformance also depends on consumer-provided markup, labels, content, contrast, layout, and assistive-technology testing. See the [accessibility statement](docs/accessibility/conformance.md).
+Final conformance also depends on consumer-provided markup, labels, content, contrast, layout, and assistive-technology testing. See the [User Guide accessibility chapter](https://danielemasone.github.io/ui-headless-runtime/docs/guide/accessibility.html) and the [accessibility statement](https://danielemasone.github.io/ui-headless-runtime/docs/accessibility/conformance.html).
 
 ## Formats and browser support
 
@@ -99,7 +104,7 @@ Useful commands are documented in [CONTRIBUTING.md](CONTRIBUTING.md). Generated 
 
 ## Release
 
-Publishing is configured to occur only from a published GitHub Release with a matching `vX.Y.Z` tag. The dedicated workflow uses npm Trusted Publishing OIDC on a GitHub-hosted runner; no persistent npm publish token is used. npm Trusted Publisher and GitHub Environment setup remain external prerequisites. See [release operations](docs/releasing.md).
+Publishing is configured to occur only from a published GitHub Release with a matching `vX.Y.Z` tag. The dedicated workflow uses npm Trusted Publishing OIDC on a GitHub-hosted runner; no persistent npm publish token is used. npm Trusted Publisher and GitHub Environment setup remain external prerequisites. See [release operations](https://danielemasone.github.io/ui-headless-runtime/docs/releasing.html).
 
 ## Contributing
 

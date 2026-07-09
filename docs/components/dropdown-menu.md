@@ -111,6 +111,12 @@ The production demo loads the exact executable module from [`apps/demo/src/examp
 
 - It does not render icons, shortcuts, or checkmarks; those remain consumer markup.
 
+## Related links
+
+- [Live demo](https://DanieleMasone.github.io/ui-headless-runtime/#/components/dropdown-menu)
+- [User Guide: controllers](../guide/controllers)
+- [User Guide: rendering contract](../guide/rendering-contract)
+
 ## API reference
 
 See [`createDropdownMenu`](https://DanieleMasone.github.io/ui-headless-runtime/api/functions/createDropdownMenu.html).
