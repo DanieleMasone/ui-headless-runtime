@@ -8,11 +8,13 @@ Pattern: Status / Alert. Status: stable.
 
 ## When to use
 
-Use Toast when you need the runtime behavior described by the public `createToast` controller while keeping markup, rendering, and styling in your application.
+- Ephemeral feedback queues with deterministic ordering, max visible items, and polite/assertive announcements.
+- Promise lifecycles that should move from loading to success or error while preserving original rejection behavior.
 
 ## When not to use
 
-Do not use it for persistent page content, blocking confirmations, or messages that require immediate focus movement.
+- Blocking confirmation flows; use Dialog.
+- Persistent inboxes or notification centers that need durable storage.
 
 ## Import
 
@@ -22,47 +24,47 @@ import { createToast } from 'ui-headless-runtime';
 
 ## Controller creation
 
-Create the controller during mount or setup, subscribe once, bind DOM after rendering, and release all returned cleanup functions during unmount.
+Create Toast during component mount or setup, subscribe before rendering derived UI, and keep every cleanup returned by registrations or DOM binding.
 
 ## Options
 
-The options configure queueing, announcements, timeout ownership, lifecycle hooks, IDs, and timer behavior.
+- Visible limit, default timeout, priority, duplicate ID policy, announcement politeness, and pause behavior shape the queue.
 
 ## Snapshot
 
-The readonly snapshot exposes visible items, queue order, announcement mode, remaining timeout state, and controlled lifecycle metadata. Snapshots are readonly by contract and should be treated as immutable view data.
+- Contains queued and visible toasts, status, remaining time, priority, and announcement metadata.
 
 ## Commands
 
-Use the typed queue, update, pause/resume, promise, and dismiss commands exposed by the controller.
+- `show`, `update`, `dismiss`, `pause`, `resume`, `promise`, and `destroy` manage records.
 
 ## Events
 
-Lifecycle and state events are typed. Consumers should observe them through `subscribe` and component-specific event callbacks rather than reading implementation internals.
+- Queue changes identify created, updated, dismissed, timed-out, resolved, rejected, and finalized records.
 
 ## Change reasons
 
-Change reasons identify why a transition was requested, such as programmatic calls, trigger activation, keyboard input, pointer input, selection, timeout, or controlled-state reconciliation.
+- `programmatic`, `timeout`, `dismiss`, `pause`, `resume`, `promise`, `success`, `error`, and `dedupe` are important.
 
 ## Controlled mode
 
-Use controlled mode when an external store owns state. The controller requests changes through typed callbacks and reflects committed external state through its snapshot.
+Toast is normally uncontrolled; if mirrored externally, keep IDs stable and treat the runtime queue as the ordering authority.
 
 ## Uncontrolled mode
 
-Use uncontrolled mode when the controller should own state internally. Subscribe to snapshots and clean up the subscription during unmount.
+The controller owns queue order, timer bookkeeping, and promise transitions.
 
 ## DOM binding
 
-Use the controller's DOM binding helpers when provided. Bindings attach listeners to consumer-owned elements and return an idempotent cleanup function.
+- Render visible toasts from the snapshot and wire dismiss controls to `dismiss`.
 
 ## Required markup
 
-The consumer supplies semantic HTML, visible labels, stable IDs when needed, and any visual styling. The runtime supplies behavior and metadata, not DOM structure.
+- Use live-region containers and keep action controls reachable without stealing focus.
 
 ## ARIA contract
 
-Apply roles, states, and relationships from the snapshot and component metadata. The consumer remains responsible for final labels, content semantics, contrast, and assistive-technology validation.
+- Use polite/assertive metadata per toast; loading and status messages should remain perceivable.
 
 ## Keyboard interaction
 
@@ -70,15 +72,15 @@ Apply roles, states, and relationships from the snapshot and component metadata.
 
 ## Focus behavior
 
-Focus behavior follows the controller contract and WAI-ARIA pattern. Composite controllers manage active item movement; overlay controllers coordinate entry, exit, and restoration where applicable.
+- Toasts do not move focus automatically; user-provided actions remain in the normal tab order.
 
 ## Nested behavior
 
-Toast items do not create nested focus scopes. Interactive controls remain consumer-owned and should be minimal.
+- Multiple toast controllers should use distinct regions to avoid duplicate announcements.
 
 ## Cleanup
 
-Call every cleanup returned by subscriptions, bindings, registrations, timers, or observers, then call `destroy()`. Destroy is idempotent and commands after destroy are no-ops.
+- Destroy clears all timers, pause bookkeeping, and pending promise UI updates.
 
 ## Complete example
 
@@ -87,25 +89,17 @@ import { createToast } from 'ui-headless-runtime';
 
 const controller = createToast();
 const unsubscribe = controller.subscribe((snapshot) => {
-  render(snapshot);
+  console.log(snapshot);
 });
 
-const releaseDom = controller.bind?.({
-  trigger,
-  content,
-});
-
-// Framework or application unmount
-releaseDom?.();
+console.log(controller.getSnapshot());
 unsubscribe();
 controller.destroy();
 ```
 
-The production demo uses the component-specific [`toast.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/toast.ts).
+The production demo loads the exact executable module from [`apps/demo/src/examples/toast.ts`](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/toast.ts).
 
 ## Edge cases
-
-Verified scenarios:
 
 - `queue`: Visible capacity and deterministic ordering.
 - `promise`: Loading becomes success or error.
@@ -113,7 +107,7 @@ Verified scenarios:
 
 ## Limitations
 
-UI Headless Runtime cannot validate consumer content, visual design, framework lifecycle integration, or every assistive-technology/browser combination. Test the rendered product.
+- The runtime does not persist notifications across page loads.
 
 ## API reference
 

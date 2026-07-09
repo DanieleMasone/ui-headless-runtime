@@ -8,11 +8,13 @@ Pattern: Disclosure. Status: stable.
 
 ## When to use
 
-Use Disclosure when you need the runtime behavior described by the public `createDisclosure` controller while keeping markup, rendering, and styling in your application.
+- A single expandable region with a trigger and panel relationship.
+- Controlled or uncontrolled sections that do not need group-level roving focus.
 
 ## When not to use
 
-Do not use it when content must always be visible or when a native element already satisfies the interaction and semantics.
+- Multiple coordinated sections; use Accordion.
+- State that should be represented by native details/summary without extra behavior.
 
 ## Import
 
@@ -22,47 +24,47 @@ import { createDisclosure } from 'ui-headless-runtime';
 
 ## Controller creation
 
-Create the controller during mount or setup, subscribe once, bind DOM after rendering, and release all returned cleanup functions during unmount.
+Create Disclosure during component mount or setup, subscribe before rendering derived UI, and keep every cleanup returned by registrations or DOM binding.
 
 ## Options
 
-The options configure expanded-state ownership, lifecycle hooks, disabled behavior, IDs, and relationship metadata.
+- `open`, `defaultOpen`, `disabled`, IDs, and `onOpenChange` define the primitive state contract.
 
 ## Snapshot
 
-The readonly snapshot exposes expanded state, controlled-state metadata, IDs, disabled state, and trigger/panel relationship metadata. Snapshots are readonly by contract and should be treated as immutable view data.
+- Contains open/disabled state, trigger and panel IDs, and ARIA relationship metadata.
 
 ## Commands
 
-Use typed open, close, toggle, bind, subscribe, and destroy commands exposed by the controller.
+- `open`, `close`, `toggle`, `setOpen`, `bind`, and `destroy` are intentionally small.
 
 ## Events
 
-Lifecycle and state events are typed. Consumers should observe them through `subscribe` and component-specific event callbacks rather than reading implementation internals.
+- Change events identify whether toggling was accepted, cancelled, or ignored due to disabled state.
 
 ## Change reasons
 
-Change reasons identify why a transition was requested, such as programmatic calls, trigger activation, keyboard input, pointer input, selection, timeout, or controlled-state reconciliation.
+- `trigger`, `keyboard`, `programmatic`, `controlled`, and `disabled` are the meaningful reasons.
 
 ## Controlled mode
 
-Use controlled mode when an external store owns state. The controller requests changes through typed callbacks and reflects committed external state through its snapshot.
+Controlled Disclosure emits requested values and mirrors the consumer-provided `open` value.
 
 ## Uncontrolled mode
 
-Use uncontrolled mode when the controller should own state internally. Subscribe to snapshots and clean up the subscription during unmount.
+Uncontrolled Disclosure owns the boolean state and is the base primitive for Collapsible.
 
 ## DOM binding
 
-Use the controller's DOM binding helpers when provided. Bindings attach listeners to consumer-owned elements and return an idempotent cleanup function.
+- Bind trigger and panel if you want runtime click/keyboard helpers, or apply snapshot metadata manually.
 
 ## Required markup
 
-The consumer supplies semantic HTML, visible labels, stable IDs when needed, and any visual styling. The runtime supplies behavior and metadata, not DOM structure.
+- Use a button trigger and a region/panel connected by `aria-controls`.
 
 ## ARIA contract
 
-Apply roles, states, and relationships from the snapshot and component metadata. The consumer remains responsible for final labels, content semantics, contrast, and assistive-technology validation.
+- Apply `aria-expanded`, `aria-controls`, and panel labelling from the snapshot.
 
 ## Keyboard interaction
 
@@ -70,15 +72,15 @@ Apply roles, states, and relationships from the snapshot and component metadata.
 
 ## Focus behavior
 
-Focus behavior follows the controller contract and WAI-ARIA pattern. Composite controllers manage active item movement; overlay controllers coordinate entry, exit, and restoration where applicable.
+- Enter and Space toggle from the trigger; Tab remains normal document navigation.
 
 ## Nested behavior
 
-Nested disclosure content is allowed, but each controller owns only its own expanded state and cleanup.
+- Nested disclosures are independent unless a parent component such as Accordion coordinates them.
 
 ## Cleanup
 
-Call every cleanup returned by subscriptions, bindings, registrations, timers, or observers, then call `destroy()`. Destroy is idempotent and commands after destroy are no-ops.
+- Release the binding and subscriptions before removing trigger or panel elements.
 
 ## Complete example
 
@@ -87,25 +89,17 @@ import { createDisclosure } from 'ui-headless-runtime';
 
 const controller = createDisclosure();
 const unsubscribe = controller.subscribe((snapshot) => {
-  render(snapshot);
+  console.log(snapshot);
 });
 
-const releaseDom = controller.bind?.({
-  trigger,
-  content,
-});
-
-// Framework or application unmount
-releaseDom?.();
+console.log(controller.getSnapshot());
 unsubscribe();
 controller.destroy();
 ```
 
-The production demo uses the component-specific [`disclosure.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/disclosure.ts).
+The production demo loads the exact executable module from [`apps/demo/src/examples/disclosure.ts`](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/disclosure.ts).
 
 ## Edge cases
-
-Verified scenarios:
 
 - `uncontrolled`: The controller owns expansion.
 - `controlled`: An external store owns expansion.
@@ -113,7 +107,7 @@ Verified scenarios:
 
 ## Limitations
 
-UI Headless Runtime cannot validate consumer content, visual design, framework lifecycle integration, or every assistive-technology/browser combination. Test the rendered product.
+- Animation, height measurement, and visual persistence are intentionally outside the runtime.
 
 ## API reference
 

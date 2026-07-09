@@ -8,11 +8,13 @@ Pattern: Disclosure. Status: stable.
 
 ## When to use
 
-Use Collapsible when you need the runtime behavior described by the public `createCollapsible` controller while keeping markup, rendering, and styling in your application.
+- A product-language alias for a single Disclosure-powered expandable region.
+- Teams that prefer “collapsible” naming while sharing the Disclosure contract and tests.
 
 ## When not to use
 
-Do not use it when content must always be visible or when a native element already satisfies the interaction and semantics.
+- Grouped collapsibles; use Accordion.
+- Complex overlays or animated drawers that need focus trapping.
 
 ## Import
 
@@ -22,47 +24,47 @@ import { createCollapsible } from 'ui-headless-runtime';
 
 ## Controller creation
 
-Create the controller during mount or setup, subscribe once, bind DOM after rendering, and release all returned cleanup functions during unmount.
+Create Collapsible during component mount or setup, subscribe before rendering derived UI, and keep every cleanup returned by registrations or DOM binding.
 
 ## Options
 
-The options configure expanded-state ownership, lifecycle hooks, disabled behavior, IDs, and relationship metadata.
+- The options intentionally mirror Disclosure: open ownership, default state, disabled state, IDs, and change callbacks.
 
 ## Snapshot
 
-The readonly snapshot exposes expanded state, controlled-state metadata, IDs, disabled state, and trigger/panel relationship metadata. Snapshots are readonly by contract and should be treated as immutable view data.
+- The snapshot mirrors Disclosure with open/disabled state and trigger/panel relationships.
 
 ## Commands
 
-Use typed open, close, toggle, bind, subscribe, and destroy commands exposed by the controller.
+- `open`, `close`, `toggle`, `bind`, `subscribe`, and `destroy` are inherited from the Disclosure primitive.
 
 ## Events
 
-Lifecycle and state events are typed. Consumers should observe them through `subscribe` and component-specific event callbacks rather than reading implementation internals.
+- Change events match Disclosure and carry the collapsible-specific reason union.
 
 ## Change reasons
 
-Change reasons identify why a transition was requested, such as programmatic calls, trigger activation, keyboard input, pointer input, selection, timeout, or controlled-state reconciliation.
+- `trigger`, `keyboard`, `programmatic`, `controlled`, and `disabled` are sufficient for this primitive.
 
 ## Controlled mode
 
-Use controlled mode when an external store owns state. The controller requests changes through typed callbacks and reflects committed external state through its snapshot.
+Controlled Collapsible exists for naming consistency while delegating ownership semantics to Disclosure.
 
 ## Uncontrolled mode
 
-Use uncontrolled mode when the controller should own state internally. Subscribe to snapshots and clean up the subscription during unmount.
+Uncontrolled Collapsible owns a single boolean open state.
 
 ## DOM binding
 
-Use the controller's DOM binding helpers when provided. Bindings attach listeners to consumer-owned elements and return an idempotent cleanup function.
+- Bind a trigger and content region, or manually apply snapshot IDs and expanded state.
 
 ## Required markup
 
-The consumer supplies semantic HTML, visible labels, stable IDs when needed, and any visual styling. The runtime supplies behavior and metadata, not DOM structure.
+- Use a button trigger and a panel/region connected with `aria-controls`.
 
 ## ARIA contract
 
-Apply roles, states, and relationships from the snapshot and component metadata. The consumer remains responsible for final labels, content semantics, contrast, and assistive-technology validation.
+- Apply the same `aria-expanded` and `aria-controls` contract as Disclosure.
 
 ## Keyboard interaction
 
@@ -70,15 +72,15 @@ Apply roles, states, and relationships from the snapshot and component metadata.
 
 ## Focus behavior
 
-Focus behavior follows the controller contract and WAI-ARIA pattern. Composite controllers manage active item movement; overlay controllers coordinate entry, exit, and restoration where applicable.
+- Enter and Space toggle; focus otherwise follows normal document order.
 
 ## Nested behavior
 
-Nested disclosure content is allowed, but each controller owns only its own expanded state and cleanup.
+- Nested collapsibles should use separate controllers and IDs.
 
 ## Cleanup
 
-Call every cleanup returned by subscriptions, bindings, registrations, timers, or observers, then call `destroy()`. Destroy is idempotent and commands after destroy are no-ops.
+- Release the Disclosure binding and destroy the controller during unmount.
 
 ## Complete example
 
@@ -87,32 +89,24 @@ import { createCollapsible } from 'ui-headless-runtime';
 
 const controller = createCollapsible();
 const unsubscribe = controller.subscribe((snapshot) => {
-  render(snapshot);
+  console.log(snapshot);
 });
 
-const releaseDom = controller.bind?.({
-  trigger,
-  content,
-});
-
-// Framework or application unmount
-releaseDom?.();
+console.log(controller.getSnapshot());
 unsubscribe();
 controller.destroy();
 ```
 
-The production demo uses the component-specific [`collapsible.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/collapsible.ts).
+The production demo loads the exact executable module from [`apps/demo/src/examples/collapsible.ts`](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/collapsible.ts).
 
 ## Edge cases
-
-Verified scenarios:
 
 - `basic`: Simple expandable content.
 - `controlled`: External ownership with the same contract.
 
 ## Limitations
 
-UI Headless Runtime cannot validate consumer content, visual design, framework lifecycle integration, or every assistive-technology/browser combination. Test the rendered product.
+- It intentionally adds no state model beyond Disclosure.
 
 ## API reference
 

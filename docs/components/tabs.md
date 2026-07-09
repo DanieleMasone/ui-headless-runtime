@@ -8,11 +8,13 @@ Pattern: Tabs. Status: stable.
 
 ## When to use
 
-Use Tabs when you need the runtime behavior described by the public `createTabs` controller while keeping markup, rendering, and styling in your application.
+- Tabbed interfaces with manual or automatic activation and tab/panel relationships.
+- Horizontal, vertical, and RTL-aware composites with disabled tabs and dynamic registration.
 
 ## When not to use
 
-Do not use it for simple forms where native controls provide the required behavior and accessibility with less code.
+- Disclosure-style content where multiple panels may stay open.
+- Navigation to separate pages; use links or Navigation Menu.
 
 ## Import
 
@@ -22,47 +24,47 @@ import { createTabs } from 'ui-headless-runtime';
 
 ## Controller creation
 
-Create the controller during mount or setup, subscribe once, bind DOM after rendering, and release all returned cleanup functions during unmount.
+Create Tabs during component mount or setup, subscribe before rendering derived UI, and keep every cleanup returned by registrations or DOM binding.
 
 ## Options
 
-The options configure selected or active state ownership, lifecycle hooks, IDs, keyboard behavior, registration, and disabled handling.
+- Activation mode, orientation, direction, loop, selected value, and default selected tab shape behavior.
 
 ## Snapshot
 
-The readonly snapshot exposes active item, selected value metadata, controlled-state metadata, IDs, disabled state, and ARIA relationship metadata. Snapshots are readonly by contract and should be treated as immutable view data.
+- Reports selected tab, focused tab, registered tabs, disabled state, and tab/panel ID relationships.
 
 ## Commands
 
-Use typed registration, navigation, selection, active-item, and DOM binding commands exposed by the controller.
+- `registerTab`, `select`, `focus`, `handleKeyDown`, and `destroy` cover tab lifecycle.
 
 ## Events
 
-Lifecycle and state events are typed. Consumers should observe them through `subscribe` and component-specific event callbacks rather than reading implementation internals.
+- Selection events identify whether focus movement or explicit activation caused the change.
 
 ## Change reasons
 
-Change reasons identify why a transition was requested, such as programmatic calls, trigger activation, keyboard input, pointer input, selection, timeout, or controlled-state reconciliation.
+- `keyboard`, `pointer`, `activation`, `registration`, `programmatic`, and `controlled` are the key reasons.
 
 ## Controlled mode
 
-Use controlled mode when an external store owns state. The controller requests changes through typed callbacks and reflects committed external state through its snapshot.
+Controlled tabs keep selection in a parent store while the controller manages focus and requested changes.
 
 ## Uncontrolled mode
 
-Use uncontrolled mode when the controller should own state internally. Subscribe to snapshots and clean up the subscription during unmount.
+Uncontrolled tabs own selected and focused tab IDs and update snapshots immediately.
 
 ## DOM binding
 
-Use the controller's DOM binding helpers when provided. Bindings attach listeners to consumer-owned elements and return an idempotent cleanup function.
+- Register every tab with its panel ID and release the registration when either side unmounts.
 
 ## Required markup
 
-The consumer supplies semantic HTML, visible labels, stable IDs when needed, and any visual styling. The runtime supplies behavior and metadata, not DOM structure.
+- Use a `tablist`, `tab`, and `tabpanel` structure with hidden inactive panels as appropriate.
 
 ## ARIA contract
 
-Apply roles, states, and relationships from the snapshot and component metadata. The consumer remains responsible for final labels, content semantics, contrast, and assistive-technology validation.
+- Apply `aria-selected`, `aria-controls`, `aria-labelledby`, and roving `tabindex` from the snapshot.
 
 ## Keyboard interaction
 
@@ -72,15 +74,15 @@ Apply roles, states, and relationships from the snapshot and component metadata.
 
 ## Focus behavior
 
-Focus behavior follows the controller contract and WAI-ARIA pattern. Composite controllers manage active item movement; overlay controllers coordinate entry, exit, and restoration where applicable.
+- Automatic mode selects as focus moves; manual mode waits for Enter or Space.
 
 ## Nested behavior
 
-Nested composites should keep independent active and selected state unless the consumer intentionally connects them.
+- Nested tabsets should use independent controllers so roving focus scopes do not collide.
 
 ## Cleanup
 
-Call every cleanup returned by subscriptions, bindings, registrations, timers, or observers, then call `destroy()`. Destroy is idempotent and commands after destroy are no-ops.
+- Removing the selected tab chooses the next valid tab or clears selection when none remain.
 
 ## Complete example
 
@@ -89,25 +91,17 @@ import { createTabs } from 'ui-headless-runtime';
 
 const controller = createTabs();
 const unsubscribe = controller.subscribe((snapshot) => {
-  render(snapshot);
+  console.log(snapshot);
 });
 
-const releaseDom = controller.bind?.({
-  trigger,
-  content,
-});
-
-// Framework or application unmount
-releaseDom?.();
+console.log(controller.getSnapshot());
 unsubscribe();
 controller.destroy();
 ```
 
-The production demo uses the component-specific [`tabs.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/tabs.ts).
+The production demo loads the exact executable module from [`apps/demo/src/examples/tabs.ts`](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/tabs.ts).
 
 ## Edge cases
-
-Verified scenarios:
 
 - `automatic`: Selection follows roving focus.
 - `manual`: Enter or Space commits selection.
@@ -115,7 +109,7 @@ Verified scenarios:
 
 ## Limitations
 
-UI Headless Runtime cannot validate consumer content, visual design, framework lifecycle integration, or every assistive-technology/browser combination. Test the rendered product.
+- The runtime does not lazy-load panel content; consumers decide rendering policy.
 
 ## API reference
 

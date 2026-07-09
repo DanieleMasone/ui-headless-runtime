@@ -8,11 +8,14 @@ Pattern: WAI-ARIA Dialog (Modal). Status: stable.
 
 ## When to use
 
-Use Dialog when you need the runtime behavior described by the public `createDialog` controller while keeping markup, rendering, and styling in your application.
+- Modal application surfaces that must trap focus, inert the page, and restore focus on close.
+- Non-modal overlays that still need outside-interaction handling and typed lifecycle events.
+- Nested dialog flows where Escape and outside dismissal must affect only the topmost layer.
 
 ## When not to use
 
-Do not use it for static inline content that should remain in normal document flow, or when browser-native elements already provide the complete behavior.
+- Static sections, accordions, or inline help that should stay in normal document flow.
+- Native browser prompts or simple links where no focus scope, overlay stack, or lifecycle hook is needed.
 
 ## Import
 
@@ -22,47 +25,53 @@ import { createDialog } from 'ui-headless-runtime';
 
 ## Controller creation
 
-Create the controller during mount or setup, subscribe once, bind DOM after rendering, and release all returned cleanup functions during unmount.
+Create Dialog during component mount or setup, subscribe before rendering derived UI, and keep every cleanup returned by registrations or DOM binding.
 
 ## Options
 
-The options configure open-state ownership, lifecycle hooks, dismissal behavior, IDs, focus behavior, and positioning where applicable.
+- `modal`, `open`, `defaultOpen`, and `onOpenChange` choose modal behavior and state ownership.
+- Focus options cover initial focus, fallback focus, restore focus, and the trigger/content/backdrop elements passed to `bind`.
+- Lifecycle callbacks may cancel opening or closing before DOM state changes are committed.
 
 ## Snapshot
 
-The readonly snapshot exposes open state, controlled-state metadata, IDs, ARIA metadata, topmost status when relevant, and any computed placement metadata. Snapshots are readonly by contract and should be treated as immutable view data.
+- `open`, `modal`, `topmost`, generated IDs, and ARIA metadata drive consumer markup.
+- The snapshot is safe to read after destroy so unmount code can finish rendering a stable final state.
 
 ## Commands
 
-Use typed open, close, toggle, bind, register, select, subscribe, and destroy commands where they apply to this controller.
+- `open`, `close`, and `toggle` request state transitions.
+- `bind` wires trigger, content, backdrop, focus trap, outside interaction, and restore-focus cleanup.
 
 ## Events
 
-Lifecycle and state events are typed. Consumers should observe them through `subscribe` and component-specific event callbacks rather than reading implementation internals.
+- Open/close requests and committed changes include the dismissal source and can be cancelled before commit.
 
 ## Change reasons
 
-Change reasons identify why a transition was requested, such as programmatic calls, trigger activation, keyboard input, pointer input, selection, timeout, or controlled-state reconciliation.
+- `trigger`, `keyboard`, `pointer`, `outside`, `programmatic`, `controlled`, and destroy/unmount paths distinguish why the dialog changed.
 
 ## Controlled mode
 
-Use controlled mode when an external store owns state. The controller requests changes through typed callbacks and reflects committed external state through its snapshot.
+In controlled mode the dialog reports requested open changes but waits for the consumer to pass the committed `open` value back in.
 
 ## Uncontrolled mode
 
-Use uncontrolled mode when the controller should own state internally. Subscribe to snapshots and clean up the subscription during unmount.
+In uncontrolled mode the controller owns `open` and subscribers receive a new snapshot after every accepted transition.
 
 ## DOM binding
 
-Use the controller's DOM binding helpers when provided. Bindings attach listeners to consumer-owned elements and return an idempotent cleanup function.
+- Bind the real trigger, dialog container, and optional backdrop after rendering.
+- The runtime never creates the dialog DOM; it only attaches listeners and returns cleanup.
 
 ## Required markup
 
-The consumer supplies semantic HTML, visible labels, stable IDs when needed, and any visual styling. The runtime supplies behavior and metadata, not DOM structure.
+- Use a labelled container with dialog semantics and visible title text.
+- Keep the backdrop sibling outside the focusable dialog content when modal layering matters.
 
 ## ARIA contract
 
-Apply roles, states, and relationships from the snapshot and component metadata. The consumer remains responsible for final labels, content semantics, contrast, and assistive-technology validation.
+- Apply `role="dialog"`, `aria-modal`, `aria-labelledby`, and `aria-describedby` from the snapshot metadata.
 
 ## Keyboard interaction
 
@@ -72,15 +81,18 @@ Apply roles, states, and relationships from the snapshot and component metadata.
 
 ## Focus behavior
 
-Focus behavior follows the controller contract and WAI-ARIA pattern. Composite controllers manage active item movement; overlay controllers coordinate entry, exit, and restoration where applicable.
+- Opening modal content moves focus to the configured initial target or the first tabbable element.
+- If nothing is tabbable, the content container is used as the fallback.
+- Closing restores focus to the trigger when it still exists.
 
 ## Nested behavior
 
-Nested overlay behavior is coordinated by the shared overlay stack. Only the topmost overlay should handle Escape or outside dismissal.
+- Nested dialogs share the overlay stack; Escape and outside dismissal are ignored by ancestors while a child is topmost.
 
 ## Cleanup
 
-Call every cleanup returned by subscriptions, bindings, registrations, timers, or observers, then call `destroy()`. Destroy is idempotent and commands after destroy are no-ops.
+- Call the binding cleanup before removing DOM nodes, then unsubscribe and destroy.
+- Double destroy is a no-op and pending focus restoration is guarded when the trigger has been removed.
 
 ## Complete example
 
@@ -89,25 +101,17 @@ import { createDialog } from 'ui-headless-runtime';
 
 const controller = createDialog();
 const unsubscribe = controller.subscribe((snapshot) => {
-  render(snapshot);
+  console.log(snapshot);
 });
 
-const releaseDom = controller.bind?.({
-  trigger,
-  content,
-});
-
-// Framework or application unmount
-releaseDom?.();
+console.log(controller.getSnapshot());
 unsubscribe();
 controller.destroy();
 ```
 
-The production demo uses the component-specific [`dialog.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/dialog.ts).
+The production demo loads the exact executable module from [`apps/demo/src/examples/dialog.ts`](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/dialog.ts).
 
 ## Edge cases
-
-Verified scenarios:
 
 - `modal`: Focus trap, inert background, scroll lock, and restore focus.
 - `non-modal`: Dismissible content without inerting or focus trapping.
@@ -116,7 +120,7 @@ Verified scenarios:
 
 ## Limitations
 
-UI Headless Runtime cannot validate consumer content, visual design, framework lifecycle integration, or every assistive-technology/browser combination. Test the rendered product.
+- The runtime cannot provide the dialog title, validate copy, or guarantee final WCAG conformance for consumer markup.
 
 ## API reference
 

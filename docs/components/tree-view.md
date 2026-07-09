@@ -8,11 +8,13 @@ Pattern: Tree View. Status: stable.
 
 ## When to use
 
-Use Tree View when you need the runtime behavior described by the public `createTreeView` controller while keeping markup, rendering, and styling in your application.
+- Hierarchical data with expansion, selection, disabled nodes, typeahead, and computed set metadata.
+- Dynamic trees where active-node removal and async loading must keep navigation valid.
 
 ## When not to use
 
-Do not use it for simple forms where native controls provide the required behavior and accessibility with less code.
+- Flat option lists; use Listbox.
+- Site navigation with flyout panels; use Navigation Menu.
 
 ## Import
 
@@ -22,47 +24,47 @@ import { createTreeView } from 'ui-headless-runtime';
 
 ## Controller creation
 
-Create the controller during mount or setup, subscribe once, bind DOM after rendering, and release all returned cleanup functions during unmount.
+Create Tree View during component mount or setup, subscribe before rendering derived UI, and keep every cleanup returned by registrations or DOM binding.
 
 ## Options
 
-The options configure selected or active state ownership, lifecycle hooks, IDs, keyboard behavior, registration, and disabled handling.
+- Selection mode, expanded IDs, disabled nodes, async loading markers, loop, and direction configure traversal.
 
 ## Snapshot
 
-The readonly snapshot exposes active item, selected value metadata, controlled-state metadata, IDs, disabled state, and ARIA relationship metadata. Snapshots are readonly by contract and should be treated as immutable view data.
+- Reports visible preorder nodes, active node, selected IDs, expanded IDs, level, set size, position in set, and loading state.
 
 ## Commands
 
-Use typed registration, navigation, selection, active-item, and DOM binding commands exposed by the controller.
+- `registerNode`, `expand`, `collapse`, `toggle`, `select`, `setActive`, and `handleKeyDown` drive the tree.
 
 ## Events
 
-Lifecycle and state events are typed. Consumers should observe them through `subscribe` and component-specific event callbacks rather than reading implementation internals.
+- Expansion and selection events include node ID, parent relationships, and reason.
 
 ## Change reasons
 
-Change reasons identify why a transition was requested, such as programmatic calls, trigger activation, keyboard input, pointer input, selection, timeout, or controlled-state reconciliation.
+- `keyboard`, `pointer`, `typeahead`, `expand`, `collapse`, `selection`, `registration`, and `async` are key.
 
 ## Controlled mode
 
-Use controlled mode when an external store owns state. The controller requests changes through typed callbacks and reflects committed external state through its snapshot.
+Controlled trees can own selected and expanded IDs while the runtime computes visible traversal.
 
 ## Uncontrolled mode
 
-Use uncontrolled mode when the controller should own state internally. Subscribe to snapshots and clean up the subscription during unmount.
+Uncontrolled trees own selected, expanded, and active IDs.
 
 ## DOM binding
 
-Use the controller's DOM binding helpers when provided. Bindings attach listeners to consumer-owned elements and return an idempotent cleanup function.
+- Register each node with parent ID, text value, disabled state, and loading state.
 
 ## Required markup
 
-The consumer supplies semantic HTML, visible labels, stable IDs when needed, and any visual styling. The runtime supplies behavior and metadata, not DOM structure.
+- Use tree/treeitem/group semantics and render children only when expanded or intentionally virtualized.
 
 ## ARIA contract
 
-Apply roles, states, and relationships from the snapshot and component metadata. The consumer remains responsible for final labels, content semantics, contrast, and assistive-technology validation.
+- Apply `aria-expanded`, `aria-selected`, `aria-level`, `aria-setsize`, `aria-posinset`, and disabled metadata.
 
 ## Keyboard interaction
 
@@ -72,15 +74,15 @@ Apply roles, states, and relationships from the snapshot and component metadata.
 
 ## Focus behavior
 
-Focus behavior follows the controller contract and WAI-ARIA pattern. Composite controllers manage active item movement; overlay controllers coordinate entry, exit, and restoration where applicable.
+- Up/Down move through visible nodes; Left/Right collapse, expand, or move to parent/child.
 
 ## Nested behavior
 
-Nested composites should keep independent active and selected state unless the consumer intentionally connects them.
+- Nested levels are computed from registry parent relationships rather than DOM walking.
 
 ## Cleanup
 
-Call every cleanup returned by subscriptions, bindings, registrations, timers, or observers, then call `destroy()`. Destroy is idempotent and commands after destroy are no-ops.
+- Removing the active node chooses a valid visible neighbor and unregisters descendants.
 
 ## Complete example
 
@@ -89,25 +91,17 @@ import { createTreeView } from 'ui-headless-runtime';
 
 const controller = createTreeView();
 const unsubscribe = controller.subscribe((snapshot) => {
-  render(snapshot);
+  console.log(snapshot);
 });
 
-const releaseDom = controller.bind?.({
-  trigger,
-  content,
-});
-
-// Framework or application unmount
-releaseDom?.();
+console.log(controller.getSnapshot());
 unsubscribe();
 controller.destroy();
 ```
 
-The production demo uses the component-specific [`tree-view.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/tree-view.ts).
+The production demo loads the exact executable module from [`apps/demo/src/examples/tree-view.ts`](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/tree-view.ts).
 
 ## Edge cases
-
-Verified scenarios:
 
 - `nested`: Visible preorder traversal.
 - `disabled`: Navigation skips disabled nodes.
@@ -115,7 +109,7 @@ Verified scenarios:
 
 ## Limitations
 
-UI Headless Runtime cannot validate consumer content, visual design, framework lifecycle integration, or every assistive-technology/browser combination. Test the rendered product.
+- The runtime does not fetch child data; it only records loading state and ignores stale registrations.
 
 ## API reference
 

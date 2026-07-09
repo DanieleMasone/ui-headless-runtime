@@ -8,11 +8,13 @@ Pattern: Accordion. Status: stable.
 
 ## When to use
 
-Use Accordion when you need the runtime behavior described by the public `createAccordion` controller while keeping markup, rendering, and styling in your application.
+- Grouped disclosure panels with single or multiple expansion and roving keyboard navigation.
+- Dynamic sections where registration cleanup must keep focus and expanded state valid.
 
 ## When not to use
 
-Do not use it when content must always be visible or when a native element already satisfies the interaction and semantics.
+- Independent one-off toggles; use Disclosure or Collapsible.
+- Tabs, where only one panel should be selected and announced as a tabpanel.
 
 ## Import
 
@@ -22,47 +24,47 @@ import { createAccordion } from 'ui-headless-runtime';
 
 ## Controller creation
 
-Create the controller during mount or setup, subscribe once, bind DOM after rendering, and release all returned cleanup functions during unmount.
+Create Accordion during component mount or setup, subscribe before rendering derived UI, and keep every cleanup returned by registrations or DOM binding.
 
 ## Options
 
-The options configure expanded-state ownership, lifecycle hooks, disabled behavior, IDs, and relationship metadata.
+- `type`, `collapsible`, `disabled`, controlled value, orientation, loop, and item IDs configure the group.
 
 ## Snapshot
 
-The readonly snapshot exposes expanded state, controlled-state metadata, IDs, disabled state, and trigger/panel relationship metadata. Snapshots are readonly by contract and should be treated as immutable view data.
+- Contains expanded item IDs, active trigger ID, registered item order, disabled state, and ARIA pairs.
 
 ## Commands
 
-Use typed open, close, toggle, bind, subscribe, and destroy commands exposed by the controller.
+- `registerItem`, `toggle`, `expand`, `collapse`, `setActive`, and `handleKeyDown` are the main commands.
 
 ## Events
 
-Lifecycle and state events are typed. Consumers should observe them through `subscribe` and component-specific event callbacks rather than reading implementation internals.
+- Expansion changes include the affected item ID and whether the group is single or multiple.
 
 ## Change reasons
 
-Change reasons identify why a transition was requested, such as programmatic calls, trigger activation, keyboard input, pointer input, selection, timeout, or controlled-state reconciliation.
+- `trigger`, `keyboard`, `programmatic`, `registration`, `disabled`, and `controlled` separate group behavior.
 
 ## Controlled mode
 
-Use controlled mode when an external store owns state. The controller requests changes through typed callbacks and reflects committed external state through its snapshot.
+Controlled accordions report the requested expanded value array/string and wait for the consumer store to commit it.
 
 ## Uncontrolled mode
 
-Use uncontrolled mode when the controller should own state internally. Subscribe to snapshots and clean up the subscription during unmount.
+Uncontrolled accordions own the expanded set and active trigger.
 
 ## DOM binding
 
-Use the controller's DOM binding helpers when provided. Bindings attach listeners to consumer-owned elements and return an idempotent cleanup function.
+- Register each trigger/panel pair with stable IDs and release that registration when the pair unmounts.
 
 ## Required markup
 
-The consumer supplies semantic HTML, visible labels, stable IDs when needed, and any visual styling. The runtime supplies behavior and metadata, not DOM structure.
+- Place triggers inside meaningful headings and connect each trigger to its panel.
 
 ## ARIA contract
 
-Apply roles, states, and relationships from the snapshot and component metadata. The consumer remains responsible for final labels, content semantics, contrast, and assistive-technology validation.
+- Apply `aria-expanded`, `aria-controls`, trigger IDs, and panel labelling from the item snapshot.
 
 ## Keyboard interaction
 
@@ -72,15 +74,15 @@ Apply roles, states, and relationships from the snapshot and component metadata.
 
 ## Focus behavior
 
-Focus behavior follows the controller contract and WAI-ARIA pattern. Composite controllers manage active item movement; overlay controllers coordinate entry, exit, and restoration where applicable.
+- Arrow keys, Home, and End move the active trigger while skipping disabled items.
 
 ## Nested behavior
 
-Nested disclosure content is allowed, but each controller owns only its own expanded state and cleanup.
+- Nested accordions should use independent controller instances and IDs.
 
 ## Cleanup
 
-Call every cleanup returned by subscriptions, bindings, registrations, timers, or observers, then call `destroy()`. Destroy is idempotent and commands after destroy are no-ops.
+- Unregistering the active item selects a valid neighbor; destroy releases all item registrations.
 
 ## Complete example
 
@@ -89,25 +91,17 @@ import { createAccordion } from 'ui-headless-runtime';
 
 const controller = createAccordion();
 const unsubscribe = controller.subscribe((snapshot) => {
-  render(snapshot);
+  console.log(snapshot);
 });
 
-const releaseDom = controller.bind?.({
-  trigger,
-  content,
-});
-
-// Framework or application unmount
-releaseDom?.();
+console.log(controller.getSnapshot());
 unsubscribe();
 controller.destroy();
 ```
 
-The production demo uses the component-specific [`accordion.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/accordion.ts).
+The production demo loads the exact executable module from [`apps/demo/src/examples/accordion.ts`](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/accordion.ts).
 
 ## Edge cases
-
-Verified scenarios:
 
 - `single`: At most one section is expanded.
 - `multiple`: Several sections may remain expanded.
@@ -115,7 +109,7 @@ Verified scenarios:
 
 ## Limitations
 
-UI Headless Runtime cannot validate consumer content, visual design, framework lifecycle integration, or every assistive-technology/browser combination. Test the rendered product.
+- Heading level and content hierarchy are consumer responsibilities.
 
 ## API reference
 

@@ -8,11 +8,13 @@ Pattern: Menu Button. Status: stable.
 
 ## When to use
 
-Use Dropdown Menu when you need the runtime behavior described by the public `createDropdownMenu` controller while keeping markup, rendering, and styling in your application.
+- Action lists opened from a trigger button with Menu Button keyboard behavior.
+- Submenu trees where disabled items, separators, typeahead, and restore focus must be consistent.
 
 ## When not to use
 
-Do not use it for ordinary links that do not need composite keyboard behavior, active item state, or overlay coordination.
+- Freeform content panels; use Popover when items are not menu actions.
+- Selection controls that should expose listbox semantics.
 
 ## Import
 
@@ -22,47 +24,47 @@ import { createDropdownMenu } from 'ui-headless-runtime';
 
 ## Controller creation
 
-Create the controller during mount or setup, subscribe once, bind DOM after rendering, and release all returned cleanup functions during unmount.
+Create Dropdown Menu during component mount or setup, subscribe before rendering derived UI, and keep every cleanup returned by registrations or DOM binding.
 
 ## Options
 
-The options configure active item ownership, lifecycle hooks, IDs, keyboard behavior, registration, disabled handling, and positioning where applicable.
+- Trigger behavior, menu item registration, placement, loop, disabled state, and submenu configuration are layered over the shared Menu engine.
 
 ## Snapshot
 
-The readonly snapshot exposes open or active item state, selected command/item metadata, controlled-state metadata, IDs, and ARIA relationship metadata. Snapshots are readonly by contract and should be treated as immutable view data.
+- Combines trigger open state with active item, registered items, selected values, placement, and ARIA metadata.
 
 ## Commands
 
-Use typed open, close, toggle, bind, register, select, subscribe, and destroy commands where they apply to this controller.
+- `open`, `close`, `toggle`, `registerItem`, `handleTrigger`, `handleKeyDown`, and `select` are the main commands.
 
 ## Events
 
-Lifecycle and state events are typed. Consumers should observe them through `subscribe` and component-specific event callbacks rather than reading implementation internals.
+- Activation and selection events can be cancelled before action side effects run.
 
 ## Change reasons
 
-Change reasons identify why a transition was requested, such as programmatic calls, trigger activation, keyboard input, pointer input, selection, timeout, or controlled-state reconciliation.
+- `trigger`, `keyboard`, `pointer`, `typeahead`, `submenu`, `selection`, and `outside` explain navigation and dismissal.
 
 ## Controlled mode
 
-Use controlled mode when an external store owns state. The controller requests changes through typed callbacks and reflects committed external state through its snapshot.
+A controlled dropdown can mirror open state from an external navigation shell while still using runtime item navigation.
 
 ## Uncontrolled mode
 
-Use uncontrolled mode when the controller should own state internally. Subscribe to snapshots and clean up the subscription during unmount.
+The usual case lets the controller own open state and active item movement.
 
 ## DOM binding
 
-Use the controller's DOM binding helpers when provided. Bindings attach listeners to consumer-owned elements and return an idempotent cleanup function.
+- Bind the trigger and menu content; register each menu item with text, disabled state, and optional submenu metadata.
 
 ## Required markup
 
-The consumer supplies semantic HTML, visible labels, stable IDs when needed, and any visual styling. The runtime supplies behavior and metadata, not DOM structure.
+- Use `role="menu"` with menuitem descendants; separators must not be focusable.
 
 ## ARIA contract
 
-Apply roles, states, and relationships from the snapshot and component metadata. The consumer remains responsible for final labels, content semantics, contrast, and assistive-technology validation.
+- Apply `aria-haspopup="menu"`, `aria-expanded`, `aria-controls`, and item disabled/checked metadata from snapshots.
 
 ## Keyboard interaction
 
@@ -72,15 +74,15 @@ Apply roles, states, and relationships from the snapshot and component metadata.
 
 ## Focus behavior
 
-Focus behavior follows the controller contract and WAI-ARIA pattern. Composite controllers manage active item movement; overlay controllers coordinate entry, exit, and restoration where applicable.
+- Keyboard opening moves focus to the first enabled item; pointer opening can preserve trigger focus until item interaction.
 
 ## Nested behavior
 
-Nested menu or navigation content reuses the shared collection and overlay behavior instead of duplicating navigation state.
+- Submenus use the same menu engine and overlay stack so parent menus remain open while focus is inside descendants.
 
 ## Cleanup
 
-Call every cleanup returned by subscriptions, bindings, registrations, timers, or observers, then call `destroy()`. Destroy is idempotent and commands after destroy are no-ops.
+- Unregister items and submenu branches when DOM changes, then release trigger/content listeners.
 
 ## Complete example
 
@@ -89,25 +91,17 @@ import { createDropdownMenu } from 'ui-headless-runtime';
 
 const controller = createDropdownMenu();
 const unsubscribe = controller.subscribe((snapshot) => {
-  render(snapshot);
+  console.log(snapshot);
 });
 
-const releaseDom = controller.bind?.({
-  trigger,
-  content,
-});
-
-// Framework or application unmount
-releaseDom?.();
+console.log(controller.getSnapshot());
 unsubscribe();
 controller.destroy();
 ```
 
-The production demo uses the component-specific [`dropdown-menu.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/dropdown-menu.ts).
+The production demo loads the exact executable module from [`apps/demo/src/examples/dropdown-menu.ts`](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/dropdown-menu.ts).
 
 ## Edge cases
-
-Verified scenarios:
 
 - `basic`: Pointer and keyboard trigger activation.
 - `disabled`: Navigation skips unavailable actions.
@@ -115,7 +109,7 @@ Verified scenarios:
 
 ## Limitations
 
-UI Headless Runtime cannot validate consumer content, visual design, framework lifecycle integration, or every assistive-technology/browser combination. Test the rendered product.
+- It does not render icons, shortcuts, or checkmarks; those remain consumer markup.
 
 ## API reference
 

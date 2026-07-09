@@ -8,11 +8,13 @@ Pattern: Menu. Status: stable.
 
 ## When to use
 
-Use Menu when you need the runtime behavior described by the public `createMenu` controller while keeping markup, rendering, and styling in your application.
+- Reusable menu logic for actions, submenus, separators, disabled items, typeahead, and cancellable activation.
+- Custom dropdown or context-menu renderers that need a shared item engine without trigger assumptions.
 
 ## When not to use
 
-Do not use it for ordinary links that do not need composite keyboard behavior, active item state, or overlay coordination.
+- Form selection controls; use Listbox or Combobox.
+- Freeform content panels without menuitem semantics.
 
 ## Import
 
@@ -22,47 +24,47 @@ import { createMenu } from 'ui-headless-runtime';
 
 ## Controller creation
 
-Create the controller during mount or setup, subscribe once, bind DOM after rendering, and release all returned cleanup functions during unmount.
+Create Menu during component mount or setup, subscribe before rendering derived UI, and keep every cleanup returned by registrations or DOM binding.
 
 ## Options
 
-The options configure active item ownership, lifecycle hooks, IDs, keyboard behavior, registration, disabled handling, and positioning where applicable.
+- Looping, orientation, disabled items, submenu relationships, selected IDs, and typeahead behavior configure navigation.
 
 ## Snapshot
 
-The readonly snapshot exposes open or active item state, selected command/item metadata, controlled-state metadata, IDs, and ARIA relationship metadata. Snapshots are readonly by contract and should be treated as immutable view data.
+- Contains item order, active item, selected IDs, submenu state, typeahead buffer, and ARIA item metadata.
 
 ## Commands
 
-Use typed open, close, toggle, bind, register, select, subscribe, and destroy commands where they apply to this controller.
+- `registerItem`, `setActive`, `move`, `select`, `openSubmenu`, `closeSubmenu`, and `handleKeyDown` are primary.
 
 ## Events
 
-Lifecycle and state events are typed. Consumers should observe them through `subscribe` and component-specific event callbacks rather than reading implementation internals.
+- Activation events are cancellable and include the selected item plus reason.
 
 ## Change reasons
 
-Change reasons identify why a transition was requested, such as programmatic calls, trigger activation, keyboard input, pointer input, selection, timeout, or controlled-state reconciliation.
+- `keyboard`, `pointer`, `typeahead`, `submenu`, `selection`, `registration`, and `programmatic` explain changes.
 
 ## Controlled mode
 
-Use controlled mode when an external store owns state. The controller requests changes through typed callbacks and reflects committed external state through its snapshot.
+Selection can be controlled externally while active item navigation remains local to the current menu surface.
 
 ## Uncontrolled mode
 
-Use uncontrolled mode when the controller should own state internally. Subscribe to snapshots and clean up the subscription during unmount.
+The controller owns active item, typeahead buffer, and optional selected state.
 
 ## DOM binding
 
-Use the controller's DOM binding helpers when provided. Bindings attach listeners to consumer-owned elements and return an idempotent cleanup function.
+- Register each item with text value, disabled state, and separator/submenu metadata.
 
 ## Required markup
 
-The consumer supplies semantic HTML, visible labels, stable IDs when needed, and any visual styling. The runtime supplies behavior and metadata, not DOM structure.
+- Use menu roles; separators are structural and should never become active items.
 
 ## ARIA contract
 
-Apply roles, states, and relationships from the snapshot and component metadata. The consumer remains responsible for final labels, content semantics, contrast, and assistive-technology validation.
+- Apply menuitem roles, disabled state, checked state when applicable, and submenu relationships.
 
 ## Keyboard interaction
 
@@ -72,15 +74,15 @@ Apply roles, states, and relationships from the snapshot and component metadata.
 
 ## Focus behavior
 
-Focus behavior follows the controller contract and WAI-ARIA pattern. Composite controllers manage active item movement; overlay controllers coordinate entry, exit, and restoration where applicable.
+- Roving focus moves among enabled items and skips separators.
 
 ## Nested behavior
 
-Nested menu or navigation content reuses the shared collection and overlay behavior instead of duplicating navigation state.
+- Submenu parent/child links use the same engine, keeping ArrowRight/ArrowLeft behavior predictable.
 
 ## Cleanup
 
-Call every cleanup returned by subscriptions, bindings, registrations, timers, or observers, then call `destroy()`. Destroy is idempotent and commands after destroy are no-ops.
+- Unregister items on unmount so item order and active fallback stay valid.
 
 ## Complete example
 
@@ -89,25 +91,17 @@ import { createMenu } from 'ui-headless-runtime';
 
 const controller = createMenu();
 const unsubscribe = controller.subscribe((snapshot) => {
-  render(snapshot);
+  console.log(snapshot);
 });
 
-const releaseDom = controller.bind?.({
-  trigger,
-  content,
-});
-
-// Framework or application unmount
-releaseDom?.();
+console.log(controller.getSnapshot());
 unsubscribe();
 controller.destroy();
 ```
 
-The production demo uses the component-specific [`menu.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/menu.ts).
+The production demo loads the exact executable module from [`apps/demo/src/examples/menu.ts`](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/menu.ts).
 
 ## Edge cases
-
-Verified scenarios:
 
 - `actions`: Cancellable selection lifecycle.
 - `typeahead`: Normalized text lookup.
@@ -115,7 +109,7 @@ Verified scenarios:
 
 ## Limitations
 
-UI Headless Runtime cannot validate consumer content, visual design, framework lifecycle integration, or every assistive-technology/browser combination. Test the rendered product.
+- It does not impose visual layout or action side effects.
 
 ## API reference
 

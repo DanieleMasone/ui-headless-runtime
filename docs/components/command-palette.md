@@ -8,11 +8,13 @@ Pattern: Dialog plus Listbox. Status: stable.
 
 ## When to use
 
-Use Command Palette when you need the runtime behavior described by the public `createCommandPalette` controller while keeping markup, rendering, and styling in your application.
+- Global command search with a configurable shortcut, grouping, disabled commands, and fuzzy matching.
+- Documentation or app launchers where Dialog focus behavior and collection navigation should be reused.
 
 ## When not to use
 
-Do not use it for ordinary links that do not need composite keyboard behavior, active item state, or overlay coordination.
+- Plain site search that navigates to remote results without command execution.
+- Combobox inputs where freeform typed value is the product data.
 
 ## Import
 
@@ -22,47 +24,47 @@ import { createCommandPalette } from 'ui-headless-runtime';
 
 ## Controller creation
 
-Create the controller during mount or setup, subscribe once, bind DOM after rendering, and release all returned cleanup functions during unmount.
+Create Command Palette during component mount or setup, subscribe before rendering derived UI, and keep every cleanup returned by registrations or DOM binding.
 
 ## Options
 
-The options configure active item ownership, lifecycle hooks, IDs, keyboard behavior, registration, disabled handling, and positioning where applicable.
+- Shortcut keys, controlled open/query state, disabled commands, grouping, and fuzzy scoring configure the palette.
 
 ## Snapshot
 
-The readonly snapshot exposes open or active item state, selected command/item metadata, controlled-state metadata, IDs, and ARIA relationship metadata. Snapshots are readonly by contract and should be treated as immutable view data.
+- Reports open state, query, filtered commands, active command, empty state, groups, and dialog IDs.
 
 ## Commands
 
-Use typed open, close, toggle, bind, register, select, subscribe, and destroy commands where they apply to this controller.
+- `registerCommand`, `setQuery`, `open`, `close`, `toggle`, `select`, `bindShortcut`, and `handleKeyDown` are central.
 
 ## Events
 
-Lifecycle and state events are typed. Consumers should observe them through `subscribe` and component-specific event callbacks rather than reading implementation internals.
+- Selection and lifecycle events identify command ID, query, disabled state, and shortcut source.
 
 ## Change reasons
 
-Change reasons identify why a transition was requested, such as programmatic calls, trigger activation, keyboard input, pointer input, selection, timeout, or controlled-state reconciliation.
+- `shortcut`, `input`, `keyboard`, `pointer`, `selection`, `empty`, `programmatic`, and `controlled` are key.
 
 ## Controlled mode
 
-Use controlled mode when an external store owns state. The controller requests changes through typed callbacks and reflects committed external state through its snapshot.
+Controlled palettes can keep query/open state in a router or app store while using runtime filtering.
 
 ## Uncontrolled mode
 
-Use uncontrolled mode when the controller should own state internally. Subscribe to snapshots and clean up the subscription during unmount.
+Uncontrolled palettes own open state, query, active item, and filtered command list.
 
 ## DOM binding
 
-Use the controller's DOM binding helpers when provided. Bindings attach listeners to consumer-owned elements and return an idempotent cleanup function.
+- Bind trigger, dialog content, input, and result options; register commands outside rendering loops when possible.
 
 ## Required markup
 
-The consumer supplies semantic HTML, visible labels, stable IDs when needed, and any visual styling. The runtime supplies behavior and metadata, not DOM structure.
+- Render the palette as a labelled dialog with a listbox-like result area.
 
 ## ARIA contract
 
-Apply roles, states, and relationships from the snapshot and component metadata. The consumer remains responsible for final labels, content semantics, contrast, and assistive-technology validation.
+- Use Dialog metadata plus active option state for results; disabled commands must remain announced correctly.
 
 ## Keyboard interaction
 
@@ -73,15 +75,15 @@ Apply roles, states, and relationships from the snapshot and component metadata.
 
 ## Focus behavior
 
-Focus behavior follows the controller contract and WAI-ARIA pattern. Composite controllers manage active item movement; overlay controllers coordinate entry, exit, and restoration where applicable.
+- Opening moves focus to the search input; Arrow keys move active command; Enter selects.
 
 ## Nested behavior
 
-Nested menu or navigation content reuses the shared collection and overlay behavior instead of duplicating navigation state.
+- Because it uses Dialog, nested overlays obey the same topmost Escape behavior.
 
 ## Cleanup
 
-Call every cleanup returned by subscriptions, bindings, registrations, timers, or observers, then call `destroy()`. Destroy is idempotent and commands after destroy are no-ops.
+- Release shortcut listeners and command registrations before destroy.
 
 ## Complete example
 
@@ -90,25 +92,17 @@ import { createCommandPalette } from 'ui-headless-runtime';
 
 const controller = createCommandPalette();
 const unsubscribe = controller.subscribe((snapshot) => {
-  render(snapshot);
+  console.log(snapshot);
 });
 
-const releaseDom = controller.bind?.({
-  trigger,
-  content,
-});
-
-// Framework or application unmount
-releaseDom?.();
+console.log(controller.getSnapshot());
 unsubscribe();
 controller.destroy();
 ```
 
-The production demo uses the component-specific [`command-palette.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/command-palette.ts).
+The production demo loads the exact executable module from [`apps/demo/src/examples/command-palette.ts`](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/command-palette.ts).
 
 ## Edge cases
-
-Verified scenarios:
 
 - `search`: Fuzzy score filters commands.
 - `groups`: Commands retain group metadata.
@@ -116,7 +110,7 @@ Verified scenarios:
 
 ## Limitations
 
-UI Headless Runtime cannot validate consumer content, visual design, framework lifecycle integration, or every assistive-technology/browser combination. Test the rendered product.
+- It does not index remote documents or perform async fetching; consumers provide commands.
 
 ## API reference
 

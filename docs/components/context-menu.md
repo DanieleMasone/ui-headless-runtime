@@ -8,11 +8,12 @@ Pattern: Menu. Status: stable.
 
 ## When to use
 
-Use Context Menu when you need the runtime behavior described by the public `createContextMenu` controller while keeping markup, rendering, and styling in your application.
+- Contextual actions opened at pointer coordinates or from Shift+F10/ContextMenu key.
+- Virtual-anchor placement where no persistent trigger element exists.
 
 ## When not to use
 
-Do not use it for ordinary links that do not need composite keyboard behavior, active item state, or overlay coordination.
+- Always-visible command bars or trigger-button menus; use Menu or Dropdown Menu instead.
 
 ## Import
 
@@ -22,47 +23,47 @@ import { createContextMenu } from 'ui-headless-runtime';
 
 ## Controller creation
 
-Create the controller during mount or setup, subscribe once, bind DOM after rendering, and release all returned cleanup functions during unmount.
+Create Context Menu during component mount or setup, subscribe before rendering derived UI, and keep every cleanup returned by registrations or DOM binding.
 
 ## Options
 
-The options configure active item ownership, lifecycle hooks, IDs, keyboard behavior, registration, disabled handling, and positioning where applicable.
+- Coordinate opening, virtual anchor placement, native-menu prevention, and item registration come from Context Menu plus Menu engine options.
 
 ## Snapshot
 
-The readonly snapshot exposes open or active item state, selected command/item metadata, controlled-state metadata, IDs, and ARIA relationship metadata. Snapshots are readonly by contract and should be treated as immutable view data.
+- Tracks open state, virtual anchor coordinates, active item, menu IDs, and item metadata.
 
 ## Commands
 
-Use typed open, close, toggle, bind, register, select, subscribe, and destroy commands where they apply to this controller.
+- `openAt`, `close`, `registerItem`, `handleContextMenu`, `handleKeyDown`, and `select` drive the interaction.
 
 ## Events
 
-Lifecycle and state events are typed. Consumers should observe them through `subscribe` and component-specific event callbacks rather than reading implementation internals.
+- Selection is cancellable and native context-menu prevention is scoped to active handlers only.
 
 ## Change reasons
 
-Change reasons identify why a transition was requested, such as programmatic calls, trigger activation, keyboard input, pointer input, selection, timeout, or controlled-state reconciliation.
+- `contextmenu`, `keyboard`, `pointer`, `selection`, `outside`, and `programmatic` are the important branches.
 
 ## Controlled mode
 
-Use controlled mode when an external store owns state. The controller requests changes through typed callbacks and reflects committed external state through its snapshot.
+External owners can accept or reject context opening while preserving the latest requested coordinates.
 
 ## Uncontrolled mode
 
-Use uncontrolled mode when the controller should own state internally. Subscribe to snapshots and clean up the subscription during unmount.
+Uncontrolled mode opens immediately at the current pointer or keyboard-derived virtual anchor.
 
 ## DOM binding
 
-Use the controller's DOM binding helpers when provided. Bindings attach listeners to consumer-owned elements and return an idempotent cleanup function.
+- Attach the contextmenu and keydown handlers to the region that owns the contextual actions.
 
 ## Required markup
 
-The consumer supplies semantic HTML, visible labels, stable IDs when needed, and any visual styling. The runtime supplies behavior and metadata, not DOM structure.
+- Render the menu content near the virtual anchor and use normal menu roles for items.
 
 ## ARIA contract
 
-Apply roles, states, and relationships from the snapshot and component metadata. The consumer remains responsible for final labels, content semantics, contrast, and assistive-technology validation.
+- Use menu roles and disabled metadata; the trigger relationship is contextual rather than a fixed button relationship.
 
 ## Keyboard interaction
 
@@ -72,15 +73,15 @@ Apply roles, states, and relationships from the snapshot and component metadata.
 
 ## Focus behavior
 
-Focus behavior follows the controller contract and WAI-ARIA pattern. Composite controllers manage active item movement; overlay controllers coordinate entry, exit, and restoration where applicable.
+- Keyboard opening moves into the menu; pointer opening keeps placement at the pointer and then follows menu focus rules.
 
 ## Nested behavior
 
-Nested menu or navigation content reuses the shared collection and overlay behavior instead of duplicating navigation state.
+- Submenus reuse the shared Menu stack, including disabled skipping and typeahead.
 
 ## Cleanup
 
-Call every cleanup returned by subscriptions, bindings, registrations, timers, or observers, then call `destroy()`. Destroy is idempotent and commands after destroy are no-ops.
+- Release region listeners and unregister items so native context menus are restored after unmount.
 
 ## Complete example
 
@@ -89,25 +90,17 @@ import { createContextMenu } from 'ui-headless-runtime';
 
 const controller = createContextMenu();
 const unsubscribe = controller.subscribe((snapshot) => {
-  render(snapshot);
+  console.log(snapshot);
 });
 
-const releaseDom = controller.bind?.({
-  trigger,
-  content,
-});
-
-// Framework or application unmount
-releaseDom?.();
+console.log(controller.getSnapshot());
 unsubscribe();
 controller.destroy();
 ```
 
-The production demo uses the component-specific [`context-menu.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/context-menu.ts).
+The production demo loads the exact executable module from [`apps/demo/src/examples/context-menu.ts`](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/context-menu.ts).
 
 ## Edge cases
-
-Verified scenarios:
 
 - `pointer`: Open at contextmenu coordinates.
 - `keyboard`: Open from Shift+F10 or ContextMenu.
@@ -115,7 +108,7 @@ Verified scenarios:
 
 ## Limitations
 
-UI Headless Runtime cannot validate consumer content, visual design, framework lifecycle integration, or every assistive-technology/browser combination. Test the rendered product.
+- Browser or OS context-menu behavior outside the bound region is intentionally untouched.
 
 ## API reference
 

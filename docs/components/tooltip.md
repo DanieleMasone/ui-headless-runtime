@@ -8,11 +8,12 @@ Pattern: Tooltip. Status: stable.
 
 ## When to use
 
-Use Tooltip when you need the runtime behavior described by the public `createTooltip` controller while keeping markup, rendering, and styling in your application.
+- Short, non-interactive descriptions for controls that already have a primary accessible name.
+- Fine-pointer hover or keyboard-focus hints where delay and one-active-tooltip-per-scope coordination matter.
 
 ## When not to use
 
-Do not use it for static inline content that should remain in normal document flow, or when browser-native elements already provide the complete behavior.
+- Interactive popups, rich help panels, or content that users must tab into; use Popover or Dialog.
 
 ## Import
 
@@ -22,47 +23,47 @@ import { createTooltip } from 'ui-headless-runtime';
 
 ## Controller creation
 
-Create the controller during mount or setup, subscribe once, bind DOM after rendering, and release all returned cleanup functions during unmount.
+Create Tooltip during component mount or setup, subscribe before rendering derived UI, and keep every cleanup returned by registrations or DOM binding.
 
 ## Options
 
-The options configure open-state ownership, lifecycle hooks, dismissal behavior, IDs, focus behavior, and positioning where applicable.
+- Open/close delays, pointer type filtering, scope ID, IDs, and controlled open state shape tooltip timing.
 
 ## Snapshot
 
-The readonly snapshot exposes open state, controlled-state metadata, IDs, ARIA metadata, topmost status when relevant, and any computed placement metadata. Snapshots are readonly by contract and should be treated as immutable view data.
+- Exposes `open`, generated trigger/content IDs, `describedBy`, timing state, and active-scope status.
 
 ## Commands
 
-Use typed open, close, toggle, bind, register, select, subscribe, and destroy commands where they apply to this controller.
+- `open`, `close`, `scheduleOpen`, `scheduleClose`, `bind`, and `destroy` cover hover/focus timing.
 
 ## Events
 
-Lifecycle and state events are typed. Consumers should observe them through `subscribe` and component-specific event callbacks rather than reading implementation internals.
+- Open and close events distinguish hover, focus, Escape, delay expiry, and scope replacement.
 
 ## Change reasons
 
-Change reasons identify why a transition was requested, such as programmatic calls, trigger activation, keyboard input, pointer input, selection, timeout, or controlled-state reconciliation.
+- `hover`, `focus`, `keyboard`, `delay`, `scope`, `programmatic`, and `controlled` are the useful reasons.
 
 ## Controlled mode
 
-Use controlled mode when an external store owns state. The controller requests changes through typed callbacks and reflects committed external state through its snapshot.
+Controlled tooltips can reflect design-system policies while the runtime still handles pointer/focus intent.
 
 ## Uncontrolled mode
 
-Use uncontrolled mode when the controller should own state internally. Subscribe to snapshots and clean up the subscription during unmount.
+Uncontrolled tooltips own their timers and scope coordination.
 
 ## DOM binding
 
-Use the controller's DOM binding helpers when provided. Bindings attach listeners to consumer-owned elements and return an idempotent cleanup function.
+- Bind trigger and content; apply `aria-describedby` only while the tooltip is active.
 
 ## Required markup
 
-The consumer supplies semantic HTML, visible labels, stable IDs when needed, and any visual styling. The runtime supplies behavior and metadata, not DOM structure.
+- Tooltip content must be concise text and must not contain focusable controls.
 
 ## ARIA contract
 
-Apply roles, states, and relationships from the snapshot and component metadata. The consumer remains responsible for final labels, content semantics, contrast, and assistive-technology validation.
+- Use `role="tooltip"` on content and connect it with `aria-describedby` from the snapshot.
 
 ## Keyboard interaction
 
@@ -71,15 +72,15 @@ Apply roles, states, and relationships from the snapshot and component metadata.
 
 ## Focus behavior
 
-Focus behavior follows the controller contract and WAI-ARIA pattern. Composite controllers manage active item movement; overlay controllers coordinate entry, exit, and restoration where applicable.
+- Focus opens without hover delay; Escape closes the active tooltip and keeps focus on the trigger.
 
 ## Nested behavior
 
-Nested overlay behavior is coordinated by the shared overlay stack. Only the topmost overlay should handle Escape or outside dismissal.
+- Tooltip scopes close siblings when a new tooltip opens; they do not create interactive nested overlays.
 
 ## Cleanup
 
-Call every cleanup returned by subscriptions, bindings, registrations, timers, or observers, then call `destroy()`. Destroy is idempotent and commands after destroy are no-ops.
+- Destroy clears pending open and close timers and releases scope ownership.
 
 ## Complete example
 
@@ -88,25 +89,17 @@ import { createTooltip } from 'ui-headless-runtime';
 
 const controller = createTooltip();
 const unsubscribe = controller.subscribe((snapshot) => {
-  render(snapshot);
+  console.log(snapshot);
 });
 
-const releaseDom = controller.bind?.({
-  trigger,
-  content,
-});
-
-// Framework or application unmount
-releaseDom?.();
+console.log(controller.getSnapshot());
 unsubscribe();
 controller.destroy();
 ```
 
-The production demo uses the component-specific [`tooltip.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/tooltip.ts).
+The production demo loads the exact executable module from [`apps/demo/src/examples/tooltip.ts`](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/tooltip.ts).
 
 ## Edge cases
-
-Verified scenarios:
 
 - `hover`: Fine-pointer hover opens after a delay.
 - `focus`: Keyboard focus opens immediately.
@@ -114,7 +107,7 @@ Verified scenarios:
 
 ## Limitations
 
-UI Headless Runtime cannot validate consumer content, visual design, framework lifecycle integration, or every assistive-technology/browser combination. Test the rendered product.
+- Touch behavior is intentionally conservative; do not depend on hover-only information for essential tasks.
 
 ## API reference
 

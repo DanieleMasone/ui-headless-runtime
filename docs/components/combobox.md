@@ -8,11 +8,13 @@ Pattern: Combobox. Status: stable.
 
 ## When to use
 
-Use Combobox when you need the runtime behavior described by the public `createCombobox` controller while keeping markup, rendering, and styling in your application.
+- Editable autocomplete where input value, query, selected value, and displayed option are separate.
+- Async suggestions that need stale-response protection and loading/empty states.
 
 ## When not to use
 
-Do not use it for simple forms where native controls provide the required behavior and accessibility with less code.
+- Static selection without text entry; use Listbox.
+- Command launchers where selected command side effects matter more than a value.
 
 ## Import
 
@@ -22,47 +24,47 @@ import { createCombobox } from 'ui-headless-runtime';
 
 ## Controller creation
 
-Create the controller during mount or setup, subscribe once, bind DOM after rendering, and release all returned cleanup functions during unmount.
+Create Combobox during component mount or setup, subscribe before rendering derived UI, and keep every cleanup returned by registrations or DOM binding.
 
 ## Options
 
-The options configure selected or active state ownership, lifecycle hooks, IDs, keyboard behavior, registration, and disabled handling.
+- Filtering, async suggestions, display value, controlled input/selected state, placement, and IME handling configure behavior.
 
 ## Snapshot
 
-The readonly snapshot exposes active item, selected value metadata, controlled-state metadata, IDs, disabled state, and ARIA relationship metadata. Snapshots are readonly by contract and should be treated as immutable view data.
+- Contains input value, query, selected value, active option, suggestions, loading, no-results state, and popup metadata.
 
 ## Commands
 
-Use typed registration, navigation, selection, active-item, and DOM binding commands exposed by the controller.
+- `setInputValue`, `setQuery`, `registerOption`, `select`, `open`, `close`, `handleInput`, `handleKeyDown`, and composition handlers are central.
 
 ## Events
 
-Lifecycle and state events are typed. Consumers should observe them through `subscribe` and component-specific event callbacks rather than reading implementation internals.
+- Input, query, option, async loading, stale-response, and selection transitions are observable.
 
 ## Change reasons
 
-Change reasons identify why a transition was requested, such as programmatic calls, trigger activation, keyboard input, pointer input, selection, timeout, or controlled-state reconciliation.
+- `input`, `keyboard`, `pointer`, `filter`, `async`, `stale`, `selection`, `composition`, and `controlled` matter.
 
 ## Controlled mode
 
-Use controlled mode when an external store owns state. The controller requests changes through typed callbacks and reflects committed external state through its snapshot.
+Controlled comboboxes can own input and selected value separately; pass both committed values back to the controller.
 
 ## Uncontrolled mode
 
-Use uncontrolled mode when the controller should own state internally. Subscribe to snapshots and clean up the subscription during unmount.
+Uncontrolled mode owns input text, query, active option, and selected value while still accepting async providers.
 
 ## DOM binding
 
-Use the controller's DOM binding helpers when provided. Bindings attach listeners to consumer-owned elements and return an idempotent cleanup function.
+- Bind the input and popup listbox; register options from current suggestions or virtualized rows.
 
 ## Required markup
 
-The consumer supplies semantic HTML, visible labels, stable IDs when needed, and any visual styling. The runtime supplies behavior and metadata, not DOM structure.
+- Use a text input with combobox metadata and a listbox popup for suggestions.
 
 ## ARIA contract
 
-Apply roles, states, and relationships from the snapshot and component metadata. The consumer remains responsible for final labels, content semantics, contrast, and assistive-technology validation.
+- Apply `aria-expanded`, `aria-controls`, `aria-activedescendant`, and option selected/disabled state.
 
 ## Keyboard interaction
 
@@ -72,15 +74,15 @@ Apply roles, states, and relationships from the snapshot and component metadata.
 
 ## Focus behavior
 
-Focus behavior follows the controller contract and WAI-ARIA pattern. Composite controllers manage active item movement; overlay controllers coordinate entry, exit, and restoration where applicable.
+- The input keeps DOM focus; Arrow keys move active option and Enter commits selection.
 
 ## Nested behavior
 
-Nested composites should keep independent active and selected state unless the consumer intentionally connects them.
+- The popup can use positioning, but nested interactive overlays inside options are not part of the combobox contract.
 
 ## Cleanup
 
-Call every cleanup returned by subscriptions, bindings, registrations, timers, or observers, then call `destroy()`. Destroy is idempotent and commands after destroy are no-ops.
+- Abort or ignore stale async responses and release composition/input listeners during unmount.
 
 ## Complete example
 
@@ -89,25 +91,17 @@ import { createCombobox } from 'ui-headless-runtime';
 
 const controller = createCombobox();
 const unsubscribe = controller.subscribe((snapshot) => {
-  render(snapshot);
+  console.log(snapshot);
 });
 
-const releaseDom = controller.bind?.({
-  trigger,
-  content,
-});
-
-// Framework or application unmount
-releaseDom?.();
+console.log(controller.getSnapshot());
 unsubscribe();
 controller.destroy();
 ```
 
-The production demo uses the component-specific [`combobox.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/combobox.ts).
+The production demo loads the exact executable module from [`apps/demo/src/examples/combobox.ts`](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/combobox.ts).
 
 ## Edge cases
-
-Verified scenarios:
 
 - `local`: Fuzzy matching over registered options.
 - `async`: Stale responses cannot replace a newer query.
@@ -115,7 +109,7 @@ Verified scenarios:
 
 ## Limitations
 
-UI Headless Runtime cannot validate consumer content, visual design, framework lifecycle integration, or every assistive-technology/browser combination. Test the rendered product.
+- The runtime does not debounce network calls automatically; consumers choose fetch policy.
 
 ## API reference
 

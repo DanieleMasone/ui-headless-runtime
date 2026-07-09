@@ -8,11 +8,13 @@ Pattern: Disclosure plus dialog semantics. Status: stable.
 
 ## When to use
 
-Use Popover when you need the runtime behavior described by the public `createPopover` controller while keeping markup, rendering, and styling in your application.
+- Anchored panels such as pickers, teaching bubbles, or compact settings that need outside dismissal.
+- Nested overlay branches that should not close their parent while interaction stays inside the branch.
 
 ## When not to use
 
-Do not use it for static inline content that should remain in normal document flow, or when browser-native elements already provide the complete behavior.
+- Menus, comboboxes, or tooltips when their specialized keyboard model is required.
+- Persistent sidebars or layout regions that are not overlays.
 
 ## Import
 
@@ -22,47 +24,48 @@ import { createPopover } from 'ui-headless-runtime';
 
 ## Controller creation
 
-Create the controller during mount or setup, subscribe once, bind DOM after rendering, and release all returned cleanup functions during unmount.
+Create Popover during component mount or setup, subscribe before rendering derived UI, and keep every cleanup returned by registrations or DOM binding.
 
 ## Options
 
-The options configure open-state ownership, lifecycle hooks, dismissal behavior, IDs, focus behavior, and positioning where applicable.
+- Open-state ownership mirrors Dialog but without mandatory modal behavior.
+- Anchor, placement, collision, offset, and focus options feed the shared positioning engine.
 
 ## Snapshot
 
-The readonly snapshot exposes open state, controlled-state metadata, IDs, ARIA metadata, topmost status when relevant, and any computed placement metadata. Snapshots are readonly by contract and should be treated as immutable view data.
+- Includes `open`, anchor-derived coordinates, placement, IDs, and outside-interaction status.
 
 ## Commands
 
-Use typed open, close, toggle, bind, register, select, subscribe, and destroy commands where they apply to this controller.
+- `open`, `close`, `toggle`, `setAnchor`, and `bind` cover the full popover lifecycle.
 
 ## Events
 
-Lifecycle and state events are typed. Consumers should observe them through `subscribe` and component-specific event callbacks rather than reading implementation internals.
+- State changes identify pointer, focus-out, Escape, trigger, and programmatic requests.
 
 ## Change reasons
 
-Change reasons identify why a transition was requested, such as programmatic calls, trigger activation, keyboard input, pointer input, selection, timeout, or controlled-state reconciliation.
+- Useful reasons include `trigger`, `outside`, `keyboard`, `pointer`, `focus`, `programmatic`, and `controlled`.
 
 ## Controlled mode
 
-Use controlled mode when an external store owns state. The controller requests changes through typed callbacks and reflects committed external state through its snapshot.
+Controlled popovers let a parent store decide whether an outside interaction actually closes the layer.
 
 ## Uncontrolled mode
 
-Use uncontrolled mode when the controller should own state internally. Subscribe to snapshots and clean up the subscription during unmount.
+Uncontrolled popovers update immediately after the request passes lifecycle cancellation.
 
 ## DOM binding
 
-Use the controller's DOM binding helpers when provided. Bindings attach listeners to consumer-owned elements and return an idempotent cleanup function.
+- Bind trigger and content, then apply the computed placement styles to consumer-owned DOM.
 
 ## Required markup
 
-The consumer supplies semantic HTML, visible labels, stable IDs when needed, and any visual styling. The runtime supplies behavior and metadata, not DOM structure.
+- Use a button-like trigger with `aria-expanded` and an associated content region.
 
 ## ARIA contract
 
-Apply roles, states, and relationships from the snapshot and component metadata. The consumer remains responsible for final labels, content semantics, contrast, and assistive-technology validation.
+- Expose trigger/content relationships with the generated IDs; choose final role based on content purpose.
 
 ## Keyboard interaction
 
@@ -72,15 +75,15 @@ Apply roles, states, and relationships from the snapshot and component metadata.
 
 ## Focus behavior
 
-Focus behavior follows the controller contract and WAI-ARIA pattern. Composite controllers manage active item movement; overlay controllers coordinate entry, exit, and restoration where applicable.
+- Focus can remain on the trigger or move into content depending on options; Escape returns through the overlay contract.
 
 ## Nested behavior
 
-Nested overlay behavior is coordinated by the shared overlay stack. Only the topmost overlay should handle Escape or outside dismissal.
+- A descendant overlay is registered as inside so parent outside handlers do not fire accidentally.
 
 ## Cleanup
 
-Call every cleanup returned by subscriptions, bindings, registrations, timers, or observers, then call `destroy()`. Destroy is idempotent and commands after destroy are no-ops.
+- Release positioning, outside-interaction listeners, and subscriptions before removing content.
 
 ## Complete example
 
@@ -89,25 +92,17 @@ import { createPopover } from 'ui-headless-runtime';
 
 const controller = createPopover();
 const unsubscribe = controller.subscribe((snapshot) => {
-  render(snapshot);
+  console.log(snapshot);
 });
 
-const releaseDom = controller.bind?.({
-  trigger,
-  content,
-});
-
-// Framework or application unmount
-releaseDom?.();
+console.log(controller.getSnapshot());
 unsubscribe();
 controller.destroy();
 ```
 
-The production demo uses the component-specific [`popover.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/popover.ts).
+The production demo loads the exact executable module from [`apps/demo/src/examples/popover.ts`](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/popover.ts).
 
 ## Edge cases
-
-Verified scenarios:
 
 - `basic`: Anchored to a trigger with outside dismissal.
 - `edge`: Flip and shift keep content inside the viewport.
@@ -115,7 +110,7 @@ Verified scenarios:
 
 ## Limitations
 
-UI Headless Runtime cannot validate consumer content, visual design, framework lifecycle integration, or every assistive-technology/browser combination. Test the rendered product.
+- It is not a menu engine; item navigation and selection belong to Menu or Listbox controllers.
 
 ## API reference
 
