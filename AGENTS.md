@@ -22,6 +22,7 @@ Use `npm ci` for reproducible installs. `npm run setup:browsers`, `typecheck`, `
 - Demo imports never target package source or internal paths.
 - Shared component metadata lives in `metadata/components.ts`; demo-specific prose belongs in the demo registry or Markdown.
 - Demo examples are lazily loaded component modules under `apps/demo/src/examples`; source panels must load the exact module used by the current component.
+- Storybook is intentionally not part of the repository; keep the Vanilla TypeScript laboratory as the single behavior demo surface unless an ADR supersedes `docs/adr/no-storybook-for-runtime-demo.md`.
 - Dependency version updates are manual: run `npm outdated` quarterly, before release, and immediately when a security alert requires action.
 
 ## Public API and TSDoc

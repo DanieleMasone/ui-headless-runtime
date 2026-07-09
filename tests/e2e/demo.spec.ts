@@ -240,3 +240,26 @@ test('mobile search and theme controls remain visible and functional', async ({ 
   await theme.selectOption('light');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 });
+
+test('composed docs, API, and coverage sections avoid horizontal overflow', async ({ page }) => {
+  const routes = ['docs/', 'api/', 'coverage/'];
+  const viewports = [
+    { width: 768, height: 1024 },
+    { width: 390, height: 844 },
+    { width: 320, height: 568 },
+  ];
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    for (const route of routes) {
+      await page.goto(`./${route}`);
+      const metrics = await page.evaluate(() => ({
+        scrollWidth: document.documentElement.scrollWidth,
+        innerWidth: window.innerWidth,
+      }));
+      expect(metrics.scrollWidth, `${viewport.width}px ${route}`).toBeLessThanOrEqual(
+        metrics.innerWidth,
+      );
+    }
+  }
+});

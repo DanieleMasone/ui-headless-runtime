@@ -6,7 +6,42 @@ import { root } from './shared.mjs';
 const output = resolve(root, 'docs-dist', 'site');
 await access(resolve(output, 'index.html'));
 
+const requiredComponentSections = [
+  'Overview',
+  'When to use',
+  'When not to use',
+  'Import',
+  'Controller creation',
+  'Options',
+  'Snapshot',
+  'Commands',
+  'Events',
+  'Change reasons',
+  'Controlled mode',
+  'Uncontrolled mode',
+  'DOM binding',
+  'Required markup',
+  'ARIA contract',
+  'Keyboard interaction',
+  'Focus behavior',
+  'Nested behavior',
+  'Cleanup',
+  'Complete example',
+  'Edge cases',
+  'Limitations',
+  'API reference',
+];
+
 for (const component of componentCatalog) {
+  const source = await readFile(resolve(root, 'docs', 'components', `${component.id}.md`), 'utf8');
+  if (!source.startsWith(`# ${component.name}\n`)) {
+    throw new Error(`Component documentation title mismatch: ${component.id}`);
+  }
+  for (const section of requiredComponentSections) {
+    if (!source.includes(`\n## ${section}\n`)) {
+      throw new Error(`Component documentation is missing "${section}": ${component.id}`);
+    }
+  }
   await access(resolve(output, 'components', `${component.id}.html`));
 }
 

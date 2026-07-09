@@ -2,6 +2,7 @@ import { createRequire } from 'node:module';
 import { access, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 import { Script, createContext } from 'node:vm';
+import { gunzipSync } from 'node:zlib';
 import { assertInsideWorkspace, root, run } from './shared.mjs';
 
 const temporary = await assertInsideWorkspace(resolve(root, '.tmp', 'package-check'));
@@ -13,28 +14,45 @@ const npmEnvironment = {
   npm_config_cache: resolve(temporary, 'npm-cache'),
 };
 
-await run('npm', ['pack', '--json', '--pack-destination', temporary], {
-  cwd: packageDirectory,
-  env: npmEnvironment,
-});
-const tarballs = (await readdir(temporary)).filter((file) => file.endsWith('.tgz'));
-if (tarballs.length !== 1) throw new Error('Package check expected exactly one tarball.');
-const tarball = resolve(temporary, tarballs[0]);
+const listTarballEntries = (tarballBuffer) => {
+  const archive = gunzipSync(tarballBuffer);
+  const entries = [];
+  let offset = 0;
+  while (offset + 512 <= archive.length) {
+    const header = archive.subarray(offset, offset + 512);
+    const name = header.toString('utf8', 0, 100).replace(/\0.*$/u, '');
+    if (!name) break;
+    const prefix = header.toString('utf8', 345, 500).replace(/\0.*$/u, '');
+    const sizeText = header.toString('utf8', 124, 136).replace(/\0.*$/u, '').trim();
+    const size = Number.parseInt(sizeText || '0', 8);
+    const path = prefix ? `${prefix}/${name}` : name;
+    if (!path.endsWith('/')) entries.push(path);
+    offset += 512 + Math.ceil(size / 512) * 512;
+  }
+  return entries;
+};
 
-const inspectOutput = resolve(temporary, 'pack.json');
-await run('npm', ['pack', '--json', '--dry-run'], {
-  cwd: packageDirectory,
-  env: npmEnvironment,
-  stdio: [
-    'ignore',
-    await import('node:fs').then(({ openSync }) => openSync(inspectOutput, 'w')),
-    'inherit',
-  ],
-});
-const inspection = JSON.parse(await readFile(inspectOutput, 'utf8'))[0];
-for (const entry of inspection.files) {
-  if (!/^(?:dist\/|README\.md$|LICENSE$|package\.json$)/u.test(entry.path)) {
-    throw new Error(`Unexpected tarball entry: ${entry.path}`);
+const providedTarball = process.argv[2];
+let tarball;
+if (providedTarball) {
+  tarball = await assertInsideWorkspace(resolve(providedTarball));
+  await access(tarball);
+} else {
+  await run('npm', ['pack', '--json', '--pack-destination', temporary], {
+    cwd: packageDirectory,
+    env: npmEnvironment,
+  });
+  const tarballs = (await readdir(temporary)).filter((file) => file.endsWith('.tgz'));
+  if (tarballs.length !== 1) throw new Error('Package check expected exactly one tarball.');
+  tarball = resolve(temporary, tarballs[0]);
+}
+
+const tarballEntries = listTarballEntries(await readFile(tarball)).map((entry) =>
+  entry.replace(/^package\//u, ''),
+);
+for (const entry of tarballEntries) {
+  if (!/^(?:dist\/|README\.md$|LICENSE$|package\.json$)/u.test(entry)) {
+    throw new Error(`Unexpected tarball entry: ${entry}`);
   }
 }
 

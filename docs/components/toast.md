@@ -1,21 +1,120 @@
 # Toast
 
-## Overview and use cases
+## Overview
 
-Toast provides transient status announcements without moving focus. Persistent or actionable critical information needs an inline region or dialog.
+Priority queue, pausable timers, announcements, and promise lifecycle.
 
-## Options, snapshot, and queue
+Pattern: Status / Alert. Status: stable.
 
-Configure maximum visible records or controlled queue ownership. Show deduplicates by ID; update, dismiss, pause, resume, and promise lifecycle are supported. Priority sorts descending with insertion sequence as deterministic tie-breaker.
+## When to use
 
-## Events, reasons, timers, and promises
+Use Toast when you need the runtime behavior described by the public `createToast` controller while keeping markup, rendering, and styling in your application.
 
-beforeShow is cancellable. Show/update/dismiss/stateChange identify programmatic, timeout, dismiss, promise, or update causes. Pause preserves remaining duration. Promise returns the original value or original rejection while updating loading/success/error status.
+## When not to use
 
-Timeout ownership begins when a record enters the deterministic queue, including records outside the current visible capacity. Use `duration: null` for queued work that must remain until it becomes visible or is explicitly dismissed.
+Do not use it for persistent page content, blocking confirmations, or messages that require immediate focus movement.
 
-## Accessibility and cleanup
+## Import
 
-Render polite records as status and assertive records as alert. Do not auto-focus. Provide a reachable dismiss control for persistent actionable content. Destroy clears every timer and external subscription.
+```ts
+import { createToast } from 'ui-headless-runtime';
+```
 
-The Pages laboratory runs priority, promise, and pause/resume examples from the same [`toast.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/toast.ts) shown in its source panel.
+## Controller creation
+
+Create the controller during mount or setup, subscribe once, bind DOM after rendering, and release all returned cleanup functions during unmount.
+
+## Options
+
+The options configure queueing, announcements, timeout ownership, lifecycle hooks, IDs, and timer behavior.
+
+## Snapshot
+
+The readonly snapshot exposes visible items, queue order, announcement mode, remaining timeout state, and controlled lifecycle metadata. Snapshots are readonly by contract and should be treated as immutable view data.
+
+## Commands
+
+Use the typed queue, update, pause/resume, promise, and dismiss commands exposed by the controller.
+
+## Events
+
+Lifecycle and state events are typed. Consumers should observe them through `subscribe` and component-specific event callbacks rather than reading implementation internals.
+
+## Change reasons
+
+Change reasons identify why a transition was requested, such as programmatic calls, trigger activation, keyboard input, pointer input, selection, timeout, or controlled-state reconciliation.
+
+## Controlled mode
+
+Use controlled mode when an external store owns state. The controller requests changes through typed callbacks and reflects committed external state through its snapshot.
+
+## Uncontrolled mode
+
+Use uncontrolled mode when the controller should own state internally. Subscribe to snapshots and clean up the subscription during unmount.
+
+## DOM binding
+
+Use the controller's DOM binding helpers when provided. Bindings attach listeners to consumer-owned elements and return an idempotent cleanup function.
+
+## Required markup
+
+The consumer supplies semantic HTML, visible labels, stable IDs when needed, and any visual styling. The runtime supplies behavior and metadata, not DOM structure.
+
+## ARIA contract
+
+Apply roles, states, and relationships from the snapshot and component metadata. The consumer remains responsible for final labels, content semantics, contrast, and assistive-technology validation.
+
+## Keyboard interaction
+
+- Tab: Reach consumer-provided dismiss controls.
+
+## Focus behavior
+
+Focus behavior follows the controller contract and WAI-ARIA pattern. Composite controllers manage active item movement; overlay controllers coordinate entry, exit, and restoration where applicable.
+
+## Nested behavior
+
+Toast items do not create nested focus scopes. Interactive controls remain consumer-owned and should be minimal.
+
+## Cleanup
+
+Call every cleanup returned by subscriptions, bindings, registrations, timers, or observers, then call `destroy()`. Destroy is idempotent and commands after destroy are no-ops.
+
+## Complete example
+
+```ts
+import { createToast } from 'ui-headless-runtime';
+
+const controller = createToast();
+const unsubscribe = controller.subscribe((snapshot) => {
+  render(snapshot);
+});
+
+const releaseDom = controller.bind?.({
+  trigger,
+  content,
+});
+
+// Framework or application unmount
+releaseDom?.();
+unsubscribe();
+controller.destroy();
+```
+
+The production demo uses the component-specific [`toast.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/toast.ts).
+
+## Edge cases
+
+Verified scenarios:
+
+- `queue`: Visible capacity and deterministic ordering.
+- `promise`: Loading becomes success or error.
+- `pause`: Remaining timeout survives interaction.
+
+## Limitations
+
+UI Headless Runtime cannot validate consumer content, visual design, framework lifecycle integration, or every assistive-technology/browser combination. Test the rendered product.
+
+## API reference
+
+See [`createToast`](https://DanieleMasone.github.io/ui-headless-runtime/api/functions/createToast.html).

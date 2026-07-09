@@ -59,9 +59,9 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run release quality gates
-        run: npm run release:verify
+        run: npm run release:quality
 
-      - name: Pack and inspect release tarball
+      - name: Pack release tarball
         shell: bash
         run: |
           set -euo pipefail
@@ -69,7 +69,13 @@ jobs:
           npm pack --workspace ui-headless-runtime --pack-destination release-tarball --json > release-tarball/metadata.json
           tarball="$(node -p "require('./release-tarball/metadata.json')[0].filename")"
           test -f "release-tarball/$tarball"
-          tar -tzf "release-tarball/$tarball"
+
+      - name: Verify exact release tarball
+        shell: bash
+        run: |
+          set -euo pipefail
+          tarball="$(node -p "require('./release-tarball/metadata.json')[0].filename")"
+          node scripts/package-check.mjs "release-tarball/$tarball"
 
       - name: Ensure version is not already published
         run: node scripts/check-package-version.mjs
