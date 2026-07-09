@@ -16,4 +16,4 @@ Register, bind, bindShortcut, open/close, setQuery, select, and forward keydown.
 
 Bind the shortcut to an explicit owner document and release it. Destroy removes commands, dialog resources, and external state subscriptions. Command errors remain the command owner's responsibility; async rejections are prevented from becoming unhandled.
 
-Search, grouping, and empty-state examples execute from the shared [`createExample()` source](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/create-example.ts).
+Search, grouping, and empty-state examples execute from the component-specific [`command-palette.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/command-palette.ts).

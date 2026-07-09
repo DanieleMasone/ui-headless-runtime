@@ -1,13 +1,17 @@
 import { access, readFile, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { componentRegistry } from '../apps/demo/src/registry/components.ts';
+import { componentCatalog } from '../metadata/components.ts';
 import { root } from './shared.mjs';
 
 const output = resolve(root, 'docs-dist', 'site');
 await access(resolve(output, 'index.html'));
 
-for (const component of componentRegistry) {
+for (const component of componentCatalog) {
   await access(resolve(output, 'components', `${component.id}.html`));
+}
+
+for (const component of componentCatalog) {
+  await access(resolve(root, 'apps', 'demo', 'src', 'examples', `${component.id}.ts`));
 }
 
 const files = [];

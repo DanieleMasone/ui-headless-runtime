@@ -5,16 +5,17 @@
 
 Framework-agnostic TypeScript controllers for accessible, customizable UI behavior. The runtime owns state, lifecycle, keyboard interaction, focus, selection, overlay coordination, positioning, and cleanup. Your application owns markup, CSS, branding, animation, and rendering.
 
-- [Local interactive demo](apps/demo) (`npm run dev`)
-- [API and architecture source documentation](docs) (`npm run build:docs`)
-- [Coverage report](coverage) (`npm run test:coverage`)
+- [Live demo](https://danielemasone.github.io/ui-headless-runtime/)
+- [Documentation](https://danielemasone.github.io/ui-headless-runtime/docs/)
+- [API reference](https://danielemasone.github.io/ui-headless-runtime/api/)
+- [Coverage report](https://danielemasone.github.io/ui-headless-runtime/coverage/)
 - [Architecture documentation](docs/architecture/overview.md)
-- [npm destination after the first release](https://www.npmjs.com/package/ui-headless-runtime)
 - [GitHub repository](https://github.com/DanieleMasone/ui-headless-runtime)
 
 ## Install
 
-The package is not yet present on npm. After the first verified release:
+The package is not yet present on npm. The verified tarball is release-ready, but public npm
+publication remains pending until the first Trusted Publishing release:
 
 ```sh
 npm install ui-headless-runtime
@@ -88,12 +89,13 @@ Requires Node 24 and npm 11.
 
 ```sh
 npm ci
+npm run setup:browsers
 npm run ci
 ```
 
 The quality pipeline runs formatting, ESLint, strict TypeScript, unit coverage (95% global thresholds), real-browser integration, ESM/CJS/IIFE build, API Extractor, TypeDoc, real-tarball consumer tests, demo/site checks, cross-browser E2E, and axe/manual accessibility assertions.
 
-Useful commands are documented in [CONTRIBUTING.md](CONTRIBUTING.md). Generated API docs, the static documentation site, and HTML coverage are composed with the demo into one locally verified GitHub Pages artifact. The public Pages URL requires the first successful deployment.
+Useful commands are documented in [CONTRIBUTING.md](CONTRIBUTING.md). Generated API docs, the static documentation site, and HTML coverage are composed with the demo into one locally verified GitHub Pages artifact published at the live Pages URL.
 
 ## Release
 

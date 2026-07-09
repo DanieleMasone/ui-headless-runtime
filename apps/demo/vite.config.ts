@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite';
+import { normalizeBasePath } from '../../metadata/site';
 
 const normalizeBase = (value: string | undefined): string => {
   if (!value) return '/';
-  return `/${value.replace(/^\/+|\/+$/gu, '')}/`;
+  return normalizeBasePath(value);
 };
 
 export default defineConfig({

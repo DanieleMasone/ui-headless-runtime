@@ -52,6 +52,17 @@
   font-size: 0.85rem;
 }
 
+.search-trigger svg {
+  inline-size: 1rem;
+  block-size: 1rem;
+  fill: currentcolor;
+}
+
+.nav-close {
+  display: none;
+  margin-block-end: var(--space-4);
+}
+
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(16rem, 0.7fr);
@@ -418,6 +429,61 @@ td {
 }
 
 @media (max-width: 36rem) {
+  .hero {
+    min-block-size: 0;
+    gap: var(--space-6);
+    padding-block-end: var(--space-8);
+  }
+
+  .actions,
+  .section-heading,
+  .panel-heading,
+  .lab-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .button,
+  .actions a,
+  .lab-toolbar a,
+  .lab-toolbar select {
+    inline-size: 100%;
+  }
+
+  .component-table a {
+    grid-template-columns: 1fr;
+  }
+
+  .laboratory > * {
+    padding: var(--space-4);
+  }
+
+  .lab-example {
+    min-block-size: 0;
+  }
+
+  .example-stage {
+    min-block-size: 10rem;
+    padding: var(--space-4);
+  }
+
+  .lab-source pre,
+  .lab-inspector pre,
+  .event-output {
+    max-block-size: 16rem;
+  }
+
+  .contract-grid table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .nav-close {
+    display: inline-flex;
+    inline-size: 100%;
+    justify-content: center;
+  }
+
   .metric-grid,
   .component-grid {
     grid-template-columns: 1fr;
@@ -429,5 +495,22 @@ td {
 
   .event-row code {
     grid-column: 1 / -1;
+  }
+}
+
+@media (forced-colors: active) {
+  .button.primary,
+  .brand > span {
+    border: 1px solid ButtonText;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }

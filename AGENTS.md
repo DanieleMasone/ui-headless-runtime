@@ -10,7 +10,7 @@
 
 ## Commands
 
-Use `npm ci` for reproducible installs. `npm run typecheck`, `lint`, `unused:check`, `test:coverage`, `test:browser`, `build`, `api:check`, `docs:check`, `package:check`, `build:site`, `site:check`, and `test:acceptance` are individual gates. `npm run ci` runs the local CI sequence. `npm run release:verify` covers publish gates without publishing.
+Use `npm ci` for reproducible installs. `npm run setup:browsers`, `typecheck`, `lint`, `unused:check`, `test:coverage`, `test:browser`, `build`, `api:check`, `docs:check`, `package:check`, `build:site`, `site:check`, and `test:acceptance` are individual gates. `npm run ci` runs the local CI sequence. `npm run release:verify` covers publish gates without publishing.
 
 ## Invariants
 
@@ -20,6 +20,9 @@ Use `npm ci` for reproducible installs. `npm run typecheck`, `lint`, `unused:che
 - Every listener, timer, observer, registration, and subscription has idempotent cleanup.
 - Commands after destroy are no-ops; final snapshots remain readable.
 - Demo imports never target package source or internal paths.
+- Shared component metadata lives in `metadata/components.ts`; demo-specific prose belongs in the demo registry or Markdown.
+- Demo examples are lazily loaded component modules under `apps/demo/src/examples`; source panels must load the exact module used by the current component.
+- Dependency version updates are manual: run `npm outdated` quarterly, before release, and immediately when a security alert requires action.
 
 ## Public API and TSDoc
 
@@ -27,7 +30,7 @@ Export intentionally through `src/index.ts`; avoid implementation exports and de
 
 ## Accessibility and demo
 
-Follow the applicable WAI-ARIA pattern, real keyboard behavior, focus entry/movement/exit, stable names/relationships, disabled handling, and nested overlay rules. Automated axe is supplementary to manual assertions. Demo metadata belongs in the typed registry. Visual styles belong only in the centralized cascade-layer CSS files; runtime package code contains no CSS.
+Follow the applicable WAI-ARIA pattern, real keyboard behavior, focus entry/movement/exit, stable names/relationships, disabled handling, and nested overlay rules. Automated axe is supplementary to manual assertions. Demo metadata derives from the neutral catalog and the typed demo registry. Visual styles belong only in the centralized cascade-layer CSS files; runtime package code contains no CSS.
 
 ## Definition of Done
 

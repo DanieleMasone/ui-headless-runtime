@@ -17,15 +17,7 @@ export interface ControllerHost<TSnapshot extends object, TEvents extends object
 }
 
 const freezeSnapshot = <TSnapshot extends object>(snapshot: TSnapshot): Readonly<TSnapshot> => {
-  const visit = (value: unknown): void => {
-    if (!value || typeof value !== 'object' || Object.isFrozen(value)) return;
-    const prototype = Object.getPrototypeOf(value) as unknown;
-    if (Array.isArray(value) || prototype === Object.prototype || prototype === null) {
-      for (const nested of Object.values(value)) visit(nested);
-      Object.freeze(value);
-    }
-  };
-  visit(snapshot);
+  if (!Object.isFrozen(snapshot)) Object.freeze(snapshot);
   return snapshot;
 };
 

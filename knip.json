@@ -13,6 +13,7 @@
       "entry": [
         "eslint.config.js",
         "playwright.config.ts",
+        "playwright.external.config.ts",
         "docs/.vitepress/config.ts",
         "vitest.config.ts",
         "vitest.browser.config.ts",

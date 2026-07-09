@@ -15,7 +15,7 @@ export function startRouter(render: (change: RouteChange) => void): () => void {
   const route = (): void => {
     render({ path: currentPath() });
     window.scrollTo({ top: 0, behavior: 'instant' });
-    requestAnimationFrame(() => document.querySelector<HTMLElement>('#main h1')?.focus());
+    requestAnimationFrame(() => document.querySelector<HTMLElement>('#main')?.focus());
   };
   window.addEventListener('hashchange', route);
   route();

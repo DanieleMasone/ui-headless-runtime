@@ -16,4 +16,4 @@ Fine-pointer hover is delayed; keyboard focus opens immediately. Touch pointer e
 
 Binding owns trigger listeners, timers, positioning observation, and Escape handling. Destroy cancels pending timers and clears the scope entry.
 
-Hover delay, focus, and shared-scope examples execute from the shared [`createExample()` source](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/create-example.ts).
+Hover delay, focus, and shared-scope examples execute from the component-specific [`tooltip.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/tooltip.ts).

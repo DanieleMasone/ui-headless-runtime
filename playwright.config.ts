@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
+import { siteBasePath } from './metadata/site';
 
-const basePath = '/ui-headless-runtime/';
+const basePath = siteBasePath;
 
 export default defineConfig({
   testDir: 'tests',
@@ -15,7 +16,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: 'npm run preview',
+    command: 'node scripts/serve-site.mjs',
     url: `http://127.0.0.1:4173${basePath}`,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,

@@ -16,4 +16,4 @@ beforeSelect may cancel pointer, keyboard, typeahead, or programmatic selection.
 
 Registration cleanup supports dynamic and virtualized windows while stable IDs preserve active-descendant compatibility. Consumers announce selection guidance where multi-select interaction is non-obvious.
 
-Single, multiple, and disabled examples execute from the shared [`createExample()` source](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/create-example.ts).
+Single, multiple, and disabled examples execute from the component-specific [`listbox.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/listbox.ts).

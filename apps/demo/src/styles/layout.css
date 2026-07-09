@@ -1,6 +1,9 @@
 #app {
   display: grid;
+  inline-size: 100%;
+  min-inline-size: 0;
   min-block-size: 100vh;
+  overflow-x: clip;
   grid-template-columns: var(--sidebar) minmax(0, 1fr);
   grid-template-rows: var(--topbar) 1fr auto;
   grid-template-areas: 'topbar topbar' 'sidebar main' 'sidebar footer';
@@ -12,6 +15,7 @@
   inset-block-start: 0;
   display: grid;
   grid-area: topbar;
+  min-inline-size: 0;
   grid-template-columns: var(--sidebar) minmax(12rem, 30rem) auto;
   align-items: center;
   gap: var(--space-4);
@@ -65,6 +69,7 @@
 
 main {
   grid-area: main;
+  justify-self: center;
   inline-size: min(100%, var(--content));
   min-block-size: calc(100vh - var(--topbar));
   padding: clamp(var(--space-6), 4vw, var(--space-12));
@@ -80,8 +85,11 @@ main section > * + * {
 
 footer {
   display: flex;
+  flex-wrap: wrap;
   grid-area: footer;
+  min-inline-size: 0;
   justify-content: space-between;
+  gap: var(--space-3);
   border-block-start: 1px solid var(--border);
   padding: var(--space-6) clamp(var(--space-6), 4vw, var(--space-12));
   color: var(--text-muted);
@@ -98,7 +106,9 @@ footer {
   }
 
   .topbar {
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: var(--space-2);
+    padding-inline: var(--space-3);
   }
 
   .mobile-menu {
@@ -122,14 +132,72 @@ footer {
     display: block;
   }
 
-  .brand strong,
-  .search-trigger span,
-  .theme-control {
+  .nav-backdrop {
+    position: fixed;
+    z-index: calc(var(--z-nav) - 1);
+    inset: var(--topbar) 0 0;
+    background: rgb(16 24 40 / 38%);
+  }
+
+  body[data-nav-open='true'] {
+    overflow: hidden;
+  }
+
+  .brand strong {
     position: absolute;
     overflow: hidden;
     inline-size: 1px;
     block-size: 1px;
     clip-path: inset(50%);
     white-space: nowrap;
+  }
+
+  .search-trigger {
+    justify-self: end;
+    gap: var(--space-2);
+    min-inline-size: 2.5rem;
+    padding-inline: var(--space-3);
+  }
+
+  .search-trigger span,
+  .search-trigger kbd,
+  .theme-control > :not(select) {
+    position: absolute;
+    overflow: hidden;
+    inline-size: 1px;
+    block-size: 1px;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .theme-control select {
+    inline-size: 5.25rem;
+    min-inline-size: 0;
+  }
+
+  main,
+  footer {
+    padding-inline: var(--space-4);
+  }
+}
+
+@media (max-width: 24rem) {
+  .topbar {
+    grid-template-columns: auto 1fr auto auto;
+    padding-inline: var(--space-2);
+  }
+
+  .brand > span {
+    inline-size: 1.8rem;
+    block-size: 1.8rem;
+  }
+
+  .theme-control select {
+    inline-size: 4.75rem;
+  }
+
+  main,
+  footer {
+    padding-inline: var(--space-3);
   }
 }

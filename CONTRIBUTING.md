@@ -2,11 +2,13 @@
 
 ## Setup
 
-Install Node 24 and npm 11, clone the repository, and run `npm ci`. Use `npm run dev` for the demo and `npm run build:lib` when changing package exports.
+Install Node 24 and npm 11, clone the repository, and run `npm ci`. Run `npm run setup:browsers` before local Playwright checks. Use `npm run dev` for the demo and `npm run build:lib` when changing package exports.
 
 ## Development checks
 
 Run `npm run format`, `npm run lint`, `npm run unused:check`, and `npm run typecheck`. Unit tests use `npm run test:unit`; coverage uses `npm run test:coverage`; real-browser integration uses `npm run test:browser`. Playwright uses the production `site-dist` artifact, so run coverage, `npm run build`, `npm run docs:check`, `npm run build:site`, and `npm run site:check` before `npm run test:acceptance`.
+
+Dependency version updates are manual. Run `npm outdated` and `npm audit` before each release, quarterly during maintenance, and immediately when a security alert requires action. Dependabot security alerts and the dependency graph remain useful, but version-update PRs are intentionally disabled to avoid noisy grouped toolchain updates.
 
 ## Public API and docs
 
@@ -20,7 +22,7 @@ Test keyboard-only interaction, focus entry/containment/restoration, Arrow/Home/
 
 - The change reuses shared layers and has complete cleanup.
 - No avoidable `any`, broad lint suppression, placeholder note, or import-time DOM access was added.
-- Public API/TSDoc/API report and demo registry are coherent.
+- Public API/TSDoc/API report, neutral component catalog, demo registry, and exact source modules are coherent.
 - Unit, browser, production E2E, accessibility, package smoke, and coverage gates pass.
 - README/architecture/component/operations docs match actual behavior.
 

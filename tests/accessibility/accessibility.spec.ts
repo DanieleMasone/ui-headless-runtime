@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { componentRegistry } from '../../apps/demo/src/registry/components';
+import { componentCatalog } from '../../metadata/components';
 
 const analyze = async (page: Page) => {
   const result = await new AxeBuilder({ page }).analyze();
@@ -41,9 +41,10 @@ test('home has no detectable axe violations and exposes landmarks', async ({ pag
   );
 });
 
-for (const component of componentRegistry) {
+for (const component of componentCatalog) {
   test(`${component.name} initial and interactive states pass axe`, async ({ page }) => {
     await page.goto(`./#${component.route}`);
+    await expect(page.locator('.lab-status')).toContainText('Scenario changed');
     await analyze(page);
     await interact(page, component.id);
     await analyze(page);

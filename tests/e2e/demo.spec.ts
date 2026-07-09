@@ -1,8 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
-import { componentRegistry } from '../../apps/demo/src/registry/components';
+import { componentCatalog } from '../../metadata/components';
 
 const visit = async (page: Page, path = '/') => {
   await page.goto(`./#${path}`);
+};
+
+const selectScenario = async (page: Page, scenario: string) => {
+  await page.getByLabel('Scenario').selectOption(scenario);
+  await expect(page.locator('.lab-status')).toContainText('Scenario changed');
 };
 
 const interact = async (page: Page, id: string) => {
@@ -53,11 +58,12 @@ test('home, links, theme, search, history, and direct routes work', async ({ pag
   await expect(page.getByRole('heading', { level: 1, name: 'Dialog' })).toBeVisible();
 });
 
-for (const component of componentRegistry) {
+for (const component of componentCatalog) {
   test(`${component.name} laboratory uses the live controller`, async ({ page }) => {
     await visit(page, component.route);
     await expect(page.getByRole('heading', { level: 1, name: component.name })).toBeVisible();
-    await expect(page.locator('.state-output')).not.toBeEmpty();
+    await expect(page.locator('.lab-status')).toContainText('Scenario changed');
+    await expect(page.locator('.state-output')).toContainText('{');
     await interact(page, component.id);
     await expect(page.locator('.event-output')).toContainText('stateChange');
     await expect(
@@ -69,11 +75,13 @@ for (const component of componentRegistry) {
 
 test('scenario selection, source copy, API and coverage links are wired', async ({ page }) => {
   await visit(page, '/components/dialog');
-  const scenarios = page.getByLabel('Scenario');
-  await scenarios.selectOption('nested');
+  await selectScenario(page, 'nested');
   await expect(page.locator('.scenario-description')).toContainText('topmost');
+  const sourcePanel = page.locator('.lab-source code');
+  await expect(sourcePanel).toContainText('createDialog');
+  const dialogSource = await sourcePanel.textContent();
   await page.getByRole('button', { name: 'Copy' }).click();
-  await expect(page.getByRole('status')).not.toBeEmpty();
+  await expect(page.locator('.copy-status')).not.toBeEmpty();
   await expect(page.locator('#main').getByRole('link', { name: 'API reference' })).toHaveAttribute(
     'href',
     /ui-headless-runtime\/api\//u,
@@ -81,13 +89,20 @@ test('scenario selection, source copy, API and coverage links are wired', async 
 
   const coverage = page.locator('.sidebar a[href$="coverage/"]');
   await expect(coverage).toHaveAttribute('href', /ui-headless-runtime\/coverage\//u);
+
+  await visit(page, '/components/combobox');
+  await expect(sourcePanel).toContainText('createCombobox');
+  const comboboxSource = await sourcePanel.textContent();
+  expect(dialogSource).toContain('createDialog');
+  expect(comboboxSource).toContain('createCombobox');
+  expect(comboboxSource).not.toEqual(dialogSource);
 });
 
 test('high-risk scenarios exercise nested overlays, async data, queues, trees, and compact navigation', async ({
   page,
 }) => {
   await visit(page, '/components/dialog');
-  await page.getByLabel('Scenario').selectOption('nested');
+  await selectScenario(page, 'nested');
   await page.getByRole('button', { name: 'Open dialog' }).click();
   const parent = page.getByRole('dialog', { name: 'Account confirmation' });
   await page.getByRole('button', { name: 'Open nested dialog' }).click();
@@ -98,7 +113,7 @@ test('high-risk scenarios exercise nested overlays, async data, queues, trees, a
   await expect(parent).toBeVisible();
 
   await visit(page, '/components/combobox');
-  await page.getByLabel('Scenario').selectOption('async');
+  await selectScenario(page, 'async');
   const combobox = page.getByRole('combobox', { name: 'Assign owner' });
   await combobox.fill('A');
   await combobox.fill('Ada');
@@ -106,12 +121,12 @@ test('high-risk scenarios exercise nested overlays, async data, queues, trees, a
   await expect(page.getByRole('option', { name: 'A (remote)', exact: true })).toHaveCount(0);
 
   await visit(page, '/components/toast');
-  await page.getByLabel('Scenario').selectOption('promise');
+  await selectScenario(page, 'promise');
   await page.getByRole('button', { name: 'Track deployment promise' }).click();
   await expect(page.getByText('Deployed to production', { exact: true })).toBeVisible();
 
   await visit(page, '/components/tree-view');
-  await page.getByLabel('Scenario').selectOption('dynamic');
+  await selectScenario(page, 'dynamic');
   await expect(page.getByRole('treeitem', { name: 'workspace' })).toHaveAttribute(
     'aria-busy',
     'true',
@@ -123,7 +138,7 @@ test('high-risk scenarios exercise nested overlays, async data, queues, trees, a
   );
 
   await visit(page, '/components/navigation-menu');
-  await page.getByLabel('Scenario').selectOption('compact');
+  await selectScenario(page, 'compact');
   const products = page.getByRole('button', { name: 'Products' });
   await products.click();
   await expect(products).toHaveAttribute('aria-expanded', 'true');
@@ -152,9 +167,76 @@ test('mobile navigation opens, navigates, and closes', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await visit(page);
   const menu = page.getByRole('button', { name: 'Open navigation' });
+  await expect(menu).toHaveAttribute('aria-expanded', 'false');
   await menu.click();
+  await expect(menu).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('body')).toHaveAttribute('data-nav-open', 'true');
+  await expect(page.locator('#sidebar')).toHaveAttribute('role', 'dialog');
+  await expect(page.getByRole('button', { name: 'Close navigation' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('body')).toHaveAttribute('data-nav-open', 'false');
+  await expect(menu).toBeFocused();
+  await menu.click();
+  await page.mouse.click(380, 96);
+  await expect(page.locator('body')).toHaveAttribute('data-nav-open', 'false');
+  await menu.click();
   await page.locator('#sidebar').getByRole('link', { name: 'Components', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Components' })).toBeVisible();
   await expect(page.locator('body')).toHaveAttribute('data-nav-open', 'false');
+});
+
+test('responsive demo routes avoid horizontal overflow and keep controls reachable', async ({
+  page,
+}) => {
+  const routes = [
+    '/',
+    '/components',
+    '/components/dialog',
+    '/components/combobox',
+    '/components/toast',
+    '/components/tree-view',
+    '/components/navigation-menu',
+  ];
+  const viewports = [
+    { width: 1440, height: 900 },
+    { width: 1024, height: 768 },
+    { width: 768, height: 1024 },
+    { width: 390, height: 844 },
+    { width: 360, height: 800 },
+    { width: 320, height: 568 },
+  ];
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    for (const route of routes) {
+      await visit(page, route);
+      const metrics = await page.evaluate(() => ({
+        scrollWidth: document.documentElement.scrollWidth,
+        innerWidth: window.innerWidth,
+        topbar: document.querySelector('.topbar')?.getBoundingClientRect().height ?? 0,
+        mainTop: document.querySelector('main')?.getBoundingClientRect().top ?? -1,
+      }));
+      expect(metrics.scrollWidth, `${viewport.width}px ${route}`).toBeLessThanOrEqual(
+        metrics.innerWidth,
+      );
+      expect(metrics.topbar).toBeGreaterThan(0);
+      expect(metrics.mainTop).toBeGreaterThanOrEqual(0);
+    }
+  }
+});
+
+test('mobile search and theme controls remain visible and functional', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await visit(page);
+  const searchButton = page.getByRole('button', { name: 'Search documentation' });
+  await expect(searchButton).toBeVisible();
+  await searchButton.click();
+  await page.getByRole('searchbox', { name: 'Search pages' }).fill('Overview');
+  await expect(page.getByRole('option', { name: /Overview.*Overview/u })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(searchButton).toBeFocused();
+
+  const theme = page.getByLabel('Theme');
+  await expect(theme).toBeVisible();
+  await theme.selectOption('light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 });

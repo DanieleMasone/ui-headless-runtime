@@ -1,18 +1,19 @@
 import { readFile, realpath } from 'node:fs/promises';
 import { dirname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { siteBasePath } from '../metadata/site.ts';
 
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const packageMetadata = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
 const repositoryUrl = packageMetadata.repository.url;
-const repositoryName =
+export const repositoryName =
   process.env.SITE_REPOSITORY ??
   repositoryUrl
     .replace(/\.git$/u, '')
     .split('/')
     .at(-1);
-export const basePath = `/${String(process.env.SITE_BASE_PATH ?? repositoryName).replace(/^\/+|\/+$/gu, '')}/`;
+export const basePath = siteBasePath;
 
 export async function assertInsideWorkspace(path) {
   const resolvedRoot = await realpath(root);

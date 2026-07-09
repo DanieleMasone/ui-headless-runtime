@@ -20,4 +20,4 @@ Render role menu, menuitem, and separator. Arrow keys, Home/End, Enter/Space, Ar
 
 Registration and binding return cleanup. Submenu rendering and focus hand-off remain consumer responsibilities; the snapshot identifies requested submenu state.
 
-Action, typeahead, disabled, long-collection, and submenu behaviors are rendered by the shared [`createExample()` source](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/create-example.ts).
+Action, typeahead, disabled, long-collection, and submenu behaviors are rendered by the component-specific [`menu.ts` example module](https://github.com/DanieleMasone/ui-headless-runtime/blob/main/apps/demo/src/examples/menu.ts).

@@ -60,7 +60,7 @@ describe('controller host edge policies', () => {
     host.off('change', vi.fn());
   });
 
-  it('restores publication state after listener errors and deeply freezes plain snapshots', () => {
+  it('restores publication state after listener errors without freezing nested consumer-owned data', () => {
     const host = createControllerHost<
       { nested: { values: number[] }; value: number },
       { change: number }
@@ -71,9 +71,28 @@ describe('controller host edge policies', () => {
     expect(() => host.update({ nested: { values: [1] }, value: 1 })).toThrow('listener failed');
     release();
     expect(host.update({ nested: { values: [2] }, value: 2 })).toBe(true);
-    expect(Object.isFrozen(host.getSnapshot().nested)).toBe(true);
-    expect(Object.isFrozen(host.getSnapshot().nested.values)).toBe(true);
+    expect(Object.isFrozen(host.getSnapshot())).toBe(true);
+    expect(Object.isFrozen(host.getSnapshot().nested)).toBe(false);
+    expect(Object.isFrozen(host.getSnapshot().nested.values)).toBe(false);
     host.destroy();
+  });
+
+  it('copies registered command records without freezing consumer-owned metadata', () => {
+    const palette = createCommandPalette();
+    const keywords = ['deploy'];
+    const command = {
+      id: 'deploy',
+      text: 'Deploy',
+      keywords,
+      perform: vi.fn(),
+    };
+    palette.registerCommand(command);
+    expect(palette.getSnapshot().commands[0]?.id).toBe('deploy');
+    expect(Object.isFrozen(command)).toBe(false);
+    expect(Object.isFrozen(keywords)).toBe(false);
+    keywords.push('production');
+    expect(command.keywords).toContain('production');
+    palette.destroy();
   });
 
   it('keeps component registrations and delayed commands inert after destroy', async () => {

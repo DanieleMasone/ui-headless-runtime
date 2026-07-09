@@ -2,6 +2,14 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type DefaultTheme } from 'vitepress';
+import {
+  apiUrl,
+  coverageUrl,
+  docsBasePath,
+  docsUrl,
+  repositoryUrl,
+  siteUrl,
+} from '../../metadata/site';
 
 const documentationRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pages = (directory: string): DefaultTheme.SidebarItem[] =>
@@ -26,21 +34,21 @@ const sidebar: DefaultTheme.SidebarItem[] = [
 export default defineConfig({
   title: 'UI Headless Runtime',
   description: 'Architecture, component contracts, integration guides, and release operations.',
-  base: '/ui-headless-runtime/docs/',
+  base: docsBasePath,
   outDir: '../docs-dist/site',
   cleanUrls: false,
   lastUpdated: true,
-  sitemap: { hostname: 'https://danielemasone.github.io/ui-headless-runtime/docs/' },
+  sitemap: { hostname: docsUrl },
   themeConfig: {
     nav: [
       { text: 'Documentation', link: '/' },
-      { text: 'Interactive demo', link: 'https://danielemasone.github.io/ui-headless-runtime/' },
-      { text: 'API', link: 'https://danielemasone.github.io/ui-headless-runtime/api/' },
-      { text: 'Coverage', link: 'https://danielemasone.github.io/ui-headless-runtime/coverage/' },
+      { text: 'Interactive demo', link: siteUrl },
+      { text: 'API', link: apiUrl },
+      { text: 'Coverage', link: coverageUrl },
     ],
     sidebar,
     search: { provider: 'local' },
-    socialLinks: [{ icon: 'github', link: 'https://github.com/DanieleMasone/ui-headless-runtime' }],
+    socialLinks: [{ icon: 'github', link: repositoryUrl }],
     footer: {
       message: 'Headless behavior; consumer-owned rendering and styling.',
       copyright: 'Released under the MIT License.',

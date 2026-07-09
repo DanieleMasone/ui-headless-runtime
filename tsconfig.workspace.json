@@ -9,6 +9,7 @@
   },
   "include": [
     "packages/ui-headless-runtime/src/**/*.ts",
+    "metadata/**/*.ts",
     "apps/demo/src/**/*.ts",
     "apps/demo/vite.config.ts",
     "docs/**/*.ts",
