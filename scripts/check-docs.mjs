@@ -1,6 +1,7 @@
 import { access, readFile, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { componentCatalog } from '../metadata/components.ts';
+import { siteUrl } from '../metadata/site.ts';
 import { root } from './shared.mjs';
 
 const output = resolve(root, 'docs-dist', 'site');
@@ -26,6 +27,17 @@ const requiredGuidePages = [
   'testing',
   'troubleshooting',
   'release-and-package',
+];
+const conformanceTitle = '# Demo and documentation accessibility conformance';
+const requiredConformanceSections = [
+  'Scope',
+  'Target',
+  'What is covered',
+  'What is not guaranteed by the runtime package alone',
+  'Automated checks',
+  'Manual review checklist',
+  'Known limitations',
+  'Badge policy',
 ];
 
 const requiredComponentSections = [
@@ -65,7 +77,23 @@ for (const component of componentCatalog) {
       throw new Error(`Component documentation is missing "${section}": ${component.id}`);
     }
   }
-  await access(resolve(output, 'components', `${component.id}.html`));
+  const demoUrl = `${siteUrl}#${component.route}`;
+  const apiReferenceUrl = `${siteUrl}${component.apiPath}`;
+  if (!source.includes(`[Live demo](${demoUrl})`)) {
+    throw new Error(`Component documentation has an invalid live demo link: ${component.id}`);
+  }
+  if (!source.includes(`](${apiReferenceUrl})`)) {
+    throw new Error(`Component documentation has an invalid API reference link: ${component.id}`);
+  }
+
+  const generatedPath = resolve(output, 'components', `${component.id}.html`);
+  const generated = await readFile(generatedPath, 'utf8');
+  if (
+    !generated.includes(`href="${demoUrl}"`) ||
+    !generated.includes(`href="${apiReferenceUrl}"`)
+  ) {
+    throw new Error(`Generated component links do not match the public routes: ${component.id}`);
+  }
 }
 
 for (const component of componentCatalog) {
@@ -76,6 +104,25 @@ for (const page of requiredGuidePages) {
   await access(resolve(root, 'docs', 'guide', `${page}.md`));
   await access(resolve(output, 'guide', page === 'index' ? 'index.html' : `${page}.html`));
 }
+
+const conformanceSource = await readFile(
+  resolve(root, 'docs', 'accessibility', 'demo-conformance.md'),
+  'utf8',
+);
+if (!conformanceSource.startsWith(`${conformanceTitle}\n`)) {
+  throw new Error('Accessibility conformance title is missing or incorrect.');
+}
+for (const section of requiredConformanceSections) {
+  if (!conformanceSource.includes(`\n## ${section}\n`)) {
+    throw new Error(`Accessibility conformance is missing "${section}".`);
+  }
+}
+for (const status of ['tested', 'not applicable', 'consumer responsibility', 'pending']) {
+  if (!conformanceSource.includes(`\`${status}\``)) {
+    throw new Error(`Accessibility conformance checklist is missing the "${status}" status.`);
+  }
+}
+await access(resolve(output, 'accessibility', 'demo-conformance.html'));
 
 const collectFiles = async (directory, files = []) => {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -100,9 +147,18 @@ for (const path of demoSources) {
 
 const files = await collectFiles(output);
 
-for (const path of files.filter((file) => file.endsWith('.html'))) {
-  const html = await readFile(path, 'utf8');
-  if (/localhost|127\.0\.0\.1|href="[^"]+\.md(?:[?#"])/u.test(html)) {
+const rawWorkspaceReference =
+  /(?:href|src)=["'](?!(?:https?:)?\/\/)[^"']*(?:apps|packages|metadata|scripts|tests)[\\/]/u;
+
+for (const path of files.filter((file) => file.endsWith('.html') || file.endsWith('.js'))) {
+  const generated = await readFile(path, 'utf8');
+  if (
+    /https?:\/\/(?:localhost|127\.0\.0\.1)|(?:href|src)=["'](?:\/\/)?(?:localhost|127\.0\.0\.1)|(?:href|src)=["']file:|(?:href|src)=["'][A-Za-z]:[\\/]/u.test(
+      generated,
+    ) ||
+    rawWorkspaceReference.test(generated) ||
+    (path.endsWith('.html') && /href="[^"]+\.md(?:[?#"])/u.test(generated))
+  ) {
     throw new Error(`Generated documentation contains a development or raw-source link: ${path}`);
   }
 }

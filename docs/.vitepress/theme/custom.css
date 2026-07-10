@@ -1,0 +1,96 @@
+/* Minimal overrides for reflow in generated documentation and narrow Pages viewports. */
+:root {
+  --vp-button-brand-bg: #405bb7;
+  --vp-button-brand-hover-bg: #314994;
+  --vp-button-brand-active-bg: #273c7f;
+}
+
+.VPNav,
+.VPNavBar,
+.VPNavBar .container,
+.VPNavBar .content {
+  max-inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.VPContent,
+.VPDoc .container,
+.VPDoc .content,
+.VPDoc .content-container,
+.vp-doc {
+  min-inline-size: 0;
+}
+
+.vp-doc :where(h1, h2, h3, h4, p, li, dd, a) {
+  overflow-wrap: break-word;
+}
+
+.vp-doc :not(pre) > code {
+  overflow-wrap: anywhere;
+}
+
+.vp-doc :where(div[class*='language-'], pre) {
+  max-inline-size: 100%;
+  overflow-x: auto;
+}
+
+.vp-doc table {
+  display: block;
+  max-inline-size: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.VPNavBarHamburger,
+.VPLocalNav .menu,
+.VPNavBarSearchButton {
+  min-inline-size: 2.75rem;
+  min-block-size: 2.75rem;
+}
+
+:where(a, button, input, select, summary, [role='button']):focus-visible {
+  outline: 3px solid var(--vp-c-brand-1);
+  outline-offset: 3px;
+}
+
+@media (max-width: 40rem) {
+  .vp-doc h1 {
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+
+  .vp-doc h2 {
+    font-size: 1.5rem;
+    line-height: 1.25;
+  }
+}
+
+@media (max-width: 48rem) {
+  .VPNavBarMenu,
+  .VPNavBarExtra {
+    display: none !important;
+  }
+
+  .VPNavBarHamburger {
+    display: flex !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :where(a, button, input, select, summary, [role='button']):focus-visible {
+    outline-color: Highlight;
+  }
+}

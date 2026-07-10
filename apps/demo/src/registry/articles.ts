@@ -156,7 +156,7 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
       'Axe supplements keyboard and focus assertions.',
       'Conformance depends on the rendered product.',
     ],
-    'accessibility/conformance.html',
+    'accessibility/demo-conformance.html',
   ),
   article(
     'Guides',

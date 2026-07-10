@@ -192,6 +192,8 @@
 .component-table {
   display: grid;
   gap: var(--space-3);
+  padding: 0;
+  list-style: none;
 }
 
 .component-table a {
@@ -228,12 +230,48 @@
   gap: var(--space-4);
 }
 
-.laboratory > * {
+.laboratory > .lab-panel {
   min-inline-size: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: var(--space-5);
   background: var(--surface-raised);
+}
+
+.lab-panel-switcher,
+.lab-status {
+  grid-column: 1 / -1;
+}
+
+.lab-panel-switcher {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+}
+
+.lab-panel-switcher button {
+  min-inline-size: 0;
+  padding-inline: var(--space-1);
+  border-color: transparent;
+  background: transparent;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.lab-panel-switcher button[aria-selected='true'] {
+  border-color: var(--border-strong);
+  background: var(--surface-raised);
+  color: var(--accent);
+}
+
+.lab-status {
+  min-block-size: 1.4em;
+  color: var(--text-muted);
+  font-size: 0.85rem;
 }
 
 .lab-example {
@@ -454,7 +492,7 @@ td {
     grid-template-columns: 1fr;
   }
 
-  .laboratory > * {
+  .laboratory > .lab-panel {
     padding: var(--space-4);
   }
 
@@ -495,13 +533,6 @@ td {
 
   .event-row code {
     grid-column: 1 / -1;
-  }
-}
-
-@media (forced-colors: active) {
-  .button.primary,
-  .brand > span {
-    border: 1px solid ButtonText;
   }
 }
 

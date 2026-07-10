@@ -55,6 +55,7 @@ kbd {
 }
 
 pre {
+  max-inline-size: 100%;
   overflow: auto;
   border-radius: var(--radius-md);
   padding: var(--space-5);

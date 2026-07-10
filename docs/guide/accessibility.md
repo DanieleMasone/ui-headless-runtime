@@ -22,3 +22,7 @@ UI Headless Runtime provides behavior and metadata needed for accessible pattern
 - Assistive-technology testing in the final UI.
 
 Avoid claims such as "fully WCAG compliant" for the library alone. Accessibility depends on the integrated product.
+
+## Published demo and documentation
+
+The published demo and generated documentation are designed and tested against applicable WCAG 2.2 AA criteria. Their scope, automated checks, versioned manual review, consumer boundary, and known limitations are recorded in [Demo and documentation accessibility conformance](../accessibility/demo-conformance).

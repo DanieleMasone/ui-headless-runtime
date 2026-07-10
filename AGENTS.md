@@ -39,6 +39,8 @@ Keep `README.md` short: positioning, truthful badges, links, install status, qui
 
 Follow the applicable WAI-ARIA pattern, real keyboard behavior, focus entry/movement/exit, stable names/relationships, disabled handling, and nested overlay rules. Automated axe is supplementary to manual assertions. Demo metadata derives from the neutral catalog and the typed demo registry. Visual styles belong only in the centralized cascade-layer CSS files; runtime package code contains no CSS.
 
+The published demo and generated documentation target applicable WCAG 2.2 AA criteria without claiming that the runtime package makes consumer products conformant. Keep `docs/accessibility/demo-conformance.md`, its versioned checklist, responsive assertions, and active-state accessibility tests synchronized with public UX changes.
+
 ## Definition of Done
 
 Add component/unit and real-browser coverage, update docs/demo metadata, maintain 95% global coverage, build all formats, check API and tarball, build the production Pages site, run E2E/a11y, and record any unexecutable environment-dependent check honestly. Releases remain GitHub-Release-driven through OIDC.

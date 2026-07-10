@@ -3,7 +3,6 @@
   inline-size: 100%;
   min-inline-size: 0;
   min-block-size: 100vh;
-  overflow-x: clip;
   grid-template-columns: var(--sidebar) minmax(0, 1fr);
   grid-template-rows: var(--topbar) 1fr auto;
   grid-template-areas: 'topbar topbar' 'sidebar main' 'sidebar footer';
@@ -22,8 +21,7 @@
   min-block-size: var(--topbar);
   border-block-end: 1px solid var(--border);
   padding-inline: var(--space-5);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--surface);
 }
 
 .sidebar {
@@ -71,6 +69,7 @@ main {
   grid-area: main;
   justify-self: center;
   inline-size: min(100%, var(--content));
+  min-inline-size: 0;
   min-block-size: calc(100vh - var(--topbar));
   padding: clamp(var(--space-6), 4vw, var(--space-12));
 }

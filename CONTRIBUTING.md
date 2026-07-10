@@ -18,12 +18,12 @@ Keep documentation in English. Use `README.md` as a short landing page and put p
 
 ## Accessibility
 
-Test keyboard-only interaction, focus entry/containment/restoration, Arrow/Home/End behavior, disabled items, Escape, Tab/Shift+Tab, names, roles, and relationships. Add axe states but do not treat axe as sufficient. The consumer/runtime responsibility boundary must remain explicit.
+Test keyboard-only interaction, focus entry/containment/restoration, Arrow/Home/End behavior, disabled items, Escape, Tab/Shift+Tab, names, roles, and relationships. Add axe states but do not treat axe as sufficient. The consumer/runtime responsibility boundary must remain explicit, and changes to the published surface must update `docs/accessibility/demo-conformance.md` when its checklist or limitations change.
 
 ## Pull request checklist
 
 - The change reuses shared layers and has complete cleanup.
-- No avoidable `any`, broad lint suppression, placeholder note, or import-time DOM access was added.
+- No avoidable `any`, broad lint suppression, or import-time DOM access was added.
 - Public API/TSDoc/API report, neutral component catalog, demo registry, and exact source modules are coherent.
 - README, User Guide, component docs, TypeDoc, and demo documentation links are coherent.
 - No public demo or generated site link points to a raw `.md` file.

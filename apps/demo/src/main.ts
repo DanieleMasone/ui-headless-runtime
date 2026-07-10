@@ -1,5 +1,6 @@
 import { createCommandPalette, createDialog } from 'ui-headless-runtime';
 import { EventLog } from './app/event-log';
+import { bindResponsivePanels } from './app/responsive-panels';
 import { getTheme, setTheme, type ThemeChoice } from './app/theme';
 import {
   assertExampleRegistry,
@@ -33,7 +34,7 @@ app.innerHTML = `
   <header class="topbar">
     <button class="mobile-menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
     <a class="brand" href="#/" aria-label="UI Headless Runtime home"><span>UHR</span><strong>UI Headless Runtime</strong></a>
-    <button class="search-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="command-dialog"><span>Search documentation</span><svg aria-hidden="true" viewBox="0 0 20 20"><path d="m14.2 13.1 3.1 3.1-1.1 1.1-3.1-3.1a7 7 0 1 1 1.1-1.1Zm-5.2.4a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z"/></svg><kbd>⌘ K</kbd></button>
+    <button class="search-trigger" type="button" aria-label="Search documentation" aria-haspopup="dialog" aria-expanded="false" aria-controls="command-dialog"><span>Search documentation</span><svg aria-hidden="true" viewBox="0 0 20 20"><path d="m14.2 13.1 3.1 3.1-1.1 1.1-3.1-3.1a7 7 0 1 1 1.1-1.1Zm-5.2.4a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z"/></svg><kbd aria-hidden="true">Ctrl/⌘ K</kbd></button>
     <label class="theme-control"><span>Theme</span>
       <select aria-label="Theme">
         <option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option>
@@ -41,7 +42,7 @@ app.innerHTML = `
     </label>
   </header>
   <div class="nav-backdrop" hidden></div>
-  <aside class="sidebar" id="sidebar" aria-label="Site navigation">
+  <div class="sidebar" id="sidebar" role="complementary" aria-label="Site navigation">
     <button class="nav-close" type="button">Close navigation</button>
     <nav aria-label="Documentation">
       <a href="#/">Overview</a>
@@ -57,18 +58,22 @@ app.innerHTML = `
       <a href="${siteLink('api/')}" data-external-section>API reference</a>
       <a href="${siteLink('coverage/')}" data-external-section>Coverage</a>
     </nav>
-  </aside>
+  </div>
   <main id="main" tabindex="-1"></main>
   <footer><span>Framework-agnostic. CSS-free. Accessibility engineered.</span><a href="https://github.com/DanieleMasone/ui-headless-runtime">GitHub</a></footer>
-  <section class="command-dialog" id="command-dialog" aria-label="Documentation search" hidden>
-    <label>Search pages<input class="command-input" type="search" autocomplete="off" /></label>
-    <div class="command-results" role="listbox"></div>
-    <p class="command-empty" hidden>No matching page.</p>
+  <section class="command-dialog" id="command-dialog" role="dialog" aria-modal="true" aria-label="Documentation search" hidden>
+    <label for="command-input">Search pages</label>
+    <input class="command-input" id="command-input" type="search" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="command-results" autocomplete="off" />
+    <div class="command-results" id="command-results" role="listbox" aria-label="Search results"></div>
+    <p class="command-empty" role="status" aria-live="polite" hidden>No matching page.</p>
   </section>
 `;
 
+const skipLink = document.querySelector<HTMLAnchorElement>('.skip-link');
+const topbar = app.querySelector<HTMLElement>('.topbar');
 const main = app.querySelector<HTMLElement>('#main');
 const sidebar = app.querySelector<HTMLElement>('#sidebar');
+const footer = app.querySelector<HTMLElement>('footer');
 const navBackdrop = app.querySelector<HTMLElement>('.nav-backdrop');
 const navClose = app.querySelector<HTMLButtonElement>('.nav-close');
 const mobileMenu = app.querySelector<HTMLButtonElement>('.mobile-menu');
@@ -79,8 +84,11 @@ const commandResults = app.querySelector<HTMLElement>('.command-results');
 const commandEmpty = app.querySelector<HTMLElement>('.command-empty');
 const themeSelect = app.querySelector<HTMLSelectElement>('.theme-control select');
 if (
+  !skipLink ||
+  !topbar ||
   !main ||
   !sidebar ||
+  !footer ||
   !navBackdrop ||
   !navClose ||
   !mobileMenu ||
@@ -94,6 +102,13 @@ if (
   throw new Error('Demo shell failed to initialize.');
 }
 
+const handleSkipLink = (event: MouseEvent): void => {
+  event.preventDefault();
+  main.focus({ preventScroll: true });
+  main.scrollIntoView({ block: 'start' });
+};
+skipLink.addEventListener('click', handleSkipLink);
+
 themeSelect.value = getTheme();
 themeSelect.addEventListener('change', () => setTheme(themeSelect.value as ThemeChoice));
 
@@ -103,27 +118,74 @@ const releaseMobileNavigation = mobileNavigation.bind({
   content: sidebar,
   backdrop: navBackdrop,
 });
+let navigationOpen = false;
+let searchOpen = false;
+const setElementIsolated = (element: HTMLElement, isolated: boolean): void => {
+  element.inert = isolated;
+  if (isolated) element.setAttribute('aria-hidden', 'true');
+  else element.removeAttribute('aria-hidden');
+};
+const renderShellIsolation = (): void => {
+  for (const element of [topbar, main, footer]) {
+    setElementIsolated(element, navigationOpen || searchOpen);
+  }
+  setElementIsolated(sidebar, searchOpen);
+};
+const setNavigationOpen = (open: boolean): void => {
+  navigationOpen = open;
+  renderShellIsolation();
+};
+const setSearchOpen = (open: boolean): void => {
+  searchOpen = open;
+  renderShellIsolation();
+};
+const clearShellIsolation = (): void => {
+  navigationOpen = false;
+  searchOpen = false;
+  for (const element of [topbar, main, footer, sidebar]) {
+    element.inert = false;
+    element.removeAttribute('aria-hidden');
+  }
+};
 const renderMobileNavigation = (): void => {
   const snapshot = mobileNavigation.getSnapshot();
   document.body.dataset.navOpen = String(snapshot.open);
   mobileMenu.setAttribute('aria-expanded', String(snapshot.open));
   navBackdrop.hidden = !snapshot.open;
+  setNavigationOpen(snapshot.open);
   if (snapshot.open) {
     sidebar.setAttribute('role', 'dialog');
     sidebar.setAttribute('aria-modal', 'true');
     sidebar.setAttribute('aria-label', 'Site navigation');
   } else {
-    sidebar.removeAttribute('role');
+    sidebar.setAttribute('role', 'complementary');
     sidebar.removeAttribute('aria-modal');
   }
 };
 const releaseMobileNavigationRender = mobileNavigation.subscribe(renderMobileNavigation);
+const releaseMobileNavigationFocusRestore = mobileNavigation.on('afterClose', (event) => {
+  const reason = event.detail.details.reason;
+  if (
+    reason === 'selection' ||
+    reason === 'programmatic' ||
+    !window.matchMedia('(max-width: 58rem)').matches
+  )
+    return;
+  requestAnimationFrame(() => {
+    if (!mobileNavigation.getSnapshot().open) mobileMenu.focus();
+  });
+});
 mobileMenu.addEventListener('click', () => mobileNavigation.toggle({ reason: 'trigger' }));
 navClose.addEventListener('click', () => mobileNavigation.close({ reason: 'trigger' }));
 renderMobileNavigation();
 sidebar.addEventListener('click', (event) => {
   if ((event.target as Element).closest('a')) mobileNavigation.close({ reason: 'selection' });
 });
+const navigationMedia = window.matchMedia('(max-width: 58rem)');
+const closeNavigationAtDesktop = (): void => {
+  if (!navigationMedia.matches) mobileNavigation.close({ reason: 'programmatic' });
+};
+navigationMedia.addEventListener('change', closeNavigationAtDesktop);
 
 const pages = [
   { id: '/', text: 'Overview', group: 'Overview', route: '/' },
@@ -144,6 +206,10 @@ const pages = [
   })),
 ];
 const commandPalette = createCommandPalette();
+const releaseOverlayExclusivity = [
+  commandPalette.on('beforeOpen', () => mobileNavigation.close({ reason: 'programmatic' })),
+  mobileNavigation.on('beforeOpen', () => commandPalette.close({ reason: 'programmatic' })),
+];
 const commandCleanups = pages.map((page) =>
   commandPalette.registerCommand({
     id: page.id,
@@ -160,18 +226,28 @@ const releaseCommandDialog = commandPalette.bind({
   content: commandDialog,
 });
 const releaseShortcut = commandPalette.bindShortcut(document);
+const commandOptionId = (id: string): string =>
+  `site-command-${id.replaceAll(/[^a-z0-9_-]/giu, '-')}`;
 
 const renderCommands = (): void => {
   const snapshot = commandPalette.getSnapshot();
   commandDialog.hidden = !snapshot.open;
+  setSearchOpen(snapshot.open);
   searchTrigger.setAttribute('aria-expanded', String(snapshot.open));
+  commandInput.setAttribute('aria-expanded', String(snapshot.open));
+  if (snapshot.open && snapshot.activeId) {
+    commandInput.setAttribute('aria-activedescendant', commandOptionId(snapshot.activeId));
+  } else {
+    commandInput.removeAttribute('aria-activedescendant');
+  }
   commandEmpty.hidden = !snapshot.empty;
   commandResults.replaceChildren(
     ...snapshot.commands.map((command) => {
       const result = document.createElement('button');
       result.type = 'button';
       result.setAttribute('role', 'option');
-      result.id = `site-command-${command.id.replaceAll(/[^a-z0-9_-]/giu, '-')}`;
+      result.id = commandOptionId(command.id);
+      result.tabIndex = -1;
       result.setAttribute('aria-selected', String(command.id === snapshot.activeId));
       result.dataset.active = String(command.id === snapshot.activeId);
       result.textContent = `${command.group ?? 'Page'} — ${command.text}`;
@@ -182,7 +258,7 @@ const renderCommands = (): void => {
     }),
   );
 };
-commandPalette.subscribe(renderCommands);
+const releaseCommandRender = commandPalette.subscribe(renderCommands);
 searchTrigger.addEventListener('click', () => {
   commandPalette.open({ reason: 'pointer' });
   commandInput.focus();
@@ -202,9 +278,12 @@ commandInput.addEventListener('keydown', (event) => commandPalette.handleKeyDown
 renderCommands();
 
 let currentExample: ExampleInstance | undefined;
+let releasePageFeatures: (() => void) | undefined;
 let pageGeneration = 0;
 const disposePage = (): void => {
   pageGeneration += 1;
+  releasePageFeatures?.();
+  releasePageFeatures = undefined;
   currentExample?.destroy();
   currentExample = undefined;
 };
@@ -225,7 +304,7 @@ const renderHome = (): void => {
       <div class="install"><span>Package status</span><code>npm release pending</code><p>The tarball is verified locally; npm publication is intentionally release-driven.</p></div>
     </section>
     <section aria-labelledby="quality-heading"><h2 id="quality-heading">Engineered as infrastructure</h2>
-      <div class="metric-grid"><article><strong>16</strong><span>headless controllers</span></article><article><strong>0</strong><span>runtime dependencies</span></article><article><strong>95%+</strong><span>coverage gates</span></article><article><strong>3</strong><span>tested browser engines</span></article></div>
+      <div class="metric-grid"><article><strong>${componentRegistry.length}</strong><span>headless controllers</span></article><article><strong>0</strong><span>runtime dependencies</span></article><article><strong>95%+</strong><span>coverage gates</span></article><article><strong>3</strong><span>tested browser engines</span></article></div>
     </section>
     <section><h2>Quick start</h2><pre><code>import { createDialog } from 'ui-headless-runtime';
 
@@ -245,7 +324,7 @@ dialog.destroy();</code></pre></section>
 };
 
 const renderComponentIndex = (): void => {
-  main.innerHTML = `${heading('Components', 'Runtime catalogue')}<p class="lede">Every controller exposes immutable snapshots, typed reasons, subscriptions, lifecycle events, commands, and idempotent cleanup.</p><div class="component-table" role="list">${componentRegistry.map((component) => `<a role="listitem" href="#${component.route}"><span class="status">${component.status}</span><strong>${component.name}</strong><span>${component.category}</span><p>${component.summary}</p></a>`).join('')}</div>`;
+  main.innerHTML = `${heading('Components', 'Runtime catalogue')}<p class="lede">Every controller exposes immutable snapshots, typed reasons, subscriptions, lifecycle events, commands, and idempotent cleanup.</p><ul class="component-table">${componentRegistry.map((component) => `<li><a href="#${component.route}"><span class="status">${component.status}</span><strong>${component.name}</strong><span>${component.category}</span><p>${component.summary}</p></a></li>`).join('')}</ul>`;
 };
 
 const renderComponent = (definition: DemoComponentDefinition): void => {
@@ -255,13 +334,20 @@ const renderComponent = (definition: DemoComponentDefinition): void => {
     <p class="lede">${definition.summary}</p>
     <div class="lab-toolbar"><label>Scenario<select class="scenario-select">${definition.scenarios.map((item) => `<option value="${item.id}">${item.label}</option>`).join('')}</select></label><a href="${siteLink(`docs/components/${definition.id}.html`)}">Component docs</a><a href="${siteLink('docs/guide/controllers.html')}">User Guide</a><a href="${siteLink(definition.apiPath)}">API reference</a></div>
     <div class="laboratory">
-      <section class="lab-example lab-panel" data-panel="example" aria-labelledby="live-heading"><h2 id="live-heading">Live example</h2><p class="scenario-description"></p><div class="example-mount"></div></section>
-      <aside class="lab-inspector lab-panel" data-panel="state" aria-label="Runtime inspector"><div class="panel-heading"><h2>State inspector</h2><span>Live</span></div><pre class="state-output" tabindex="0"></pre></aside>
-      <section class="lab-events lab-panel" data-panel="events" aria-labelledby="events-heading"><div class="panel-heading"><h2 id="events-heading">Event log</h2><button class="clear-events" type="button">Clear</button></div><div class="event-output" aria-label="Event log entries" tabindex="0"></div></section>
-      <section class="lab-source" aria-labelledby="source-heading"><div class="panel-heading"><h2 id="source-heading">Executed source</h2><button class="copy-source" type="button">Copy</button></div><p>This is the module used by the live laboratory; it imports only the package public API.</p><pre tabindex="0"><code></code></pre><p class="copy-status" role="status"></p></section>
-      <p class="lab-status" role="status"></p>
+      <div class="lab-panel-switcher" role="tablist" aria-label="Laboratory panels" hidden>
+        <button id="lab-tab-example" type="button" role="tab" aria-controls="lab-panel-example" data-panel-target="example">Example</button>
+        <button id="lab-tab-state" type="button" role="tab" aria-controls="lab-panel-state" data-panel-target="state">State</button>
+        <button id="lab-tab-events" type="button" role="tab" aria-controls="lab-panel-events" data-panel-target="events">Events</button>
+        <button id="lab-tab-source" type="button" role="tab" aria-controls="lab-panel-source" data-panel-target="source">Source</button>
+        <button id="lab-tab-a11y" type="button" role="tab" aria-controls="lab-panel-a11y" data-panel-target="a11y">A11y</button>
+      </div>
+      <p class="lab-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      <section class="lab-example lab-panel" id="lab-panel-example" data-panel="example" aria-labelledby="live-heading"><h2 id="live-heading">Live example</h2><p class="scenario-description"></p><div class="example-mount"></div></section>
+      <aside class="lab-inspector lab-panel" id="lab-panel-state" data-panel="state" aria-label="Runtime inspector"><div class="panel-heading"><h2>State inspector</h2><span>Live</span></div><pre class="state-output" tabindex="0"></pre></aside>
+      <section class="lab-events lab-panel" id="lab-panel-events" data-panel="events" aria-labelledby="events-heading"><div class="panel-heading"><h2 id="events-heading">Event log</h2><button class="clear-events" type="button">Clear</button></div><div class="event-output" aria-label="Event log entries" tabindex="0"></div></section>
+      <section class="lab-source lab-panel" id="lab-panel-source" data-panel="source" aria-labelledby="source-heading"><div class="panel-heading"><h2 id="source-heading">Executed source</h2><button class="copy-source" type="button">Copy</button></div><p>This is the module used by the live laboratory; it imports only the package public API.</p><pre tabindex="0"><code></code></pre><p class="copy-status"></p></section>
     </div>
-    <section class="contract-grid"><article><h2>Keyboard</h2><table><thead><tr><th>Keys</th><th>Behavior</th></tr></thead><tbody>${definition.keyboardInteractions.map((item) => `<tr><th><kbd>${item.keys}</kbd></th><td>${item.action}</td></tr>`).join('')}</tbody></table></article><article class="accessibility-panel"><h2>Accessibility contract</h2><dl><dt>Pattern and roles</dt><dd>${definition.accessibility.roles}</dd><dt>Accessible name</dt><dd>${definition.accessibility.accessibleName}</dd><dt>ARIA state</dt><dd>${definition.accessibility.ariaState}</dd><dt>Relationships</dt><dd>${definition.accessibility.relationships}</dd><dt>Focus entry</dt><dd>${definition.accessibility.focusEntry}</dd><dt>Focus movement</dt><dd>${definition.accessibility.focusMovement}</dd><dt>Focus exit</dt><dd>${definition.accessibility.focusExit}</dd><dt>Screen reader notes</dt><dd>${definition.accessibility.screenReader}</dd><dt>Consumer responsibilities</dt><dd>${definition.accessibility.consumerResponsibilities}</dd><dt>Limitations</dt><dd>${definition.accessibility.limitations}</dd></dl><ul>${definition.accessibilityNotes.map((note) => `<li>${note}</li>`).join('')}</ul></article></section>
+    <section class="contract-grid lab-panel" id="lab-panel-a11y" data-panel="a11y"><article><h2>Keyboard</h2><table><thead><tr><th>Keys</th><th>Behavior</th></tr></thead><tbody>${definition.keyboardInteractions.map((item) => `<tr><th><kbd>${item.keys}</kbd></th><td>${item.action}</td></tr>`).join('')}</tbody></table></article><article class="accessibility-panel"><h2>Accessibility contract</h2><dl><dt>Pattern and roles</dt><dd>${definition.accessibility.roles}</dd><dt>Accessible name</dt><dd>${definition.accessibility.accessibleName}</dd><dt>ARIA state</dt><dd>${definition.accessibility.ariaState}</dd><dt>Relationships</dt><dd>${definition.accessibility.relationships}</dd><dt>Focus entry</dt><dd>${definition.accessibility.focusEntry}</dd><dt>Focus movement</dt><dd>${definition.accessibility.focusMovement}</dd><dt>Focus exit</dt><dd>${definition.accessibility.focusExit}</dd><dt>Screen reader notes</dt><dd>${definition.accessibility.screenReader}</dd><dt>Consumer responsibilities</dt><dd>${definition.accessibility.consumerResponsibilities}</dd><dt>Limitations</dt><dd>${definition.accessibility.limitations}</dd></dl><ul>${definition.accessibilityNotes.map((note) => `<li>${note}</li>`).join('')}</ul></article></section>
     <section><h2>Integration and cleanup</h2><p>Create the controller during mount, subscribe once, bind consumer DOM after rendering, and call both returned cleanup functions and <code>destroy()</code> during unmount. A second destroy is always safe; commands after destroy are no-ops.</p></section>
   `;
   const scenarioSelect = main.querySelector<HTMLSelectElement>('.scenario-select');
@@ -287,6 +373,7 @@ const renderComponent = (definition: DemoComponentDefinition): void => {
     !labStatus
   )
     return;
+  releasePageFeatures = bindResponsivePanels(main);
   const log = new EventLog(eventOutput);
   let launchGeneration = 0;
   const launch = async (): Promise<void> => {
@@ -326,12 +413,15 @@ const renderComponent = (definition: DemoComponentDefinition): void => {
     labStatus.textContent = 'Event log cleared.';
   });
   const copySource = async (): Promise<void> => {
+    let message: string;
     try {
       await navigator.clipboard.writeText(source.textContent);
-      copyStatus.textContent = 'Source copied.';
+      message = 'Source copied.';
     } catch {
-      copyStatus.textContent = 'Copy is unavailable in this browser context.';
+      message = 'Copy is unavailable in this browser context.';
     }
+    copyStatus.textContent = message;
+    labStatus.textContent = message;
   };
   copy.addEventListener('click', () => {
     void copySource();
@@ -384,12 +474,18 @@ const stopRouter = startRouter(({ path }) => {
 window.addEventListener(
   'pagehide',
   () => {
+    skipLink.removeEventListener('click', handleSkipLink);
+    navigationMedia.removeEventListener('change', closeNavigationAtDesktop);
+    clearShellIsolation();
     stopRouter();
     disposePage();
     releaseShortcut();
+    releaseCommandRender();
     releaseCommandDialog();
     releaseMobileNavigationRender();
+    releaseMobileNavigationFocusRestore();
     releaseMobileNavigation();
+    releaseOverlayExclusivity.forEach((cleanup) => cleanup());
     commandCleanups.forEach((cleanup) => cleanup());
     commandPalette.destroy();
     mobileNavigation.destroy();

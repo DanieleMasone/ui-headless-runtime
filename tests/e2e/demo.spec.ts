@@ -5,6 +5,68 @@ const visit = async (page: Page, path = '/') => {
   await page.goto(`./#${path}`);
 };
 
+const inspectResponsiveLayout = async (page: Page) =>
+  page.evaluate(() => {
+    const isVisible = (element: HTMLElement): boolean => {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return (
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        rect.width > 0 &&
+        rect.height > 0
+      );
+    };
+    const label = (element: HTMLElement, index: number): string =>
+      element.getAttribute('aria-label') ??
+      element.textContent?.trim().slice(0, 40) ??
+      `${element.tagName.toLowerCase()}-${index}`;
+    const withinViewport = (element: HTMLElement): boolean => {
+      const rect = element.getBoundingClientRect();
+      return rect.left >= -1 && rect.right <= window.innerWidth + 1;
+    };
+    const hasHorizontalScrollContainer = (element: HTMLElement): boolean => {
+      let current: HTMLElement | null = element;
+      while (current && current !== document.body) {
+        const style = getComputedStyle(current);
+        if (current.scrollWidth > current.clientWidth + 1 && /auto|scroll/u.test(style.overflowX)) {
+          return true;
+        }
+        current = current.parentElement;
+      }
+      return false;
+    };
+    const controls = [
+      ...document.querySelectorAll<HTMLElement>(
+        '.topbar button, .topbar select, .lab-toolbar a, .lab-toolbar select, [role="tablist"] [role="tab"]',
+      ),
+    ].filter(isVisible);
+    const richContent = [...document.querySelectorAll<HTMLElement>('pre, table')].filter(isVisible);
+    const topbar = document.querySelector<HTMLElement>('.topbar')?.getBoundingClientRect();
+    const main = document.querySelector<HTMLElement>('main')?.getBoundingClientRect();
+    return {
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+      topbarBottom: topbar?.bottom ?? 0,
+      mainTop: main?.top ?? -1,
+      clippedControls: controls
+        .map((element, index) => ({ element, index }))
+        .filter(({ element }) => !withinViewport(element))
+        .map(({ element, index }) => label(element, index)),
+      clippedRichContent: richContent
+        .map((element, index) => ({ element, index }))
+        .filter(({ element }) => !withinViewport(element) && !hasHorizontalScrollContainer(element))
+        .map(({ element, index }) => label(element, index)),
+      trappedOverflow: richContent
+        .map((element, index) => ({ element, index }))
+        .filter(
+          ({ element }) =>
+            element.scrollWidth > element.clientWidth + 1 && !hasHorizontalScrollContainer(element),
+        )
+        .map(({ element, index }) => label(element, index)),
+    };
+  });
+
 const selectScenario = async (page: Page, scenario: string) => {
   await page.getByLabel('Scenario').selectOption(scenario);
   await expect(page.locator('.lab-status')).toContainText('Scenario changed');
@@ -45,7 +107,7 @@ test('home, links, theme, search, history, and direct routes work', async ({ pag
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
   await page.getByRole('button', { name: 'Search documentation' }).click();
-  const search = page.getByRole('searchbox', { name: 'Search pages' });
+  const search = page.getByRole('combobox', { name: 'Search pages' });
   await search.fill('Combobox');
   await page.getByRole('option', { name: 'Components — Combobox' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Combobox' })).toBeVisible();
@@ -55,12 +117,75 @@ test('home, links, theme, search, history, and direct routes work', async ({ pag
   await expect(page.getByRole('heading', { level: 1, name: 'Combobox' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Search documentation' }).click();
-  await page.getByRole('searchbox', { name: 'Search pages' }).fill('User Guide');
+  await page.getByRole('combobox', { name: 'Search pages' }).fill('User Guide');
   await page.getByRole('option', { name: /Guides.*User Guide/u }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'User Guide' })).toBeVisible();
 
   await visit(page, '/components/dialog');
   await expect(page.getByRole('heading', { level: 1, name: 'Dialog' })).toBeVisible();
+  await expect(page.locator('#sidebar').getByRole('link', { name: 'Dialog' })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  await expect(page).toHaveTitle('Dialog · UI Headless Runtime');
+
+  await visit(page, '/missing-page');
+  await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
+});
+
+test('command search supports its keyboard, relationship, empty, selection, and restore contracts', async ({
+  page,
+}) => {
+  await visit(page);
+  const trigger = page.locator('.search-trigger');
+  const primaryModifier = await page.evaluate(() =>
+    /mac/iu.test(navigator.platform) ? 'Meta' : 'Control',
+  );
+  await page.keyboard.press(`${primaryModifier}+K`);
+
+  const dialog = page.getByRole('dialog', { name: 'Documentation search' });
+  const input = page.getByLabel('Search pages');
+  const results = page.getByRole('listbox', { name: 'Search results' });
+  await expect(dialog).toBeVisible();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  await expect(input).toBeFocused();
+  await expect(results).toBeVisible();
+  const resultsId = await results.getAttribute('id');
+  expect(resultsId).toBeTruthy();
+  await expect(input).toHaveAttribute('aria-controls', resultsId ?? 'missing-results-id');
+
+  const initiallySelected = results.locator('[role="option"][aria-selected="true"]');
+  await expect(initiallySelected).toHaveCount(1);
+  await expect(initiallySelected).toHaveAttribute('tabindex', '-1');
+  const initialId = await initiallySelected.getAttribute('id');
+  expect(initialId).toBeTruthy();
+  await expect(input).toHaveAttribute('aria-activedescendant', initialId ?? 'missing-option-id');
+
+  await page.keyboard.press('ArrowDown');
+  await expect
+    .poll(async () => results.locator('[role="option"][aria-selected="true"]').getAttribute('id'))
+    .not.toBe(initialId);
+
+  await input.fill('No page can match this phrase');
+  await expect(page.getByText('No matching page.', { exact: true })).toBeVisible();
+  await expect(results.getByRole('option')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  await expect(trigger).toBeFocused();
+
+  await trigger.click();
+  await input.fill('Combobox');
+  const comboboxResult = results.getByRole('option', { name: 'Components — Combobox' });
+  await expect(comboboxResult).toBeVisible();
+  const comboboxResultId = await comboboxResult.getAttribute('id');
+  expect(comboboxResultId).toBeTruthy();
+  await expect(input).toHaveAttribute(
+    'aria-activedescendant',
+    comboboxResultId ?? 'missing-combobox-option-id',
+  );
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { level: 1, name: 'Combobox' })).toBeVisible();
 });
 
 for (const component of componentCatalog) {
@@ -86,6 +211,12 @@ for (const component of componentCatalog) {
 }
 
 test('scenario selection, source copy, API and coverage links are wired', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: () => Promise.resolve() },
+    });
+  });
   await visit(page, '/components/dialog');
   await selectScenario(page, 'nested');
   await expect(page.locator('.scenario-description')).toContainText('topmost');
@@ -93,7 +224,9 @@ test('scenario selection, source copy, API and coverage links are wired', async 
   await expect(sourcePanel).toContainText('createDialog');
   const dialogSource = await sourcePanel.textContent();
   await page.getByRole('button', { name: 'Copy' }).click();
-  await expect(page.locator('.copy-status')).not.toBeEmpty();
+  await expect(page.locator('.copy-status')).toHaveText('Source copied.');
+  await expect(page.locator('.copy-status')).not.toHaveAttribute('role');
+  await expect(page.locator('.lab-status')).toHaveText('Source copied.');
   await expect(page.locator('#main').getByRole('link', { name: 'API reference' })).toHaveAttribute(
     'href',
     /ui-headless-runtime\/api\//u,
@@ -175,30 +308,146 @@ test('article registry and accessibility contract render from centralized metada
   await expect(page.locator('.accessibility-panel')).toContainText('Focus movement');
 });
 
-test('mobile navigation opens, navigates, and closes', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+test('mobile navigation isolates the page and supports every dismissal path', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
   await visit(page);
-  const menu = page.getByRole('button', { name: 'Open navigation' });
+  const menu = page.locator('.mobile-menu');
+  const sidebar = page.locator('#sidebar');
+  const backdrop = page.locator('.nav-backdrop');
+  const shellSiblings = [page.locator('.topbar'), page.locator('#main'), page.locator('footer')];
+  const openNavigation = async (): Promise<void> => {
+    await menu.click();
+    await expect(menu).toHaveAttribute('aria-expanded', 'true');
+    await expect(sidebar).toHaveAttribute('role', 'dialog');
+    await expect(sidebar).toHaveAttribute('aria-label', 'Site navigation');
+    await expect
+      .poll(() => page.locator('html').evaluate((root) => root.style.overflow))
+      .toBe('hidden');
+  };
+  const expectNavigationClosed = async (): Promise<void> => {
+    await expect(menu).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('body')).toHaveAttribute('data-nav-open', 'false');
+    await expect.poll(() => page.locator('html').evaluate((root) => root.style.overflow)).toBe('');
+    await expect(menu).toBeFocused();
+    for (const sibling of shellSiblings) {
+      await expect(sibling).not.toHaveAttribute('inert', '');
+      await expect(sibling).not.toHaveAttribute('aria-hidden', 'true');
+    }
+  };
+
   await expect(menu).toHaveAttribute('aria-expanded', 'false');
-  await menu.click();
-  await expect(menu).toHaveAttribute('aria-expanded', 'true');
+  await expect(menu).toHaveAttribute('aria-controls', 'sidebar');
+  await openNavigation();
   await expect(page.locator('body')).toHaveAttribute('data-nav-open', 'true');
-  await expect(page.locator('#sidebar')).toHaveAttribute('role', 'dialog');
-  await expect(page.getByRole('button', { name: 'Close navigation' })).toBeFocused();
+  const close = page.getByRole('button', { name: 'Close navigation' });
+  await expect(close).toBeFocused();
+  for (const sibling of shellSiblings) {
+    await expect(sibling).toHaveAttribute('inert', '');
+    await expect(sibling).toHaveAttribute('aria-hidden', 'true');
+  }
+  await page.keyboard.press('Shift+Tab');
+  expect(
+    await page.evaluate(() =>
+      Boolean(document.querySelector('#sidebar')?.contains(document.activeElement)),
+    ),
+  ).toBe(true);
+  await page.locator('#main').focus();
+  expect(
+    await page.evaluate(() =>
+      Boolean(document.querySelector('#sidebar')?.contains(document.activeElement)),
+    ),
+  ).toBe(true);
+
+  await close.click();
+  await expectNavigationClosed();
+
+  await openNavigation();
+  const backdropBox = await backdrop.boundingBox();
+  if (!backdropBox) throw new Error('Navigation backdrop is not rendered.');
+  await backdrop.click({
+    position: {
+      x: Math.max(1, backdropBox.width - 2),
+      y: Math.min(20, Math.max(1, backdropBox.height - 2)),
+    },
+  });
+  await expectNavigationClosed();
+
+  await openNavigation();
   await page.keyboard.press('Escape');
-  await expect(page.locator('body')).toHaveAttribute('data-nav-open', 'false');
-  await expect(menu).toBeFocused();
-  await menu.click();
-  await page.mouse.click(380, 96);
-  await expect(page.locator('body')).toHaveAttribute('data-nav-open', 'false');
-  await menu.click();
-  await page.locator('#sidebar').getByRole('link', { name: 'Components', exact: true }).click();
+  await expectNavigationClosed();
+
+  await openNavigation();
+  await sidebar.getByRole('link', { name: 'Components', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Components' })).toBeVisible();
   await expect(page.locator('body')).toHaveAttribute('data-nav-open', 'false');
 });
 
+test('mobile laboratory exposes compact panels and dedicated status announcements', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: () => Promise.resolve() },
+    });
+  });
+  await page.setViewportSize({ width: 320, height: 568 });
+  await visit(page, '/components/dialog');
+  await expect(page.locator('.lab-status')).toContainText('Scenario changed');
+
+  const tablist = page.getByRole('tablist', { name: 'Laboratory panels' });
+  const exampleTab = tablist.getByRole('tab', { name: 'Example' });
+  const stateTab = tablist.getByRole('tab', { name: 'State' });
+  const eventsTab = tablist.getByRole('tab', { name: 'Events' });
+  const sourceTab = tablist.getByRole('tab', { name: 'Source' });
+  const a11yTab = tablist.getByRole('tab', { name: 'A11y' });
+  await expect(tablist).toBeVisible();
+  await expect(exampleTab).toHaveAttribute('aria-selected', 'true');
+  await expect(exampleTab).toHaveAttribute('aria-controls', 'lab-panel-example');
+  const tabTargetSizes = await tablist.getByRole('tab').evaluateAll((tabs) =>
+    tabs.map((tab) => {
+      const rect = tab.getBoundingClientRect();
+      return { height: rect.height, width: rect.width };
+    }),
+  );
+  for (const size of tabTargetSizes) {
+    expect(size.width).toBeGreaterThanOrEqual(24);
+    expect(size.height).toBeGreaterThanOrEqual(24);
+  }
+  await expect(page.locator('#lab-panel-example')).toBeVisible();
+  await expect(page.locator('#lab-panel-source')).toBeHidden();
+
+  await page.getByRole('button', { name: 'Open dialog' }).click();
+  await page.keyboard.press('Escape');
+  await stateTab.click();
+  await expect(stateTab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#lab-panel-state')).toBeVisible();
+  await expect(page.locator('#lab-panel-example')).toBeHidden();
+
+  await eventsTab.click();
+  const eventLog = page.locator('.event-output');
+  await expect(eventLog).not.toHaveAttribute('aria-live');
+  await page.getByRole('button', { name: 'Clear' }).click();
+  await expect(eventLog).toHaveText('No events yet. Interact with the example.');
+  await expect(page.locator('.lab-status')).toHaveText('Event log cleared.');
+
+  await sourceTab.click();
+  await expect(sourceTab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#lab-panel-source')).toBeVisible();
+  await page.getByRole('button', { name: 'Copy' }).click();
+  await expect(page.locator('.copy-status')).toHaveText('Source copied.');
+  await expect(page.locator('.copy-status')).not.toHaveAttribute('role');
+  await expect(page.locator('.lab-status')).toHaveText('Source copied.');
+
+  await a11yTab.click();
+  await expect(a11yTab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#lab-panel-a11y')).toBeVisible();
+  await expect(page.locator('#lab-panel-a11y')).toContainText('Consumer responsibilities');
+});
+
 test('responsive demo routes avoid horizontal overflow and keep controls reachable', async ({
   page,
+  browserName,
 }) => {
   const routes = [
     '/',
@@ -216,22 +465,28 @@ test('responsive demo routes avoid horizontal overflow and keep controls reachab
     { width: 390, height: 844 },
     { width: 360, height: 800 },
     { width: 320, height: 568 },
+    ...(browserName === 'chromium'
+      ? [
+          { width: 1280, height: 800 },
+          { width: 430, height: 932 },
+        ]
+      : []),
   ];
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     for (const route of routes) {
       await visit(page, route);
-      const metrics = await page.evaluate(() => ({
-        scrollWidth: document.documentElement.scrollWidth,
-        innerWidth: window.innerWidth,
-        topbar: document.querySelector('.topbar')?.getBoundingClientRect().height ?? 0,
-        mainTop: document.querySelector('main')?.getBoundingClientRect().top ?? -1,
-      }));
+      const metrics = await inspectResponsiveLayout(page);
       expect(metrics.scrollWidth, `${viewport.width}px ${route}`).toBeLessThanOrEqual(
         metrics.innerWidth,
       );
-      expect(metrics.topbar).toBeGreaterThan(0);
-      expect(metrics.mainTop).toBeGreaterThanOrEqual(0);
+      expect(metrics.topbarBottom, `${viewport.width}px ${route}`).toBeGreaterThan(0);
+      expect(metrics.mainTop, `${viewport.width}px ${route}`).toBeGreaterThanOrEqual(
+        metrics.topbarBottom - 1,
+      );
+      expect(metrics.clippedControls, `${viewport.width}px ${route}`).toEqual([]);
+      expect(metrics.clippedRichContent, `${viewport.width}px ${route}`).toEqual([]);
+      expect(metrics.trappedOverflow, `${viewport.width}px ${route}`).toEqual([]);
     }
   }
 });
@@ -239,10 +494,10 @@ test('responsive demo routes avoid horizontal overflow and keep controls reachab
 test('mobile search and theme controls remain visible and functional', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await visit(page);
-  const searchButton = page.getByRole('button', { name: 'Search documentation' });
+  const searchButton = page.locator('.search-trigger');
   await expect(searchButton).toBeVisible();
   await searchButton.click();
-  await page.getByRole('searchbox', { name: 'Search pages' }).fill('Overview');
+  await page.getByRole('combobox', { name: 'Search pages' }).fill('Overview');
   await expect(page.getByRole('option', { name: /Overview.*Overview/u })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(searchButton).toBeFocused();
@@ -253,11 +508,18 @@ test('mobile search and theme controls remain visible and functional', async ({ 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 });
 
-test('composed docs, API, and coverage sections avoid horizontal overflow', async ({ page }) => {
+test('composed docs, API, and coverage sections contain responsive rich content', async ({
+  page,
+  browserName,
+}) => {
   const routes = [
     'docs/',
     'docs/guide/',
+    'docs/guide/getting-started.html',
+    'docs/guide/accessibility.html',
+    'docs/accessibility/demo-conformance.html',
     'docs/components/dialog.html',
+    'docs/components/combobox.html',
     'docs/architecture/overview.html',
     'api/',
     'coverage/',
@@ -266,19 +528,25 @@ test('composed docs, API, and coverage sections avoid horizontal overflow', asyn
     { width: 768, height: 1024 },
     { width: 390, height: 844 },
     { width: 320, height: 568 },
+    ...(browserName === 'chromium'
+      ? [
+          { width: 1280, height: 800 },
+          { width: 430, height: 932 },
+          { width: 360, height: 800 },
+        ]
+      : []),
   ];
 
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     for (const route of routes) {
       await page.goto(`./${route}`);
-      const metrics = await page.evaluate(() => ({
-        scrollWidth: document.documentElement.scrollWidth,
-        innerWidth: window.innerWidth,
-      }));
+      const metrics = await inspectResponsiveLayout(page);
       expect(metrics.scrollWidth, `${viewport.width}px ${route}`).toBeLessThanOrEqual(
         metrics.innerWidth,
       );
+      expect(metrics.clippedRichContent, `${viewport.width}px ${route}`).toEqual([]);
+      expect(metrics.trappedOverflow, `${viewport.width}px ${route}`).toEqual([]);
     }
   }
 });

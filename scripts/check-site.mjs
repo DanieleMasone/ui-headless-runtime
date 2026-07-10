@@ -12,7 +12,10 @@ const required = [
   'docs/index.html',
   'docs/guide/index.html',
   'docs/guide/getting-started.html',
+  'docs/guide/accessibility.html',
+  'docs/accessibility/demo-conformance.html',
   'docs/components/dialog.html',
+  'docs/components/combobox.html',
   'docs/architecture/overview.html',
 ];
 for (const file of required) await access(resolve(site, file));
@@ -20,8 +23,20 @@ for (const file of required) await access(resolve(site, file));
 const index = await readFile(resolve(site, 'index.html'), 'utf8');
 if (!index.includes(basePath))
   throw new Error(`Demo index does not reference Pages base ${basePath}`);
-if (/localhost|127\.0\.0\.1|packages\/ui-headless-runtime\/src/u.test(index)) {
+if (
+  /https?:\/\/(?:localhost|127\.0\.0\.1)|(?:href|src)=["'](?:\/\/)?(?:localhost|127\.0\.0\.1)|(?:href|src)=["']file:|(?:href|src)=["'][A-Za-z]:[\\/]|packages\/ui-headless-runtime\/src/u.test(
+    index,
+  )
+) {
   throw new Error('Production index leaks a local or source-only path.');
+}
+
+const conformance = await readFile(
+  resolve(site, 'docs', 'accessibility', 'demo-conformance.html'),
+  'utf8',
+);
+if (!conformance.includes('Demo and documentation accessibility conformance')) {
+  throw new Error('Generated accessibility conformance page has the wrong title.');
 }
 
 const references = [...index.matchAll(/(?:src|href)="([^"]+)"/gu)].map((match) => match[1]);
@@ -45,7 +60,19 @@ async function walk(directory) {
       const extension = extname(path);
       if (extension === '.html' || extension === '.js') {
         const html = await readFile(path, 'utf8');
-        if (/localhost|127\.0\.0\.1/u.test(html)) throw new Error(`Localhost reference in ${path}`);
+        if (
+          /https?:\/\/(?:localhost|127\.0\.0\.1)|(?:href|src)=["'](?:\/\/)?(?:localhost|127\.0\.0\.1)/u.test(
+            html,
+          )
+        )
+          throw new Error(`Localhost reference in ${path}`);
+        if (
+          /(?:href|src)=["']file:|(?:href|src)=["'][A-Za-z]:[\\/]|(?:href|src)=["'](?!(?:https?:)?\/\/)[^"']*(?:apps|packages|metadata|scripts|tests)[\\/]/u.test(
+            html,
+          )
+        ) {
+          throw new Error(`Workspace source path in public artifact: ${path}`);
+        }
         if (/href="[^"]+\.md(?:[?#"])/u.test(html))
           throw new Error(`Raw Markdown link in generated HTML: ${path}`);
         if (extension === '.js' && /docs\/[^'"`]+\.md(?:['"`?#)]|$)/u.test(html)) {

@@ -5,6 +5,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)](https://www.typescriptlang.org/)
 [![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-brightgreen)](packages/ui-headless-runtime/package.json)
 [![Live documentation](https://img.shields.io/website?url=https%3A%2F%2Fdanielemasone.github.io%2Fui-headless-runtime%2F&label=GitHub%20Pages)](https://danielemasone.github.io/ui-headless-runtime/)
+[![Demo accessibility checked](https://img.shields.io/badge/demo%20a11y-checked-0b6bcb)](https://danielemasone.github.io/ui-headless-runtime/docs/accessibility/demo-conformance.html)
 
 Framework-agnostic TypeScript controllers for accessible, customizable UI behavior. The runtime owns state, lifecycle, keyboard interaction, focus, selection, overlay coordination, positioning, and cleanup. Your application owns markup, CSS, branding, animation, and rendering.
 
@@ -80,9 +81,9 @@ Controlled state uses `getValue`, `onValueChange`, and optional `subscribeValue`
 
 ## Accessibility
 
-The runtime follows WAI-ARIA Authoring Practices interaction models and targets the behavior needed for WCAG 2.2 AA outcomes. It centralizes focus scopes, roving focus, active descendant, semantic relationships, keyboard handling, announcements, disabled state, and nested overlays.
+The runtime follows WAI-ARIA Authoring Practices interaction models and provides accessibility behavior primitives for focus scopes, roving focus, active descendant, semantic relationships, keyboard handling, announcements, disabled state, and nested overlays. The runtime package is not, by itself, a conforming rendered product.
 
-Final conformance also depends on consumer-provided markup, labels, content, contrast, layout, and assistive-technology testing. See the [User Guide accessibility chapter](https://danielemasone.github.io/ui-headless-runtime/docs/guide/accessibility.html) and the [accessibility statement](https://danielemasone.github.io/ui-headless-runtime/docs/accessibility/conformance.html).
+The published demo and generated documentation are designed and tested against applicable WCAG 2.2 AA criteria. Final consumer conformance still depends on consumer-provided markup, labels, content, contrast, layout, and assistive-technology testing. See the [User Guide accessibility chapter](https://danielemasone.github.io/ui-headless-runtime/docs/guide/accessibility.html) and the [demo and documentation conformance record](https://danielemasone.github.io/ui-headless-runtime/docs/accessibility/demo-conformance.html).
 
 ## Formats and browser support
 

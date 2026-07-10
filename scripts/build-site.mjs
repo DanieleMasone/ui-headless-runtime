@@ -37,15 +37,9 @@ const injectStyle = async (directory, id, css) => {
 };
 
 await injectStyle(
-  resolve(site, 'docs'),
-  'uhr-docs-overflow-fix',
-  'html,body{max-width:100%;overflow-x:clip}.VPNav,.VPNavBar,.VPNavBar .container,.VPNavBar .content{max-width:100vw;min-width:0}.vp-doc table{display:block;max-width:100%;overflow-x:auto}',
-);
-
-await injectStyle(
   resolve(site, 'coverage'),
   'uhr-coverage-overflow-fix',
-  'html,body{max-width:100%;overflow-x:clip}.wrapper{max-width:100%;overflow-x:clip}.pad1{max-width:100%;box-sizing:border-box;overflow-x:auto}.coverage-summary{min-width:56rem}pre{max-width:100%;overflow-x:auto}',
+  'html,body,.wrapper{max-width:100%}.pad1{max-width:100%;box-sizing:border-box;overflow-x:auto}.coverage-summary{min-width:56rem}pre{max-width:100%;overflow-x:auto}',
 );
 
 await cp(resolve(site, 'index.html'), resolve(site, '404.html'));
@@ -58,6 +52,11 @@ for (const required of [
   'api/index.html',
   'coverage/index.html',
   'docs/index.html',
+  'docs/guide/accessibility.html',
+  'docs/accessibility/demo-conformance.html',
+  'docs/components/dialog.html',
+  'docs/components/combobox.html',
+  'docs/architecture/overview.html',
 ]) {
   await access(resolve(site, required));
 }

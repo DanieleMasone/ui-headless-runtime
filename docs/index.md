@@ -1,37 +1,26 @@
----
-layout: home
+# UI Headless Runtime
 
-hero:
-  name: UI Headless Runtime
-  text: Behavioral infrastructure for interfaces you own
-  tagline: Architecture, accessibility contracts, framework integration, packaging, and release operations for the headless TypeScript runtime.
-  actions:
-    - theme: brand
-      text: User Guide
-      link: /guide/
-    - theme: alt
-      text: Architecture
-      link: /architecture/overview
-    - theme: alt
-      text: Component contracts
-      link: /components/dialog
+Behavioral infrastructure for interfaces you own. This documentation covers the architecture, accessibility contracts, framework integration, packaging, and release operations for the headless TypeScript runtime.
 
-features:
-  - title: Renderer-neutral
-    details: Typed controllers expose immutable state and DOM bindings without shipping markup, CSS, or framework adapters.
-  - title: Accessibility-engineered
-    details: Keyboard, focus, relationships, overlay ordering, and cleanup are explicit contracts rather than hidden rendering assumptions.
-  - title: Artifact-verified
-    details: API reports, tarball consumers, browser tests, production E2E, and accessibility checks gate changes and releases.
----
+UI Headless Runtime exposes typed controllers with immutable state and DOM bindings without shipping markup, CSS, or framework adapters. The public laboratory uses those same package exports and shows live state, real events, executed source, keyboard behavior, and consumer accessibility responsibilities.
 
-## Documentation map
+## Start here
 
-- [User Guide](./guide/)
-- [Architecture and lifecycle](./architecture/overview)
-- [Component contracts](./components/dialog)
-- [TypeScript integration](./guides/typescript)
-- [Accessibility conformance](./accessibility/conformance)
+- [User Guide](./guide/) for installation, controllers, rendering, state, DOM binding, SSR, and testing.
+- [Component contracts](./components/dialog) for component-specific options, state, commands, keyboard behavior, focus, and limitations.
+- [Architecture overview](./architecture/overview) for shared state, lifecycle, focus, collections, overlays, positioning, and cleanup.
+- [TypeScript integration](./guides/typescript) and the other framework guides for consumer-owned adapters.
+- [Demo and documentation accessibility conformance](./accessibility/demo-conformance) for scope, checks, limitations, and the WCAG 2.2 AA applicable-criteria target.
+
+## Public surfaces
+
+- [Interactive component laboratory](https://danielemasone.github.io/ui-headless-runtime/)
+- [TypeDoc API reference](https://danielemasone.github.io/ui-headless-runtime/api/)
+- [Coverage report](https://danielemasone.github.io/ui-headless-runtime/coverage/)
 - [Release operations](./releasing)
 
-The [interactive laboratory](https://danielemasone.github.io/ui-headless-runtime/) uses the package entrypoint and exposes live state, real events, executed source, keyboard behavior, and accessibility responsibilities for every controller.
+## Quality model
+
+The repository gates strict TypeScript, formatting, linting, unused-code checks, unit coverage, real-browser integration, cross-browser production E2E, axe plus manual accessibility assertions, API reports, generated documentation, package consumers, and the composed GitHub Pages artifact.
+
+The runtime provides accessibility behavior primitives. The published demo and generated documentation are designed and tested against applicable WCAG 2.2 AA criteria. Final consumer conformance still depends on the rendered product's markup, labels, content, styling, layout, and assistive-technology validation.

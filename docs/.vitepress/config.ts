@@ -33,6 +33,20 @@ const guideOrder = [
   'troubleshooting',
   'release-and-package',
 ];
+const architectureOrder = [
+  'overview',
+  'state-model',
+  'events',
+  'dom-and-ssr',
+  'focus-management',
+  'overlay-stack',
+  'collections',
+  'positioning',
+  'cleanup-and-ownership',
+  'public-api',
+  'testing-strategy',
+  'demo-architecture',
+];
 const pages = (directory: string, order: readonly string[] = []): DefaultTheme.SidebarItem[] =>
   readdirSync(resolve(documentationRoot, directory))
     .filter((file) => file.endsWith('.md'))
@@ -56,13 +70,26 @@ const pages = (directory: string, order: readonly string[] = []): DefaultTheme.S
     });
 
 const sidebar: DefaultTheme.SidebarItem[] = [
-  { text: 'User Guide', collapsed: false, items: pages('guide', guideOrder) },
-  { text: 'Components', collapsed: false, items: pages('components') },
-  { text: 'Architecture', collapsed: false, items: pages('architecture') },
-  { text: 'Guides', collapsed: false, items: pages('guides') },
-  { text: 'Accessibility', items: pages('accessibility') },
-  { text: 'Decisions', items: pages('adr') },
-  { text: 'Operations', items: [{ text: 'Release operations', link: '/releasing' }] },
+  { text: 'User Guide', link: '/guide/', collapsed: false, items: pages('guide', guideOrder) },
+  { text: 'Components', link: '/components/dialog', collapsed: true, items: pages('components') },
+  {
+    text: 'Architecture',
+    link: '/architecture/overview',
+    collapsed: true,
+    items: pages('architecture', architectureOrder),
+  },
+  { text: 'Guides', link: '/guides/typescript', collapsed: true, items: pages('guides') },
+  {
+    text: 'Accessibility',
+    link: '/accessibility/demo-conformance',
+    items: pages('accessibility'),
+  },
+  { text: 'Decisions', link: '/adr/0001-internal-positioning', items: pages('adr') },
+  {
+    text: 'Operations',
+    link: '/releasing',
+    items: [{ text: 'Release operations', link: '/releasing' }],
+  },
 ];
 
 export default defineConfig({
@@ -73,6 +100,12 @@ export default defineConfig({
   cleanUrls: false,
   lastUpdated: true,
   sitemap: { hostname: docsUrl },
+  markdown: {
+    theme: {
+      light: 'github-light-high-contrast',
+      dark: 'github-dark-high-contrast',
+    },
+  },
   themeConfig: {
     nav: [
       { text: 'Documentation', link: '/' },

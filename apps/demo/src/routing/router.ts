@@ -12,8 +12,13 @@ function currentPath(): string {
 }
 
 export function startRouter(render: (change: RouteChange) => void): () => void {
+  let initialRender = true;
   const route = (): void => {
     render({ path: currentPath() });
+    if (initialRender) {
+      initialRender = false;
+      return;
+    }
     window.scrollTo({ top: 0, behavior: 'instant' });
     requestAnimationFrame(() => document.querySelector<HTMLElement>('#main')?.focus());
   };
