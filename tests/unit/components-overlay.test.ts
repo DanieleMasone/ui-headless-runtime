@@ -26,6 +26,28 @@ const visible = (element: HTMLElement): void => {
 };
 
 describe('Dialog and Popover overlays', () => {
+  it('uses the authoritative controlled Dialog value for the initial snapshot', () => {
+    const content = document.createElement('div');
+    document.body.append(content);
+    const dialog = createDialog({
+      defaultValue: false,
+      getValue: () => true,
+      modal: false,
+    });
+
+    expect(dialog.getSnapshot()).toMatchObject({
+      open: true,
+      controlled: true,
+      topmost: false,
+    });
+
+    const unbind = dialog.bind({ content });
+    expect(dialog.getSnapshot().topmost).toBe(true);
+
+    unbind();
+    dialog.destroy();
+  });
+
   it('manages modal focus, inerting, scroll lock, outside dismissal and restoration', () => {
     const app = document.createElement('main');
     const portal = document.createElement('div');

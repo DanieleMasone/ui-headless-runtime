@@ -1,5 +1,6 @@
 import { access, readFile, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { articleRegistry } from '../apps/demo/src/registry/articles.ts';
 import { componentCatalog } from '../metadata/components.ts';
 import { siteUrl } from '../metadata/site.ts';
 import { root } from './shared.mjs';
@@ -27,6 +28,81 @@ const requiredGuidePages = [
   'testing',
   'troubleshooting',
   'release-and-package',
+];
+const frameworkGuides = [
+  {
+    id: 'react',
+    title: 'React integration',
+    markers: [
+      'createDisclosure',
+      'createDialog',
+      'useEffect',
+      'useSyncExternalStore',
+      'getValue',
+      'onValueChange',
+      'subscribeValue',
+      'unsubscribe()',
+      'releaseBindingRef.current()',
+      'destroy()',
+    ],
+  },
+  {
+    id: 'vue',
+    title: 'Vue integration',
+    markers: [
+      'createDisclosure',
+      'createDialog',
+      'shallowRef',
+      'onMounted',
+      'onBeforeUnmount',
+      'getValue',
+      'onValueChange',
+      'subscribeValue',
+      'releaseBinding()',
+      'unsubscribe()',
+      'destroy()',
+    ],
+  },
+  {
+    id: 'angular',
+    title: 'Angular integration',
+    markers: [
+      'createDisclosure',
+      'createDialog',
+      'DestroyRef',
+      'AfterViewInit',
+      'isPlatformBrowser',
+      'getValue',
+      'onValueChange',
+      'subscribeValue',
+      'releaseBinding()',
+      'unsubscribe()',
+      'destroy()',
+    ],
+  },
+];
+const requiredFrameworkSections = [
+  'Scope',
+  'Lifecycle model',
+  'Minimal Disclosure example',
+  'Dialog example',
+  'Controlled state example',
+  'CSS',
+  'Pitfalls',
+];
+const frameworkArticles = [
+  {
+    title: 'Framework integration',
+    route: '/guides/framework-integration',
+    docsPath: 'guide/framework-integration.html',
+  },
+  { title: 'React integration', route: '/guides/react', docsPath: 'guide/frameworks/react.html' },
+  { title: 'Vue integration', route: '/guides/vue', docsPath: 'guide/frameworks/vue.html' },
+  {
+    title: 'Angular integration',
+    route: '/guides/angular',
+    docsPath: 'guide/frameworks/angular.html',
+  },
 ];
 const conformanceTitle = '# Demo and documentation accessibility conformance';
 const requiredConformanceSections = [
@@ -103,6 +179,96 @@ for (const component of componentCatalog) {
 for (const page of requiredGuidePages) {
   await access(resolve(root, 'docs', 'guide', `${page}.md`));
   await access(resolve(output, 'guide', page === 'index' ? 'index.html' : `${page}.html`));
+}
+
+const frameworkLanding = await readFile(
+  resolve(root, 'docs', 'guide', 'framework-integration.md'),
+  'utf8',
+);
+if (!frameworkLanding.startsWith('# Framework integration\n')) {
+  throw new Error('Framework integration landing title is missing or incorrect.');
+}
+if (
+  !/does not ship official/iu.test(frameworkLanding) ||
+  !/ships no CSS/iu.test(frameworkLanding)
+) {
+  throw new Error('Framework integration landing does not state adapter and CSS ownership.');
+}
+if (/\[[^\]]*(?:Svelte|Web Components)[^\]]*\]\([^)]*\)/iu.test(frameworkLanding)) {
+  throw new Error('Framework integration landing links an unsupported framework recipe.');
+}
+
+const legacyFrameworkGuides = new Set([
+  'react.md',
+  'vue.md',
+  'angular.md',
+  'svelte.md',
+  'lit-web-components.md',
+]);
+for (const file of await readdir(resolve(root, 'docs', 'guides'))) {
+  if (legacyFrameworkGuides.has(file)) {
+    throw new Error(`Legacy framework guide duplicates the canonical User Guide recipe: ${file}`);
+  }
+}
+
+for (const guide of frameworkGuides) {
+  if (!frameworkLanding.includes(`](./frameworks/${guide.id})`)) {
+    throw new Error(`Framework landing page is missing the ${guide.title} link.`);
+  }
+
+  const sourcePath = resolve(root, 'docs', 'guide', 'frameworks', `${guide.id}.md`);
+  const source = await readFile(sourcePath, 'utf8');
+  if (!source.startsWith(`# ${guide.title}\n`)) {
+    throw new Error(`Framework documentation title mismatch: ${guide.id}`);
+  }
+  for (const section of requiredFrameworkSections) {
+    if (!source.includes(`\n## ${section}\n`)) {
+      throw new Error(`Framework documentation is missing "${section}": ${guide.id}`);
+    }
+  }
+  for (const marker of guide.markers) {
+    if (!source.includes(marker)) {
+      throw new Error(`Framework documentation is missing "${marker}": ${guide.id}`);
+    }
+  }
+  if (!source.includes("from 'ui-headless-runtime'")) {
+    throw new Error(`Framework documentation does not import the public package: ${guide.id}`);
+  }
+  if (/from\s+['"]ui-headless-runtime\//u.test(source)) {
+    throw new Error(`Framework documentation contains a deep package import: ${guide.id}`);
+  }
+  if (/packages[\\/]ui-headless-runtime[\\/]src/iu.test(source)) {
+    throw new Error(`Framework documentation imports workspace source: ${guide.id}`);
+  }
+  if (!/consumer(?:-owned| owned)|belongs to the \w+ application/iu.test(source)) {
+    throw new Error(`Framework documentation does not state consumer CSS ownership: ${guide.id}`);
+  }
+  if (!/(?:not an official adapter|does not ship an? official adapter)/iu.test(source)) {
+    throw new Error(`Framework documentation does not clarify adapter status: ${guide.id}`);
+  }
+  if (
+    !source.includes(
+      `does not declare ${guide.title.split(' ')[0]} as a direct dependency or compile`,
+    )
+  ) {
+    throw new Error(
+      `Framework documentation does not state its compile-check limitation: ${guide.id}`,
+    );
+  }
+  if (/@ui-headless-runtime\/(?:react|vue|angular)/iu.test(source)) {
+    throw new Error(
+      `Framework documentation claims a framework-specific runtime package: ${guide.id}`,
+    );
+  }
+
+  await access(resolve(output, 'guide', 'frameworks', `${guide.id}.html`));
+}
+
+for (const expected of frameworkArticles) {
+  const article = articleRegistry.find((entry) => entry.title === expected.title);
+  if (!article || article.route !== expected.route || article.docsPath !== expected.docsPath) {
+    throw new Error(`Demo registry is missing the canonical ${expected.title} route.`);
+  }
 }
 
 const conformanceSource = await readFile(

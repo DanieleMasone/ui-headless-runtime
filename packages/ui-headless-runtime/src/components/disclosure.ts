@@ -134,10 +134,12 @@ export function createDisclosureSnapshot(
 export function createDisclosure(options: DisclosureOptions = {}): DisclosureController {
   const id = options.id ?? createRuntimeId('disclosure');
   let disabled = options.disabled ?? false;
+  const controlled = options.getValue !== undefined;
+  const initialExpanded = options.getValue?.() ?? options.defaultValue ?? false;
   const snapshot = (expanded: boolean, controlled: boolean): DisclosureSnapshot =>
     createDisclosureSnapshot(id, expanded, controlled, disabled);
   const host = createControllerHost<DisclosureSnapshot, DisclosureEvents>(
-    snapshot(options.defaultValue ?? false, options.getValue !== undefined),
+    snapshot(initialExpanded, controlled),
   );
   const sync = (): void => {
     host.update(snapshot(state.get(), state.controlled));

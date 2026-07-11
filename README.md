@@ -11,6 +11,7 @@ Framework-agnostic TypeScript controllers for accessible, customizable UI behavi
 
 - [Live demo](https://danielemasone.github.io/ui-headless-runtime/)
 - [User Guide](https://danielemasone.github.io/ui-headless-runtime/docs/guide/)
+- [Framework integration recipes](https://danielemasone.github.io/ui-headless-runtime/docs/guide/framework-integration.html)
 - [Documentation](https://danielemasone.github.io/ui-headless-runtime/docs/)
 - [API reference](https://danielemasone.github.io/ui-headless-runtime/api/)
 - [Coverage report](https://danielemasone.github.io/ui-headless-runtime/coverage/)

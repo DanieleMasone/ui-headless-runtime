@@ -97,6 +97,22 @@ describe('Disclosure and Collapsible', () => {
     expect(opened).toHaveBeenCalledOnce();
     disclosure.destroy();
   });
+
+  it('uses the authoritative controlled Disclosure value for the initial snapshot', () => {
+    const disclosure = createDisclosure({
+      defaultValue: false,
+      getValue: () => true,
+    });
+
+    expect(disclosure.getSnapshot()).toMatchObject({
+      expanded: true,
+      controlled: true,
+      trigger: { ariaExpanded: true },
+      panel: { hidden: false },
+    });
+
+    disclosure.destroy();
+  });
 });
 
 describe('Accordion', () => {

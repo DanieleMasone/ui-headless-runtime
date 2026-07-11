@@ -9,7 +9,8 @@ UI Headless Runtime exposes typed controllers with immutable state and DOM bindi
 - [User Guide](./guide/) for installation, controllers, rendering, state, DOM binding, SSR, and testing.
 - [Component contracts](./components/dialog) for component-specific options, state, commands, keyboard behavior, focus, and limitations.
 - [Architecture overview](./architecture/overview) for shared state, lifecycle, focus, collections, overlays, positioning, and cleanup.
-- [TypeScript integration](./guides/typescript) and the other framework guides for consumer-owned adapters.
+- [Framework integration](./guide/framework-integration) for the shared lifecycle and CSS/accessibility ownership boundary.
+- Consumer-side recipes for [React](./guide/frameworks/react), [Vue](./guide/frameworks/vue), and [Angular](./guide/frameworks/angular), without official adapters or framework dependencies in the runtime package.
 - [Demo and documentation accessibility conformance](./accessibility/demo-conformance) for scope, checks, limitations, and the WCAG 2.2 AA applicable-criteria target.
 
 ## Public surfaces

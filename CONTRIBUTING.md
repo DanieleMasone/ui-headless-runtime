@@ -16,6 +16,8 @@ Add TSDoc before exporting a symbol. Run `npm run api:check`; when the intended 
 
 Keep documentation in English. Use `README.md` as a short landing page and put product-facing usage material in `docs/guide/`. Update component pages only with component-specific behavior; move shared lifecycle, state, DOM binding, accessibility, SSR, testing, and troubleshooting material to the User Guide. Demo links must target generated HTML routes, not local Markdown files.
 
+Framework integration pages are consumer-side recipes under `docs/guide/frameworks/`, not compiled applications or official adapters. Import runtime symbols only from `ui-headless-runtime`, show release/unsubscribe/destroy cleanup, keep CSS consumer-owned, state any uncompiled assumptions, and do not add framework dependencies solely for documentation snippets.
+
 ## Accessibility
 
 Test keyboard-only interaction, focus entry/containment/restoration, Arrow/Home/End behavior, disabled items, Escape, Tab/Shift+Tab, names, roles, and relationships. Add axe states but do not treat axe as sufficient. The consumer/runtime responsibility boundary must remain explicit, and changes to the published surface must update `docs/accessibility/demo-conformance.md` when its checklist or limitations change.

@@ -25,6 +25,7 @@ Use `npm ci` for reproducible installs. `npm run setup:browsers`, `typecheck`, `
 - Demo examples are lazily loaded component modules under `apps/demo/src/examples`; source panels must load the exact module used by the current component.
 - Demo documentation links must point to generated HTML routes under `/docs/`, `/api/`, or `/coverage/`; never link local `.md` files from the public demo. GitHub source links are allowed only when labelled as source.
 - Storybook is intentionally not part of the repository; keep the Vanilla TypeScript laboratory as the single behavior demo surface unless an ADR supersedes `docs/adr/no-storybook-for-runtime-demo.md`.
+- Canonical React, Vue, and Angular consumer recipes live under `docs/guide/frameworks/`. They are documentation, not compiled example apps or official adapters; do not add framework packages or runtime dependencies for them.
 - Dependency version updates are manual: run `npm outdated` quarterly, before release, and immediately when a security alert requires action.
 
 ## Public API and TSDoc

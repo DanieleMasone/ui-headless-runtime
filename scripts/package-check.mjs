@@ -9,6 +9,27 @@ const temporary = await assertInsideWorkspace(resolve(root, '.tmp', 'package-che
 await rm(temporary, { recursive: true, force: true });
 await mkdir(temporary, { recursive: true });
 const packageDirectory = resolve(root, 'packages', 'ui-headless-runtime');
+const frameworkDependencySections = ['dependencies', 'peerDependencies', 'optionalDependencies'];
+const isFrameworkDependency = (name) =>
+  name === 'react' ||
+  name === 'react-dom' ||
+  name === 'vue' ||
+  name.startsWith('@vue/') ||
+  name.startsWith('@angular/');
+const assertNoFrameworkDependencies = (manifest, location) => {
+  for (const section of frameworkDependencySections) {
+    for (const dependency of Object.keys(manifest[section] ?? {})) {
+      if (isFrameworkDependency(dependency)) {
+        throw new Error(`${location} declares framework dependency ${dependency} in ${section}.`);
+      }
+    }
+  }
+};
+
+const packageManifest = JSON.parse(
+  await readFile(resolve(packageDirectory, 'package.json'), 'utf8'),
+);
+assertNoFrameworkDependencies(packageManifest, 'Publishable package');
 const npmEnvironment = {
   ...process.env,
   npm_config_cache: resolve(temporary, 'npm-cache'),
@@ -51,6 +72,9 @@ const tarballEntries = listTarballEntries(await readFile(tarball)).map((entry) =
   entry.replace(/^package\//u, ''),
 );
 for (const entry of tarballEntries) {
+  if (/(?:^|\/)(?:apps|docs|examples)(?:\/|$)/u.test(entry)) {
+    throw new Error(`Framework documentation or example leaked into the tarball: ${entry}`);
+  }
   if (!/^(?:dist\/|README\.md$|LICENSE$|package\.json$)/u.test(entry)) {
     throw new Error(`Unexpected tarball entry: ${entry}`);
   }
@@ -68,6 +92,8 @@ await run('npm', ['install', '--ignore-scripts', tarball], {
 });
 
 const installed = resolve(consumer, 'node_modules', 'ui-headless-runtime');
+const installedManifest = JSON.parse(await readFile(resolve(installed, 'package.json'), 'utf8'));
+assertNoFrameworkDependencies(installedManifest, 'Installed package');
 const esmSmoke = resolve(consumer, 'esm-smoke.mjs');
 await writeFile(
   esmSmoke,

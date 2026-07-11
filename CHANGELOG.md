@@ -11,6 +11,8 @@ All notable changes follow Keep a Changelog structure and semantic versioning.
 - Added real coverage for controlled rejections, async state commits, stale combobox responses, toast pause/resume bindings, submenu behavior, focus filtering, SSR/package consumers, and generated docs/site verification.
 - Added a navigable User Guide and tightened documentation link policy so the public demo points to generated HTML docs rather than raw Markdown files.
 - Hardened the published demo and documentation for mobile reflow, modal navigation/search semantics, compact laboratory panels, visible focus, and an evidence-linked WCAG 2.2 AA applicable-criteria conformance record.
+- Replaced conceptual framework notes with canonical consumer-owned React, Vue, and Angular lifecycle recipes while keeping adapters, framework dependencies, and example applications outside the runtime package.
+- Corrected controlled Disclosure and openable controllers so their initial snapshots honor the authoritative external getter instead of the uncontrolled fallback.
 
 ## [0.1.0] - 2026-06-29
 

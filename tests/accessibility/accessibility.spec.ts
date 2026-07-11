@@ -34,6 +34,18 @@ const expectReasonableHeadingOrder = async (page: Page) => {
   }
 };
 
+const expectDocumentationPagesAccessible = async (
+  page: Page,
+  routes: readonly string[],
+): Promise<void> => {
+  for (const route of routes) {
+    await page.goto(`./${route}`);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+    await expectReasonableHeadingOrder(page);
+    await analyze(page);
+  }
+};
+
 const interact = async (page: Page, id: string) => {
   const live = page.locator('.example-mount');
   if (id === 'tooltip') {
@@ -125,7 +137,7 @@ test('mobile navigation and command search active states pass axe', async ({ pag
 });
 
 test('generated documentation critical pages pass axe with coherent headings', async ({ page }) => {
-  const routes = [
+  await expectDocumentationPagesAccessible(page, [
     'docs/',
     'docs/guide/',
     'docs/guide/getting-started.html',
@@ -133,14 +145,21 @@ test('generated documentation critical pages pass axe with coherent headings', a
     'docs/components/dialog.html',
     'docs/architecture/overview.html',
     'docs/accessibility/demo-conformance.html',
-  ];
-  for (const route of routes) {
-    await page.goto(`./${route}`);
-    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
-    await expectReasonableHeadingOrder(page);
-    await analyze(page);
-  }
+  ]);
 });
+
+for (const frameworkPage of [
+  { name: 'Framework landing', route: 'docs/guide/framework-integration.html' },
+  { name: 'React', route: 'docs/guide/frameworks/react.html' },
+  { name: 'Vue', route: 'docs/guide/frameworks/vue.html' },
+  { name: 'Angular', route: 'docs/guide/frameworks/angular.html' },
+]) {
+  test(`${frameworkPage.name} integration documentation passes axe with coherent headings`, async ({
+    page,
+  }) => {
+    await expectDocumentationPagesAccessible(page, [frameworkPage.route]);
+  });
+}
 
 test('generated documentation mobile navigation is named, related, and operable', async ({
   page,

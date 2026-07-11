@@ -1,6 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
 import { componentCatalog } from '../../metadata/components';
 
+const frameworkGuides = [
+  { id: 'react', title: 'React integration' },
+  { id: 'vue', title: 'Vue integration' },
+  { id: 'angular', title: 'Angular integration' },
+] as const;
+
 const visit = async (page: Page, path = '/') => {
   await page.goto(`./#${path}`);
 };
@@ -153,6 +159,14 @@ test('command search supports its keyboard, relationship, empty, selection, and 
   const resultsId = await results.getAttribute('id');
   expect(resultsId).toBeTruthy();
   await expect(input).toHaveAttribute('aria-controls', resultsId ?? 'missing-results-id');
+
+  for (const title of ['Framework integration', ...frameworkGuides.map((guide) => guide.title)]) {
+    await input.fill(title);
+    await expect(
+      results.getByRole('option', { name: new RegExp(`Guides.*${title}`, 'u') }),
+    ).toBeVisible();
+  }
+  await input.fill('');
 
   const initiallySelected = results.locator('[role="option"][aria-selected="true"]');
   await expect(initiallySelected).toHaveCount(1);
@@ -506,6 +520,49 @@ test('mobile search and theme controls remain visible and functional', async ({ 
   await expect(theme).toBeVisible();
   await theme.selectOption('light');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+});
+
+test('framework integration guides are navigable and reflow on mobile', async ({ page }) => {
+  await page.goto('./docs/guide/');
+  await page
+    .getByRole('main')
+    .getByRole('link', { name: 'Framework integration', exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/docs\/guide\/framework-integration\.html$/u);
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Framework integration' }),
+  ).toBeVisible();
+
+  for (const guide of frameworkGuides) {
+    await page.goto('./docs/guide/framework-integration.html');
+    await page.getByRole('main').getByRole('link', { name: guide.title, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/docs/guide/frameworks/${guide.id}\\.html$`, 'u'));
+    await expect(page.getByRole('heading', { level: 1, name: guide.title })).toBeVisible();
+  }
+
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto('./docs/guide/framework-integration.html');
+  await page.getByRole('button', { name: 'Menu', exact: true }).click();
+  const sidebarNavigation = page.getByRole('navigation', { name: 'Sidebar Navigation' });
+  const reactLink = sidebarNavigation.getByRole('link', {
+    name: 'React integration',
+    exact: true,
+  });
+  await expect(reactLink).toBeVisible();
+  await reactLink.click();
+  await expect(page.getByRole('heading', { level: 1, name: 'React integration' })).toBeVisible();
+
+  const mobileRoutes = [
+    'docs/guide/framework-integration.html',
+    ...frameworkGuides.map((guide) => `docs/guide/frameworks/${guide.id}.html`),
+  ];
+  for (const route of mobileRoutes) {
+    await page.goto(`./${route}`);
+    const metrics = await inspectResponsiveLayout(page);
+    expect(metrics.scrollWidth, route).toBeLessThanOrEqual(metrics.innerWidth);
+    expect(metrics.clippedRichContent, route).toEqual([]);
+    expect(metrics.trappedOverflow, route).toEqual([]);
+  }
 });
 
 test('composed docs, API, and coverage sections contain responsive rich content', async ({

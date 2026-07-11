@@ -148,9 +148,11 @@ const details = <TReason extends OpenChangeReason>(
 
 export function createOpenController(options: OpenControllerOptions): OpenController {
   const id = options.id ?? createRuntimeId(options.role);
+  const controlled = options.getValue !== undefined;
+  const initialOpen = options.getValue?.() ?? options.defaultValue ?? false;
   const host = createControllerHost<OpenSnapshot, OpenLifecycleEvents>({
-    open: options.defaultValue ?? false,
-    controlled: options.getValue !== undefined,
+    open: initialOpen,
+    controlled,
     topmost: false,
     contentId: id,
     role: options.role,

@@ -21,10 +21,13 @@ Use this guide when you want to integrate the runtime into a product. Use the ar
 - [Positioning](./positioning)
 - [SSR](./ssr)
 - [Framework integration](./framework-integration)
+  - [React integration](./frameworks/react)
+  - [Vue integration](./frameworks/vue)
+  - [Angular integration](./frameworks/angular)
 - [Testing](./testing)
 - [Troubleshooting](./troubleshooting)
 - [Release and package](./release-and-package)
 
 ## What the runtime is not
 
-It is not a component framework, renderer, CSS system, animation library, or accessibility certification. It does not ship React/Vue/Angular/Svelte adapters. The same controller API is designed to fit those environments through ordinary lifecycle hooks.
+It is not a component framework, renderer, CSS system, animation library, or accessibility certification. It does not ship framework adapters. The React, Vue, and Angular pages are consumer-owned lifecycle recipes built on the same public controller API; they are not separate products or packages.

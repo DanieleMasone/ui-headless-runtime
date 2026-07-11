@@ -319,7 +319,7 @@ dialog.destroy();</code></pre></section>
       <div class="component-grid">${representativeComponents.map((component) => `<a href="#${component.route}"><span>${component.category}</span><strong>${component.name}</strong><p>${component.summary}</p></a>`).join('')}</div>
     </section>
     <section class="statement"><h2>Accessibility is a contract, not a coat of paint.</h2><p>The runtime supplies keyboard models, focus management, semantic metadata, stable relationships, and cleanup. Final conformance also depends on the consumer's labels, markup, content, contrast, and testing.</p><a href="#/architecture/accessibility">Read the accessibility model</a></section>
-    <section><h2>Works where your product works</h2><p class="frameworks">Vanilla TypeScript · React · Angular · Vue · Svelte · Lit · Web Components · SSR</p></section>
+    <section><h2>Framework-neutral by design</h2><p class="frameworks">Use the public controller lifecycle directly from Vanilla TypeScript or follow the consumer-owned React, Vue, and Angular recipes. Other DOM-capable renderers can apply the same contract; no framework adapter is shipped.</p><p><a href="${siteLink('docs/guide/framework-integration.html')}">Framework integration recipes</a></p></section>
   `;
 };
 

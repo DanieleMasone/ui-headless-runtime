@@ -33,6 +33,7 @@ const guideOrder = [
   'troubleshooting',
   'release-and-package',
 ];
+const frameworkOrder = ['react', 'vue', 'angular'];
 const architectureOrder = [
   'overview',
   'state-model',
@@ -69,8 +70,18 @@ const pages = (directory: string, order: readonly string[] = []): DefaultTheme.S
       return { text: title, link: `/${directory}/${file.replace(/\.md$/u, '')}` };
     });
 
+const guidePages = pages('guide', guideOrder).map((page) =>
+  page.link === '/guide/framework-integration'
+    ? {
+        ...page,
+        collapsed: false,
+        items: pages('guide/frameworks', frameworkOrder),
+      }
+    : page,
+);
+
 const sidebar: DefaultTheme.SidebarItem[] = [
-  { text: 'User Guide', link: '/guide/', collapsed: false, items: pages('guide', guideOrder) },
+  { text: 'User Guide', link: '/guide/', collapsed: false, items: guidePages },
   { text: 'Components', link: '/components/dialog', collapsed: true, items: pages('components') },
   {
     text: 'Architecture',
