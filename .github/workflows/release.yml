@@ -85,4 +85,5 @@ jobs:
           version="$(node -p "require('./packages/ui-headless-runtime/package.json').version")"
           tarball="$(node -p "require('./release-tarball/metadata.json')[0].filename")"
           if [[ "$version" == *-* ]]; then dist_tag=next; else dist_tag=latest; fi
-          npm publish "release-tarball/$tarball" --access public --tag "$dist_tag"
+          test -f "./release-tarball/$tarball"
+          npm publish "./release-tarball/$tarball" --access public --tag "$dist_tag"
