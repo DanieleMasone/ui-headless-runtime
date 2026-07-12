@@ -16,8 +16,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    environment:
-      name: npm
     steps:
       - name: Checkout release tag
         uses: actions/checkout@v7

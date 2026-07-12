@@ -12,10 +12,10 @@ This external configuration is not performed by repository code:
 4. Owner/user: `DanieleMasone`.
 5. Repository: `ui-headless-runtime`.
 6. Workflow filename: `release.yml`.
-7. GitHub environment: `npm`.
+7. Environment name: leave blank; this repository does not use a GitHub environment for npm publishing.
 8. Select `npm publish` as an allowed action (required for trusted publishers created after May 20, 2026).
 9. Under publishing access, require 2FA and disallow token-based publishing after OIDC has been proven.
-10. Revoke the bootstrap credential, remove any local npm authentication, and protect the `npm` environment with required reviewers where repository policy requires approval.
+10. Revoke the bootstrap credential and remove any local npm authentication.
 
 Do not add `NPM_TOKEN`. Trusted publishing requires Node 22.14+ and npm 11.5.1+; this workflow uses Node 24 and the npm version declared by the repository. Provenance is automatic for a public package published through OIDC, so no provenance flag is required.
 

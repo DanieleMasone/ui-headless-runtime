@@ -106,7 +106,7 @@ Useful commands are documented in [CONTRIBUTING.md](CONTRIBUTING.md). Generated 
 
 ## Release
 
-Publishing is configured to occur only from a published GitHub Release with a matching `vX.Y.Z` tag. The dedicated workflow uses npm Trusted Publishing OIDC on a GitHub-hosted runner; no persistent npm publish token is used. npm Trusted Publisher and GitHub Environment setup remain external prerequisites. See [release operations](https://danielemasone.github.io/ui-headless-runtime/docs/releasing.html).
+Publishing is configured to occur only from a published GitHub Release with a matching `vX.Y.Z` tag. The dedicated workflow uses npm Trusted Publishing OIDC on a GitHub-hosted runner; no persistent npm publish token or npm GitHub environment is used. npm Trusted Publisher setup remains an external prerequisite. See [release operations](https://danielemasone.github.io/ui-headless-runtime/docs/releasing.html).
 
 ## Contributing
 
