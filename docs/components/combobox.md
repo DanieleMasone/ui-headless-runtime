@@ -28,23 +28,27 @@ Create Combobox during component mount or setup, subscribe before rendering deri
 
 ## Options
 
-- Filtering, async suggestions, display value, controlled input/selected state, placement, and IME handling configure behavior.
+- Public options: `defaultInputValue`, `defaultSelectedValue`, `filter`, `getInputValue`, `getSelectedValue`, `id`, `loadOptions`, `onInputValueChange`, `onSelectedValueChange`, `positioning`, `subscribeInputValue`, `subscribeSelectedValue`.
+- Input text and selected value have independent controlled-state contracts. `loadOptions` receives the current query and an `AbortSignal`; IME handling is exposed through commands rather than options.
 
 ## Snapshot
 
-- Contains input value, query, selected value, active option, suggestions, loading, no-results state, and popup metadata.
+- Snapshot fields: `activeId`, `composing`, `empty`, `inputControlled`, `inputValue`, `listboxId`, `loading`, `open`, `options`, `position`, `query`, `selectedValue`, `selectionControlled`.
 
 ## Commands
 
-- `setInputValue`, `setQuery`, `registerOption`, `select`, `open`, `close`, `handleInput`, `handleKeyDown`, and composition handlers are central.
+- Component commands: `bind`, `handleCompositionEnd`, `handleCompositionStart`, `handleInput`, `handleKeyDown`, `refresh`, `registerOption`, `select`, `setInputValue`.
+- Combobox opens and closes through input/keyboard/selection behavior; it does not expose public `open`, `close`, or `setQuery` commands.
 
 ## Events
 
-- Input, query, option, async loading, stale-response, and selection transitions are observable.
+- Events: `beforeClose`, `beforeOpen`, `close`, `open`, `afterClose`, `afterOpen`, `beforeSelect`, `queryChange`, `select`, `stateChange`.
+- Async loading and stale-response suppression are represented by snapshots and request cancellation, not separate public events.
 
 ## Change reasons
 
-- `input`, `keyboard`, `pointer`, `filter`, `async`, `stale`, `selection`, `composition`, and `controlled` matter.
+- Change reasons: `programmatic`, `input`, `selection`, `clear`, `pointer`, `keyboard`, `typeahead`, `trigger`, `escape-key`, `outside-pointer`, `focus-out`, `context-menu`, `hover`, `focus`.
+- Input/query events use `ComboboxInputReason`, selection uses `ListboxChangeReason`, and inherited overlay lifecycle events use `OpenChangeReason`.
 
 ## Controlled mode
 
@@ -84,7 +88,7 @@ Uncontrolled mode owns input text, query, active option, and selected value whil
 
 - Abort or ignore stale async responses and release composition/input listeners during unmount.
 
-## Complete example
+## Minimal lifecycle example
 
 ```ts
 import { createCombobox } from 'ui-headless-runtime';

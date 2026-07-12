@@ -4,6 +4,7 @@ import {
   createDialog,
   createDropdownMenu,
   createListbox,
+  createNavigationMenu,
   createPopover,
   createTabs,
   createTooltip,
@@ -84,6 +85,48 @@ describe('real-browser runtime integration', () => {
     expect(document.activeElement).toBe(second);
     expect(tabs.getSnapshot().selectedId).toBe('two');
     tabs.destroy();
+  });
+
+  it('opens a closed Navigation Menu from a registered trigger keyboard event', () => {
+    const firstTrigger = document.createElement('button');
+    firstTrigger.textContent = 'Products';
+    const trigger = document.createElement('button');
+    trigger.textContent = 'Solutions';
+    const content = document.createElement('div');
+    document.body.append(firstTrigger, trigger, content);
+    const navigation = createNavigationMenu();
+    navigation.registerItem({ id: 'products', text: 'Products', hasContent: true }, firstTrigger);
+    navigation.registerItem({ id: 'solutions', text: 'Solutions', hasContent: true }, trigger);
+    navigation.bind({ trigger, content });
+    trigger.addEventListener('keydown', (event) => navigation.handleKeyDown(event));
+    trigger.focus();
+    const enter = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      bubbles: true,
+      cancelable: true,
+    });
+
+    trigger.dispatchEvent(enter);
+
+    expect(enter.defaultPrevented).toBe(true);
+    expect(navigation.getSnapshot()).toMatchObject({
+      openId: 'solutions',
+      activeId: 'solutions',
+    });
+    expect(document.activeElement).toBe(trigger);
+
+    firstTrigger.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true, composed: true, cancelable: true }),
+    );
+    expect(navigation.getSnapshot().openId).toBe('solutions');
+
+    const outside = document.createElement('button');
+    document.body.append(outside);
+    outside.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true, composed: true, cancelable: true }),
+    );
+    expect(navigation.getSnapshot().openId).toBeNull();
+    navigation.destroy();
   });
 
   it('does not steal trigger focus for disclosure-like overlays and clears tooltip timers', () => {

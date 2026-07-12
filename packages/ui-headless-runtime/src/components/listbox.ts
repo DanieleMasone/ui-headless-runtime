@@ -130,7 +130,7 @@ export function createListbox(options: ListboxOptions = {}): ListboxController {
     })),
   });
   const host = createControllerHost<ListboxSnapshot, ListboxEvents>(
-    build(options.defaultValue ?? [], options.getValue !== undefined),
+    build(options.getValue?.() ?? options.defaultValue ?? [], options.getValue !== undefined),
   );
   const sync = (): void => {
     host.update(build(state.get(), state.controlled));

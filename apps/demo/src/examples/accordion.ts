@@ -21,6 +21,7 @@ export default function createAccordionExample({
     ['billing', 'Billing'],
   ] as const) {
     const trigger = button(label, () => controller.toggle(itemId, { reason: 'trigger' }));
+    trigger.addEventListener('keydown', (event) => controller.handleTriggerKeyDown(itemId, event));
     const panel = element('div', `${label} settings and operational notes.`);
     panel.className = 'example-panel';
     stage.append(trigger, panel);
@@ -45,6 +46,7 @@ export default function createAccordionExample({
         row.trigger.id = item.triggerId;
         row.trigger.setAttribute('aria-controls', item.panelId);
         row.trigger.setAttribute('aria-expanded', String(item.expanded));
+        row.trigger.tabIndex = item.tabIndex;
         row.panel.id = item.panelId;
         row.panel.setAttribute('aria-labelledby', item.triggerId);
         row.panel.hidden = !item.expanded;

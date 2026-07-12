@@ -8,6 +8,9 @@
     "url": "git+https://github.com/DanieleMasone/ui-headless-runtime.git"
   },
   "packageManager": "npm@11.17.0",
+  "allowScripts": {
+    "esbuild@0.28.1": true
+  },
   "engines": {
     "node": ">=24.0.0",
     "npm": ">=11.5.1"
@@ -48,7 +51,8 @@
     "package:check": "node scripts/package-check.mjs",
     "ci": "npm run format:check && npm run lint && npm run unused:check && npm run typecheck && npm run test:coverage && npm run test:browser && npm run build && npm run docs:check && npm run package:check && npm run build:site && npm run site:check && npm run test:acceptance",
     "release:quality": "npm run format:check && npm run lint && npm run unused:check && npm run typecheck && npm run test:coverage && npm run test:browser && npm run build:lib && npm run docs:api",
-    "release:verify": "npm run release:quality && npm run package:check",
+    "release:metadata": "node scripts/check-package-version.mjs",
+    "release:verify": "npm run release:quality && npm run package:check && npm run release:metadata",
     "preview": "node scripts/serve-site.mjs"
   },
   "devDependencies": {

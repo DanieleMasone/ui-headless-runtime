@@ -23,9 +23,9 @@ export function createMenuFamilyExample(
       : kind === 'context-menu'
         ? createContextMenu()
         : createMenu();
-  const trigger = button(kind === 'context-menu' ? 'Right-click project' : 'Open actions', () =>
-    menu.open({ reason: 'trigger' }),
-  );
+  const trigger = button(kind === 'context-menu' ? 'Right-click project' : 'Open actions', () => {
+    if (kind !== 'context-menu') menu.open({ reason: 'trigger' });
+  });
   const content = element('div');
   content.className = 'menu-surface';
   content.setAttribute('role', 'menu');

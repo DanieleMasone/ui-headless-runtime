@@ -28,24 +28,27 @@ Create Popover during component mount or setup, subscribe before rendering deriv
 
 ## Options
 
-- Open-state ownership mirrors Dialog but without mandatory modal behavior.
-- Anchor, placement, collision, offset, and focus options feed the shared positioning engine.
+- Public options: `closeOnFocusOutside`, `focusContent`, `id`, `positioning`, `restoreFocus`, `defaultValue`, `getValue`, `onValueChange`, `subscribeValue`.
+- Anchor and consumer elements are passed to `bind`; placement, collision, offset, RTL, flip, and shift belong inside `positioning`.
 
 ## Snapshot
 
-- Includes `open`, anchor-derived coordinates, placement, IDs, and outside-interaction status.
+- Snapshot fields: `contentId`, `controlled`, `open`, `position`, `role`, `topmost`.
+- Outside-interaction registration is an owned resource, not public state.
 
 ## Commands
 
-- `open`, `close`, `toggle`, `setAnchor`, and `bind` cover the full popover lifecycle.
+- Component commands: `bind`, `close`, `open`, `toggle`, `updatePosition`.
+- Supply a new anchor through `bind`; there is no public `setAnchor` command.
 
 ## Events
 
-- State changes identify pointer, focus-out, Escape, trigger, and programmatic requests.
+- Events: `beforeClose`, `beforeOpen`, `close`, `open`, `afterClose`, `afterOpen`, `stateChange`.
+- Before-events are cancellable and all payloads use the shared open-state contract.
 
 ## Change reasons
 
-- Useful reasons include `trigger`, `outside`, `keyboard`, `pointer`, `focus`, `programmatic`, and `controlled`.
+- Change reasons: `programmatic`, `trigger`, `escape-key`, `outside-pointer`, `focus-out`, `selection`, `context-menu`, `keyboard`, `hover`, `focus`.
 
 ## Controlled mode
 
@@ -85,7 +88,7 @@ Uncontrolled popovers update immediately after the request passes lifecycle canc
 
 - Release positioning, outside-interaction listeners, and subscriptions before removing content.
 
-## Complete example
+## Minimal lifecycle example
 
 ```ts
 import { createPopover } from 'ui-headless-runtime';

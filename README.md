@@ -20,7 +20,7 @@ Framework-agnostic TypeScript controllers for accessible, customizable UI behavi
 
 ## Install
 
-The package is not yet present on npm, so this repository intentionally does not show an npm version badge or use npm as the primary call to action. The verified tarball is release-ready, but public npm publication remains pending until the first Trusted Publishing release.
+The package is not yet present on npm, so this repository intentionally does not show an npm version badge or use npm as the primary call to action. Public npm publication remains pending: an unregistered package needs an owner-authorized bootstrap before npm Trusted Publishing can be configured, after which the verified stable tarball is released through OIDC.
 
 After the first release:
 

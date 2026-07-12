@@ -93,8 +93,10 @@ export interface NavigationMenuController
   scheduleOpen(id: string, event?: PointerEvent): void;
   /** Schedules desktop pointer closing; compact mode closes immediately. */
   scheduleClose(event?: PointerEvent): void;
-  /** Delegates menu keyboard navigation and handles content open/close keys. */
+  /** Handles navigation and Escape, inferring the item from a registered event current target. */
   handleKeyDown(event: KeyboardEvent): void;
+  /** Handles navigation and opening for an explicitly identified registered item. */
+  handleKeyDown(itemId: string, event: KeyboardEvent): void;
   /** Updates consumer-controlled responsive mode without reading viewport globals. */
   setMode(mode: NavigationMenuMode): void;
 }
@@ -110,18 +112,40 @@ export function createNavigationMenu(
   };
   const menu = createMenu(menuOptions);
   const items = new Map<string, NavigationMenuItem>();
+  const itemElements = new Map<string, HTMLElement>();
+  let activeBinding:
+    | {
+        readonly branches: Element[];
+        readonly explicitBranches: readonly Element[];
+        readonly elements: OverlayElements;
+        release: (() => void) | undefined;
+      }
+    | undefined;
   const disclosures = new Map<string, DisclosureController>();
   const timer = createTimeoutManager();
   const initialMenu = menu.getSnapshot();
+  const initialOpenId = options.getValue?.() ?? options.defaultValue ?? null;
   const host = createControllerHost<NavigationMenuSnapshot, NavigationMenuEvents>({
     mode,
-    openId: options.defaultValue ?? null,
+    openId: initialOpenId,
     activeId: initialMenu.activeId,
     controlled: options.getValue !== undefined,
     items: [],
     position: initialMenu.position,
   });
   const clearTimer = timer.clear;
+  const refreshBindingBranches = (): void => {
+    if (!activeBinding) return;
+    const branches = new Set([...activeBinding.explicitBranches, ...itemElements.values()]);
+    activeBinding.branches.splice(0, activeBinding.branches.length, ...branches);
+    if (activeBinding.release) {
+      activeBinding.release();
+      activeBinding.release = menu.bind({
+        ...activeBinding.elements,
+        branches: activeBinding.branches,
+      });
+    }
+  };
   const sync = (): void => {
     const menuSnapshot = menu.getSnapshot();
     host.update({
@@ -146,6 +170,7 @@ export function createNavigationMenu(
         reason: changeDetails?.reason === 'keyboard' ? 'keyboard' : 'trigger',
         ...(changeDetails?.event ? { event: changeDetails.event } : {}),
       });
+      menu.setActive(openId);
     } else {
       menu.close({
         reason: changeDetails?.reason === 'outside-pointer' ? 'outside-pointer' : 'programmatic',
@@ -182,6 +207,43 @@ export function createNavigationMenu(
     if (state.set(openId, changeDetails)) commit(openId, changeDetails);
     else commit(state.get());
   };
+  const handleKeyDown = (
+    itemOrEvent: string | KeyboardEvent,
+    providedEvent?: KeyboardEvent,
+  ): void => {
+    if (!host.alive()) return;
+    const event = typeof itemOrEvent === 'string' ? providedEvent : itemOrEvent;
+    if (!event) return;
+    const inferredId =
+      typeof itemOrEvent === 'string'
+        ? itemOrEvent
+        : [...itemElements].find(([, element]) => element === event.currentTarget)?.[0];
+    const itemId = inferredId ?? menu.getSnapshot().activeId;
+    const item = itemId ? items.get(itemId) : undefined;
+    if (itemId && (!item || item.disabled)) return;
+    if (itemId) menu.setActive(itemId);
+
+    const opensFromTrigger =
+      event.key === 'Enter' ||
+      event.key === ' ' ||
+      event.key === 'ArrowDown' ||
+      event.key === 'ArrowUp';
+    if (!menu.getSnapshot().open && itemId && item?.hasContent && opensFromTrigger) {
+      event.preventDefault();
+      change(itemId, { reason: 'keyboard', event });
+      menu.setActive(itemId);
+      return;
+    }
+
+    menu.handleKeyDown(event);
+    const activeId = menu.getSnapshot().activeId;
+    if (opensFromTrigger && activeId && items.get(activeId)?.hasContent) {
+      change(activeId, { reason: 'keyboard', event });
+    } else if (event.key === 'Escape') {
+      if (state.get() !== null || menu.getSnapshot().open) event.preventDefault();
+      change(null, { reason: 'keyboard', event });
+    }
+  };
   host.resources.add(menu.subscribe(sync));
   host.resources.add(
     menu.on('close', (event) => {
@@ -199,6 +261,10 @@ export function createNavigationMenu(
   host.resources.add(() => menu.destroy());
   host.resources.add(() => disclosures.forEach((disclosure) => disclosure.destroy()));
   host.resources.add(() => items.clear());
+  host.resources.add(() => itemElements.clear());
+  host.resources.add(() => {
+    activeBinding = undefined;
+  });
   return {
     getSnapshot: host.getSnapshot,
     subscribe: host.subscribe,
@@ -208,23 +274,52 @@ export function createNavigationMenu(
     registerItem(item, element) {
       if (!host.alive()) return () => undefined;
       items.set(item.id, Object.freeze({ ...item }));
+      if (element) {
+        itemElements.set(item.id, element);
+        refreshBindingBranches();
+      }
       const unregisterMenu = menu.registerItem(item, element);
       const disclosure = createDisclosure({
         defaultValue: state.get() === item.id,
         ...(item.disabled !== undefined ? { disabled: item.disabled } : {}),
       });
       disclosures.set(item.id, disclosure);
-      sync();
+      if (state.get() === item.id) commit(item.id);
+      else sync();
       return () => {
         unregisterMenu();
         disclosure.destroy();
         if (disclosures.get(item.id) === disclosure) disclosures.delete(item.id);
+        if (itemElements.get(item.id) === element) {
+          itemElements.delete(item.id);
+          refreshBindingBranches();
+        }
         if (items.get(item.id)?.text === item.text) items.delete(item.id);
         if (state.get() === item.id) state.set(null, { reason: 'programmatic' });
         sync();
       };
     },
-    bind: menu.bind,
+    bind(elements) {
+      const explicitBranches = elements.branches ?? [];
+      const branches: Element[] = [];
+      const binding: NonNullable<typeof activeBinding> = {
+        branches,
+        explicitBranches,
+        elements,
+        release: undefined,
+      };
+      activeBinding = binding;
+      refreshBindingBranches();
+      binding.release = menu.bind({ ...elements, branches });
+      let active = true;
+      return () => {
+        if (!active) return;
+        active = false;
+        binding.release?.();
+        binding.release = undefined;
+        if (activeBinding === binding) activeBinding = undefined;
+      };
+    },
     openItem(id, changeDetails = { reason: 'programmatic' }) {
       clearTimer();
       change(id, changeDetails);
@@ -247,18 +342,7 @@ export function createNavigationMenu(
       if (mode === 'compact' || (options.closeDelay ?? 200) === 0) run();
       else timer.schedule(run, options.closeDelay ?? 200);
     },
-    handleKeyDown(event) {
-      if (!host.alive()) return;
-      menu.handleKeyDown(event);
-      const activeId = menu.getSnapshot().activeId;
-      if (
-        (event.key === 'Enter' || event.key === 'ArrowDown') &&
-        activeId &&
-        items.get(activeId)?.hasContent
-      ) {
-        change(activeId, { reason: 'keyboard', event });
-      } else if (event.key === 'Escape') change(null, { reason: 'keyboard', event });
-    },
+    handleKeyDown,
     setMode(nextMode) {
       if (!host.alive()) return;
       if (mode === nextMode) return;

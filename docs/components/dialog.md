@@ -29,27 +29,28 @@ Create Dialog during component mount or setup, subscribe before rendering derive
 
 ## Options
 
-- `modal`, `open`, `defaultOpen`, and `onOpenChange` choose modal behavior and state ownership.
-- Focus options cover initial focus, fallback focus, restore focus, and the trigger/content/backdrop elements passed to `bind`.
-- Lifecycle callbacks may cancel opening or closing before DOM state changes are committed.
+- Public options: `closeOnEscape`, `closeOnOutsidePointer`, `id`, `initialFocus`, `modal`, `restoreFocus`, `defaultValue`, `getValue`, `onValueChange`, `subscribeValue`.
+- Trigger, content, backdrop, anchor, and overlay branches are elements passed to `bind`, not creation options. Lifecycle cancellation is registered with `on('beforeOpen', ...)` or `on('beforeClose', ...)`.
 
 ## Snapshot
 
-- `open`, `modal`, `topmost`, generated IDs, and ARIA metadata drive consumer markup.
-- The snapshot is safe to read after destroy so unmount code can finish rendering a stable final state.
+- Snapshot fields: `ariaModal`, `hasBackdrop`, `modal`, `contentId`, `controlled`, `open`, `position`, `role`, `topmost`.
+- Dialog does not generate an accessible name or trigger metadata; consumers provide the final labelled markup.
 
 ## Commands
 
-- `open`, `close`, and `toggle` request state transitions.
-- `bind` wires trigger, content, backdrop, focus trap, outside interaction, and restore-focus cleanup.
+- Component commands: `bind`, `close`, `open`, `toggle`.
+- `bind` wires consumer elements and returns release cleanup. Shared event methods and the `RuntimeController` lifecycle remain available.
 
 ## Events
 
-- Open/close requests and committed changes include the dismissal source and can be cancelled before commit.
+- Events: `beforeClose`, `beforeOpen`, `close`, `open`, `afterClose`, `afterOpen`, `stateChange`.
+- `beforeOpen` and `beforeClose` are cancellable; committed lifecycle payloads contain `open` and typed details.
 
 ## Change reasons
 
-- `trigger`, `keyboard`, `pointer`, `outside`, `programmatic`, `controlled`, and destroy/unmount paths distinguish why the dialog changed.
+- Change reasons: `programmatic`, `trigger`, `escape-key`, `outside-pointer`, `focus-out`, `selection`, `context-menu`, `keyboard`, `hover`, `focus`.
+- The public open-state union is shared by overlays; a Dialog emits only reasons reached by its configured commands and dismissal paths.
 
 ## Controlled mode
 
@@ -94,7 +95,7 @@ In uncontrolled mode the controller owns `open` and subscribers receive a new sn
 - Call the binding cleanup before removing DOM nodes, then unsubscribe and destroy.
 - Double destroy is a no-op and pending focus restoration is guarded when the trigger has been removed.
 
-## Complete example
+## Minimal lifecycle example
 
 ```ts
 import { createDialog } from 'ui-headless-runtime';

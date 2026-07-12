@@ -191,8 +191,10 @@ export function createTreeView(options: TreeOptions = {}): TreeController {
       ariaMultiselectable: options.multiple ?? false,
     };
   };
-  const initialExpanded = options.defaultExpandedIds ?? [];
-  const initialSelected = options.defaultSelectedIds ?? [];
+  const defaultExpanded = options.defaultExpandedIds ?? [];
+  const defaultSelected = options.defaultSelectedIds ?? [];
+  const initialExpanded = options.getExpandedIds?.() ?? defaultExpanded;
+  const initialSelected = options.getSelectedIds?.() ?? defaultSelected;
   const host = createControllerHost<TreeSnapshot, TreeEvents>(
     build(
       initialExpanded,
@@ -232,7 +234,7 @@ export function createTreeView(options: TreeOptions = {}): TreeController {
   };
   const expanded = createControllableValue<readonly string[], TreeChangeReason>(
     {
-      defaultValue: initialExpanded,
+      defaultValue: defaultExpanded,
       ...(options.getExpandedIds ? { getValue: options.getExpandedIds } : {}),
       ...(options.onExpandedIdsChange ? { onValueChange: options.onExpandedIdsChange } : {}),
       ...(options.subscribeExpandedIds ? { subscribeValue: options.subscribeExpandedIds } : {}),
@@ -241,7 +243,7 @@ export function createTreeView(options: TreeOptions = {}): TreeController {
   );
   const selected = createControllableValue<readonly string[], TreeChangeReason>(
     {
-      defaultValue: initialSelected,
+      defaultValue: defaultSelected,
       ...(options.getSelectedIds ? { getValue: options.getSelectedIds } : {}),
       ...(options.onSelectedIdsChange ? { onValueChange: options.onSelectedIdsChange } : {}),
       ...(options.subscribeSelectedIds ? { subscribeValue: options.subscribeSelectedIds } : {}),

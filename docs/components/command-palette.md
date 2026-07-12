@@ -28,23 +28,28 @@ Create Command Palette during component mount or setup, subscribe before renderi
 
 ## Options
 
-- Shortcut keys, controlled open/query state, disabled commands, grouping, and fuzzy scoring configure the palette.
+- Public options: `defaultQuery`, `dialog`, `getQuery`, `matcher`, `onQueryChange`, `shortcut`, `subscribeQuery`.
+- Command grouping, disabled state, keywords, and actions belong to each registered `CommandItem`. Controlled open state is configured through the nested `dialog` options.
 
 ## Snapshot
 
-- Reports open state, query, filtered commands, active command, empty state, groups, and dialog IDs.
+- Snapshot fields: `activeId`, `commands`, `empty`, `open`, `openControlled`, `query`, `queryControlled`.
+- Dialog IDs and position are not part of `CommandPaletteSnapshot`; consumers bind their own dialog elements.
 
 ## Commands
 
-- `registerCommand`, `setQuery`, `open`, `close`, `toggle`, `select`, `bindShortcut`, and `handleKeyDown` are central.
+- Component commands: `bind`, `bindShortcut`, `close`, `handleKeyDown`, `open`, `registerCommand`, `select`, `setQuery`.
+- The controller has no public `toggle` command.
 
 ## Events
 
-- Selection and lifecycle events identify command ID, query, disabled state, and shortcut source.
+- Events: `beforeClose`, `beforeOpen`, `close`, `open`, `afterClose`, `afterOpen`, `beforeSelect`, `queryChange`, `select`, `stateChange`.
+- Selection payloads contain the registered command and typed details; query events contain the next query.
 
 ## Change reasons
 
-- `shortcut`, `input`, `keyboard`, `pointer`, `selection`, `empty`, `programmatic`, and `controlled` are key.
+- Change reasons: `programmatic`, `input`, `keyboard`, `pointer`, `shortcut`, `trigger`, `escape-key`, `outside-pointer`, `focus-out`, `selection`, `context-menu`, `hover`, `focus`.
+- Palette query/selection commands use `CommandPaletteReason`; inherited dialog lifecycle events use `OpenChangeReason`.
 
 ## Controlled mode
 
@@ -85,7 +90,7 @@ Uncontrolled palettes own open state, query, active item, and filtered command l
 
 - Release shortcut listeners and command registrations before destroy.
 
-## Complete example
+## Minimal lifecycle example
 
 ```ts
 import { createCommandPalette } from 'ui-headless-runtime';

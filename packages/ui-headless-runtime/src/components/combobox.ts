@@ -153,7 +153,9 @@ export function createCombobox(options: ComboboxOptions = {}): ComboboxControlle
   let asyncOptions: readonly ComboboxOption[] = [];
   let visibleOptions: readonly ComboboxOption[] = [];
   let visibleCleanups: (() => void)[] = [];
-  let query = options.defaultInputValue ?? '';
+  const initialInputValue = options.getInputValue?.() ?? options.defaultInputValue ?? '';
+  const initialSelectedValue = options.getSelectedValue?.() ?? options.defaultSelectedValue ?? null;
+  let query = initialInputValue;
   let loading = false;
   let composing = false;
   let requestId = 0;
@@ -162,9 +164,9 @@ export function createCombobox(options: ComboboxOptions = {}): ComboboxControlle
   const initialOverlay = overlay.getSnapshot();
   const host = createControllerHost<ComboboxSnapshot, ComboboxEvents>({
     open: initialOverlay.open,
-    inputValue: options.defaultInputValue ?? '',
+    inputValue: initialInputValue,
     query,
-    selectedValue: options.defaultSelectedValue ?? null,
+    selectedValue: initialSelectedValue,
     activeId: initialListbox.activeId,
     loading,
     composing,

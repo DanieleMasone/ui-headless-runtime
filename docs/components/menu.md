@@ -28,23 +28,28 @@ Create Menu during component mount or setup, subscribe before rendering derived 
 
 ## Options
 
-- Looping, orientation, disabled items, submenu relationships, selected IDs, and typeahead behavior configure navigation.
+- Public options: `closeOnSelect`, `id`, `loop`, `positioning`, `defaultValue`, `getValue`, `onValueChange`, `subscribeValue`.
+- Disabled state, separators, submenu relationships, IDs, text, and values belong to registered `MenuItem` objects. Menu orientation is fixed by the menu keyboard model.
 
 ## Snapshot
 
-- Contains item order, active item, selected IDs, submenu state, typeahead buffer, and ARIA item metadata.
+- Snapshot fields: `activeId`, `controlled`, `items`, `open`, `openSubmenuId`, `position`, `role`, `selectedId`.
+- The internal typeahead buffer is not public snapshot state.
 
 ## Commands
 
-- `registerItem`, `setActive`, `move`, `select`, `openSubmenu`, `closeSubmenu`, and `handleKeyDown` are primary.
+- Component commands: `bind`, `close`, `handleKeyDown`, `open`, `registerItem`, `registerSubmenu`, `select`, `setActive`, `toggle`.
+- Arrow movement, Home/End, typeahead, and submenu opening are handled through `handleKeyDown`; they are not separate public commands.
 
 ## Events
 
-- Activation events are cancellable and include the selected item plus reason.
+- Events: `beforeClose`, `beforeOpen`, `close`, `open`, `afterClose`, `afterOpen`, `beforeSelect`, `select`, `stateChange`.
+- `beforeSelect` and inherited before-open/close events are cancellable.
 
 ## Change reasons
 
-- `keyboard`, `pointer`, `typeahead`, `submenu`, `selection`, `registration`, and `programmatic` explain changes.
+- Change reasons: `pointer`, `keyboard`, `programmatic`, `trigger`, `escape-key`, `outside-pointer`, `focus-out`, `selection`, `context-menu`, `hover`, `focus`.
+- Selection uses `MenuSelectReason`; open-state lifecycle uses `OpenChangeReason`.
 
 ## Controlled mode
 
@@ -84,7 +89,7 @@ The controller owns active item, typeahead buffer, and optional selected state.
 
 - Unregister items on unmount so item order and active fallback stay valid.
 
-## Complete example
+## Minimal lifecycle example
 
 ```ts
 import { createMenu } from 'ui-headless-runtime';

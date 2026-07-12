@@ -28,23 +28,26 @@ Create Toast during component mount or setup, subscribe before rendering derived
 
 ## Options
 
-- Visible limit, default timeout, priority, duplicate ID policy, announcement politeness, and pause behavior shape the queue.
+- Public options: `getToasts`, `maxVisible`, `onToastsChange`, `subscribeToasts`.
+- Duration, priority, ID, politeness, message, and status belong to each `ToastInput`; there is no controller-wide default-duration option.
 
 ## Snapshot
 
-- Contains queued and visible toasts, status, remaining time, priority, and announcement metadata.
+- Snapshot fields: `all`, `controlled`, `queued`, `visible`.
+- Each `ToastRecord` contains `duration`, `id`, `message`, `paused`, `politeness`, `priority`, `sequence`, and `status`. Remaining time is internal timer state rather than a snapshot field.
 
 ## Commands
 
-- `show`, `update`, `dismiss`, `pause`, `resume`, `promise`, and `destroy` manage records.
+- Component commands: `bindPause`, `dismiss`, `pause`, `promise`, `resume`, `show`, `update`.
 
 ## Events
 
-- Queue changes identify created, updated, dismissed, timed-out, resolved, rejected, and finalized records.
+- Events: `beforeShow`, `dismiss`, `show`, `stateChange`, `update`.
+- Promise success/error updates and timeout dismissals use the same public update/dismiss events and typed reason details.
 
 ## Change reasons
 
-- `programmatic`, `timeout`, `dismiss`, `pause`, `resume`, `promise`, `success`, `error`, and `dedupe` are important.
+- Change reasons: `programmatic`, `timeout`, `dismiss`, `promise`, `update`.
 
 ## Controlled mode
 
@@ -82,7 +85,7 @@ The controller owns queue order, timer bookkeeping, and promise transitions.
 
 - Destroy clears all timers, pause bookkeeping, and pending promise UI updates.
 
-## Complete example
+## Minimal lifecycle example
 
 ```ts
 import { createToast } from 'ui-headless-runtime';

@@ -28,23 +28,27 @@ Create Collapsible during component mount or setup, subscribe before rendering d
 
 ## Options
 
-- The options intentionally mirror Disclosure: open ownership, default state, disabled state, IDs, and change callbacks.
+- Public options: `disabled`, `id`, `defaultValue`, `getValue`, `onValueChange`, `subscribeValue`.
+- Collapsible accepts `DisclosureOptions`; the state name is `expanded`, not `open`.
 
 ## Snapshot
 
-- The snapshot mirrors Disclosure with open/disabled state and trigger/panel relationships.
+- Snapshot fields: `controlled`, `disabled`, `expanded`, `panel`, `trigger`.
+- `trigger` and `panel` contain the stable IDs, relationship metadata, disabled state, role, and visibility required by consumer markup.
 
 ## Commands
 
-- `open`, `close`, `toggle`, `bind`, `subscribe`, and `destroy` are inherited from the Disclosure primitive.
+- Component commands: `collapse`, `expand`, `handleTriggerClick`, `handleTriggerKeyDown`, `setDisabled`, `toggle`.
+- Collapsible is a type alias of `DisclosureController`; it has no DOM `bind` method.
 
 ## Events
 
-- Change events match Disclosure and carry the collapsible-specific reason union.
+- Events: `beforeClose`, `beforeOpen`, `close`, `open`, `afterClose`, `afterOpen`, `stateChange`.
+- The before-events are cancellable; all payloads use `DisclosureChangeEvent`.
 
 ## Change reasons
 
-- `trigger`, `keyboard`, `programmatic`, `controlled`, and `disabled` are sufficient for this primitive.
+- Change reasons: `programmatic`, `trigger`, `keyboard`.
 
 ## Controlled mode
 
@@ -82,7 +86,7 @@ Uncontrolled Collapsible owns a single boolean open state.
 
 - Release the Disclosure binding and destroy the controller during unmount.
 
-## Complete example
+## Minimal lifecycle example
 
 ```ts
 import { createCollapsible } from 'ui-headless-runtime';

@@ -66,6 +66,13 @@ const collectionKeys = [
   keyboard('Type characters', 'Move by normalized typeahead.'),
 ];
 
+const navigationMenuKeys = [
+  keyboard('Enter / Space / ArrowDown / ArrowUp', 'Open content from its registered trigger.'),
+  keyboard('Arrow keys', 'Move between registered items while content is open.'),
+  keyboard('Home / End', 'Move to an edge item while content is open.'),
+  keyboard('Escape', 'Close content without changing the consumer-selected responsive mode.'),
+];
+
 const define = (
   id: ComponentId,
   name: string,
@@ -300,7 +307,7 @@ export const componentCatalog = [
       scenario('compact', 'Compact', 'Immediate expansion controlled by the consumer.'),
       scenario('mega', 'Mega menu', 'Nested content uses shared positioning.'),
     ],
-    collectionKeys,
+    navigationMenuKeys,
     'experimental',
   ),
   define(

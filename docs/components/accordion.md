@@ -28,23 +28,27 @@ Create Accordion during component mount or setup, subscribe before rendering der
 
 ## Options
 
-- `type`, `collapsible`, `disabled`, controlled value, orientation, loop, and item IDs configure the group.
+- Public options: `collapsible`, `id`, `loop`, `type`, `defaultValue`, `getValue`, `onValueChange`, `subscribeValue`.
+- `type` is `single` or `multiple`; `collapsible` affects whether a single accordion may close its current item. Disabled state and custom trigger/panel IDs belong to each registered `AccordionItem`.
 
 ## Snapshot
 
-- Contains expanded item IDs, active trigger ID, registered item order, disabled state, and ARIA pairs.
+- Snapshot fields: `controlled`, `expandedIds`, `focusedId`, `items`, `type`.
+- Each item snapshot contains `id`, `triggerId`, `panelId`, `expanded`, `disabled`, and `tabIndex`.
 
 ## Commands
 
-- `registerItem`, `toggle`, `expand`, `collapse`, `setActive`, and `handleKeyDown` are the main commands.
+- Component commands: `focus`, `handleTriggerKeyDown`, `registerItem`, `toggle`.
+- Every controller also provides `getSnapshot`, `subscribe`, and `destroy` through `RuntimeController`.
 
 ## Events
 
-- Expansion changes include the affected item ID and whether the group is single or multiple.
+- Events: `beforeChange`, `stateChange`.
+- Both payloads contain `itemId`, the requested `expandedIds`, and typed change details; `beforeChange` is cancellable.
 
 ## Change reasons
 
-- `trigger`, `keyboard`, `programmatic`, `registration`, `disabled`, and `controlled` separate group behavior.
+- Change reasons: `programmatic`, `trigger`, `keyboard`.
 
 ## Controlled mode
 
@@ -84,7 +88,7 @@ Uncontrolled accordions own the expanded set and active trigger.
 
 - Unregistering the active item selects a valid neighbor; destroy releases all item registrations.
 
-## Complete example
+## Minimal lifecycle example
 
 ```ts
 import { createAccordion } from 'ui-headless-runtime';

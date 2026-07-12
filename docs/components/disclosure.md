@@ -28,23 +28,27 @@ Create Disclosure during component mount or setup, subscribe before rendering de
 
 ## Options
 
-- `open`, `defaultOpen`, `disabled`, IDs, and `onOpenChange` define the primitive state contract.
+- Public options: `disabled`, `id`, `defaultValue`, `getValue`, `onValueChange`, `subscribeValue`.
+- `getValue`, `onValueChange`, and `subscribeValue` enable controlled expanded state; there are no `open`, `defaultOpen`, or `onOpenChange` options.
 
 ## Snapshot
 
-- Contains open/disabled state, trigger and panel IDs, and ARIA relationship metadata.
+- Snapshot fields: `controlled`, `disabled`, `expanded`, `panel`, `trigger`.
+- `trigger` contains `id`, `ariaControls`, `ariaExpanded`, and `disabled`; `panel` contains `id`, `ariaLabelledby`, `hidden`, and `role`.
 
 ## Commands
 
-- `open`, `close`, `toggle`, `setOpen`, `bind`, and `destroy` are intentionally small.
+- Component commands: `collapse`, `expand`, `handleTriggerClick`, `handleTriggerKeyDown`, `setDisabled`, `toggle`.
+- Disclosure exposes metadata rather than a DOM `bind` method. `handleTriggerKeyDown` is for non-native triggers; native buttons normally forward click only.
 
 ## Events
 
-- Change events identify whether toggling was accepted, cancelled, or ignored due to disabled state.
+- Events: `beforeClose`, `beforeOpen`, `close`, `open`, `afterClose`, `afterOpen`, `stateChange`.
+- Before-events may cancel a transition. Disabled or duplicate requests are no-ops and do not emit a separate ignored event.
 
 ## Change reasons
 
-- `trigger`, `keyboard`, `programmatic`, `controlled`, and `disabled` are the meaningful reasons.
+- Change reasons: `programmatic`, `trigger`, `keyboard`.
 
 ## Controlled mode
 
@@ -82,7 +86,7 @@ Uncontrolled Disclosure owns the boolean state and is the base primitive for Col
 
 - Release the binding and subscriptions before removing trigger or panel elements.
 
-## Complete example
+## Minimal lifecycle example
 
 ```ts
 import { createDisclosure } from 'ui-headless-runtime';

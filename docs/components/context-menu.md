@@ -27,23 +27,27 @@ Create Context Menu during component mount or setup, subscribe before rendering 
 
 ## Options
 
-- Coordinate opening, virtual anchor placement, native-menu prevention, and item registration come from Context Menu plus Menu engine options.
+- Public options: `closeOnSelect`, `id`, `loop`, `positioning`, `defaultValue`, `getValue`, `onValueChange`, `subscribeValue`.
+- Context Menu accepts `MenuOptions`. Pointer coordinates and the virtual anchor are derived by `handleContextMenu`; they are not creation options.
 
 ## Snapshot
 
-- Tracks open state, virtual anchor coordinates, active item, menu IDs, and item metadata.
+- Snapshot fields: `activeId`, `controlled`, `items`, `open`, `openSubmenuId`, `position`, `role`, `selectedId`.
+- The public position is a collision-aware `PositionResult`, not the raw pointer coordinate pair.
 
 ## Commands
 
-- `openAt`, `close`, `registerItem`, `handleContextMenu`, `handleKeyDown`, and `select` drive the interaction.
+- Component commands: `bind`, `close`, `handleKeyDown`, `open`, `registerItem`, `registerSubmenu`, `select`, `setActive`, `toggle`, `handleContextMenu`, `handleKeyboardOpen`.
+- `handleContextMenu` and `handleKeyboardOpen` bind the supplied content and return release cleanup; there is no public `openAt` command.
 
 ## Events
 
-- Selection is cancellable and native context-menu prevention is scoped to active handlers only.
+- Events: `beforeClose`, `beforeOpen`, `close`, `open`, `afterClose`, `afterOpen`, `beforeSelect`, `select`, `stateChange`.
+- Selection is cancellable; native menu prevention occurs only inside the active context-menu handler.
 
 ## Change reasons
 
-- `contextmenu`, `keyboard`, `pointer`, `selection`, `outside`, and `programmatic` are the important branches.
+- Change reasons: `pointer`, `keyboard`, `programmatic`, `trigger`, `escape-key`, `outside-pointer`, `focus-out`, `selection`, `context-menu`, `hover`, `focus`.
 
 ## Controlled mode
 
@@ -83,7 +87,7 @@ Uncontrolled mode opens immediately at the current pointer or keyboard-derived v
 
 - Release region listeners and unregister items so native context menus are restored after unmount.
 
-## Complete example
+## Minimal lifecycle example
 
 ```ts
 import { createContextMenu } from 'ui-headless-runtime';

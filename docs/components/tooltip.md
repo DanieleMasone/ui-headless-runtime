@@ -27,23 +27,27 @@ Create Tooltip during component mount or setup, subscribe before rendering deriv
 
 ## Options
 
-- Open/close delays, pointer type filtering, scope ID, IDs, and controlled open state shape tooltip timing.
+- Public options: `closeDelay`, `id`, `openDelay`, `positioning`, `scope`, `defaultValue`, `getValue`, `onValueChange`, `subscribeValue`.
+- Pointer-type filtering is built into binding behavior; it is not a public option.
 
 ## Snapshot
 
-- Exposes `open`, generated trigger/content IDs, `describedBy`, timing state, and active-scope status.
+- Snapshot fields: `ariaDescribedby`, `role`, `triggerId`, `contentId`, `controlled`, `open`, `position`, `topmost`.
+- Timer and active-scope registries are internal resources, not snapshot fields.
 
 ## Commands
 
-- `open`, `close`, `scheduleOpen`, `scheduleClose`, `bind`, and `destroy` cover hover/focus timing.
+- Component commands: `bind`, `close`, `scheduleClose`, `scheduleOpen`.
+- Tooltip opening is intentionally scheduled; there is no immediate public `open` command.
 
 ## Events
 
-- Open and close events distinguish hover, focus, Escape, delay expiry, and scope replacement.
+- Events: `beforeClose`, `beforeOpen`, `close`, `open`, `afterClose`, `afterOpen`, `stateChange`.
+- Scheduling accepts hover/focus reasons, while inherited Escape and programmatic close behavior uses the shared lifecycle.
 
 ## Change reasons
 
-- `hover`, `focus`, `keyboard`, `delay`, `scope`, `programmatic`, and `controlled` are the useful reasons.
+- Change reasons: `programmatic`, `trigger`, `escape-key`, `outside-pointer`, `focus-out`, `selection`, `context-menu`, `keyboard`, `hover`, `focus`.
 
 ## Controlled mode
 
@@ -82,7 +86,7 @@ Uncontrolled tooltips own their timers and scope coordination.
 
 - Destroy clears pending open and close timers and releases scope ownership.
 
-## Complete example
+## Minimal lifecycle example
 
 ```ts
 import { createTooltip } from 'ui-headless-runtime';

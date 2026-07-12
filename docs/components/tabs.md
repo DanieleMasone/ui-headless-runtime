@@ -28,23 +28,26 @@ Create Tabs during component mount or setup, subscribe before rendering derived 
 
 ## Options
 
-- Activation mode, orientation, direction, loop, selected value, and default selected tab shape behavior.
+- Public options: `activation`, `id`, `loop`, `orientation`, `rtl`, `defaultValue`, `getValue`, `onValueChange`, `subscribeValue`.
+- `activation` is `automatic` or `manual`; `orientation` is `horizontal` or `vertical`.
 
 ## Snapshot
 
-- Reports selected tab, focused tab, registered tabs, disabled state, and tab/panel ID relationships.
+- Snapshot fields: `activation`, `controlled`, `focusedId`, `items`, `orientation`, `selectedId`.
+- Each tab snapshot contains `id`, `tabId`, `panelId`, `selected`, `disabled`, and `tabIndex`.
 
 ## Commands
 
-- `registerTab`, `select`, `focus`, `handleKeyDown`, and `destroy` cover tab lifecycle.
+- Component commands: `focus`, `handleKeyDown`, `registerTab`, `select`.
 
 ## Events
 
-- Selection events identify whether focus movement or explicit activation caused the change.
+- Events: `beforeSelect`, `select`, `stateChange`.
+- Payloads contain the selected ID and typed details; `beforeSelect` is cancellable.
 
 ## Change reasons
 
-- `keyboard`, `pointer`, `activation`, `registration`, `programmatic`, and `controlled` are the key reasons.
+- Change reasons: `programmatic`, `pointer`, `keyboard`, `focus`.
 
 ## Controlled mode
 
@@ -84,7 +87,7 @@ Uncontrolled tabs own selected and focused tab IDs and update snapshots immediat
 
 - Removing the selected tab chooses the next valid tab or clears selection when none remain.
 
-## Complete example
+## Minimal lifecycle example
 
 ```ts
 import { createTabs } from 'ui-headless-runtime';

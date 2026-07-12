@@ -115,15 +115,79 @@ describe('Disclosure and Collapsible', () => {
   });
 });
 
+describe('authoritative controlled initialization', () => {
+  it('publishes collection and tree getters before any registration or notification', () => {
+    const accordion = createAccordion({
+      defaultValue: [],
+      getValue: () => ['account'],
+    });
+    const tabs = createTabs({
+      defaultValue: null,
+      getValue: () => 'members',
+    });
+    const listbox = createListbox({
+      defaultValue: [],
+      getValue: () => ['rome'],
+    });
+    const tree = createTreeView({
+      defaultExpandedIds: ['fallback'],
+      defaultSelectedIds: ['fallback'],
+      getExpandedIds: () => ['workspace'],
+      getSelectedIds: () => ['design'],
+    });
+
+    expect(accordion.getSnapshot()).toMatchObject({
+      controlled: true,
+      expandedIds: ['account'],
+    });
+    expect(tabs.getSnapshot()).toMatchObject({ controlled: true, selectedId: 'members' });
+    expect(listbox.getSnapshot()).toMatchObject({
+      controlled: true,
+      selectedValues: ['rome'],
+    });
+    expect(tree.getSnapshot()).toMatchObject({
+      expansionControlled: true,
+      selectionControlled: true,
+      expandedIds: ['workspace'],
+      selectedIds: ['design'],
+    });
+
+    accordion.destroy();
+    tabs.destroy();
+    listbox.destroy();
+    tree.destroy();
+  });
+
+  it('publishes and activates the initial controlled Navigation Menu item', () => {
+    const navigation = createNavigationMenu({
+      defaultValue: null,
+      getValue: () => 'products',
+    });
+    expect(navigation.getSnapshot()).toMatchObject({ controlled: true, openId: 'products' });
+
+    const trigger = document.createElement('button');
+    document.body.append(trigger);
+    navigation.registerItem({ id: 'products', text: 'Products', hasContent: true }, trigger);
+    expect(navigation.getSnapshot()).toMatchObject({
+      openId: 'products',
+      activeId: 'products',
+    });
+
+    navigation.destroy();
+  });
+});
+
 describe('Accordion', () => {
   it('enforces single/multiple rules, dynamic cleanup and keyboard focus', () => {
     const accordion = createAccordion({ id: 'faq', type: 'single', collapsible: true });
     const first = document.createElement('button');
     const second = document.createElement('button');
-    document.body.append(first, second);
+    const third = document.createElement('button');
+    document.body.append(first, second, third);
     const removeA = accordion.registerItem({ id: 'a', text: 'Alpha' }, first);
     accordion.registerItem({ id: 'b', text: 'Beta', disabled: true }, second);
-    accordion.registerItem({ id: 'c', text: 'Charlie' });
+    accordion.registerItem({ id: 'c', text: 'Charlie' }, third);
+    expect(accordion.getSnapshot().items.map((item) => item.tabIndex)).toEqual([0, -1, -1]);
     const cancel = accordion.on('beforeChange', (event) => event.preventDefault());
     accordion.toggle('a');
     expect(accordion.getSnapshot().expandedIds).toEqual([]);
@@ -136,8 +200,11 @@ describe('Accordion', () => {
     expect(accordion.getSnapshot().expandedIds).toEqual([]);
     accordion.handleTriggerKeyDown('a', keyboard('End'));
     expect(accordion.getSnapshot().focusedId).toBe('c');
+    expect(accordion.getSnapshot().items.map((item) => item.tabIndex)).toEqual([-1, -1, 0]);
+    expect(document.activeElement).toBe(third);
     accordion.handleTriggerKeyDown('c', keyboard('ArrowUp'));
     expect(accordion.getSnapshot().focusedId).toBe('a');
+    expect(document.activeElement).toBe(first);
     accordion.handleTriggerKeyDown('a', keyboard('Enter'));
     expect(accordion.getSnapshot().expandedIds).toEqual(['a']);
     removeA();
@@ -428,12 +495,14 @@ describe('Tree View', () => {
     tree.registerNode({ id: 'disabled', text: 'Disabled', parentId: 'root', disabled: true });
     tree.toggle('root');
     expect(tree.getSnapshot().visibleNodes[0]?.loading).toBe(true);
+    expect(tree.getSnapshot().visibleNodes.map((node) => node.tabIndex)).toEqual([0, -1, -1]);
     expect(tree.getSnapshot().visibleNodes.map((node) => node.id)).toEqual([
       'root',
       'child',
       'disabled',
     ]);
     tree.setActive('child');
+    expect(tree.getSnapshot().visibleNodes.map((node) => node.tabIndex)).toEqual([-1, 0, -1]);
     tree.handleKeyDown(keyboard('ArrowRight'));
     expect(tree.getSnapshot().expandedIds).toEqual(['root', 'child']);
     tree.handleKeyDown(keyboard('ArrowRight'));
@@ -552,5 +621,84 @@ describe('Command Palette and Navigation Menu composition', () => {
     immediate.scheduleOpen('services');
     immediate.destroy();
     immediate.scheduleClose();
+  });
+
+  it('opens a closed Navigation Menu from an explicitly identified keyboard trigger', () => {
+    const navigation = createNavigationMenu();
+    const firstTrigger = document.createElement('button');
+    const targetTrigger = document.createElement('button');
+    const disabledTrigger = document.createElement('button');
+    const plainTrigger = document.createElement('a');
+    document.body.append(firstTrigger, targetTrigger, disabledTrigger, plainTrigger);
+    navigation.registerItem({ id: 'products', text: 'Products', hasContent: true }, firstTrigger);
+    navigation.registerItem(
+      { id: 'solutions', text: 'Solutions', hasContent: true },
+      targetTrigger,
+    );
+    navigation.registerItem(
+      { id: 'disabled', text: 'Disabled', disabled: true, hasContent: true },
+      disabledTrigger,
+    );
+    navigation.registerItem({ id: 'plain', text: 'Plain link' }, plainTrigger);
+    let openReason: string | undefined;
+    navigation.on('open', (event) => {
+      openReason = event.detail.details.reason;
+    });
+    const enter = keyboard('Enter');
+
+    navigation.handleKeyDown('solutions', enter);
+
+    expect(enter.defaultPrevented).toBe(true);
+    expect(navigation.getSnapshot()).toMatchObject({
+      openId: 'solutions',
+      activeId: 'solutions',
+    });
+    expect(openReason).toBe('keyboard');
+
+    const disabledEnter = keyboard('Enter');
+    navigation.handleKeyDown('disabled', disabledEnter);
+    expect(disabledEnter.defaultPrevented).toBe(false);
+    expect(navigation.getSnapshot().openId).toBe('solutions');
+
+    navigation.close();
+    const plainEnter = keyboard('Enter');
+    navigation.handleKeyDown('plain', plainEnter);
+    expect(plainEnter.defaultPrevented).toBe(false);
+    expect(navigation.getSnapshot().openId).toBeNull();
+
+    targetTrigger.addEventListener('keydown', (event) => navigation.handleKeyDown(event));
+    const inferredSpace = keyboard(' ');
+    targetTrigger.dispatchEvent(inferredSpace);
+    expect(inferredSpace.defaultPrevented).toBe(true);
+    expect(navigation.getSnapshot().openId).toBe('solutions');
+    navigation.destroy();
+  });
+
+  it('keeps dynamically registered triggers inside the active Navigation Menu branch set', () => {
+    const navigation = createNavigationMenu({ mode: 'compact' });
+    const content = document.createElement('div');
+    const explicitBranch = document.createElement('button');
+    const firstTrigger = document.createElement('button');
+    const dynamicTrigger = document.createElement('button');
+    document.body.append(content, explicitBranch, firstTrigger, dynamicTrigger);
+    const releaseBinding = navigation.bind({ content, branches: [explicitBranch] });
+    navigation.registerItem({ id: 'products', text: 'Products', hasContent: true }, firstTrigger);
+    const removeDynamic = navigation.registerItem(
+      { id: 'solutions', text: 'Solutions', hasContent: true },
+      dynamicTrigger,
+    );
+    navigation.openItem('products');
+
+    dynamicTrigger.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    explicitBranch.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    expect(navigation.getSnapshot().openId).toBe('products');
+
+    removeDynamic();
+    dynamicTrigger.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    expect(navigation.getSnapshot().openId).toBeNull();
+
+    releaseBinding();
+    releaseBinding();
+    navigation.destroy();
   });
 });

@@ -28,23 +28,26 @@ Create Dropdown Menu during component mount or setup, subscribe before rendering
 
 ## Options
 
-- Trigger behavior, menu item registration, placement, loop, disabled state, and submenu configuration are layered over the shared Menu engine.
+- Public options: `closeOnSelect`, `id`, `loop`, `positioning`, `defaultValue`, `getValue`, `onValueChange`, `subscribeValue`.
+- Dropdown Menu accepts `MenuOptions`. Trigger behavior comes from `handleTrigger`; disabled items and submenu metadata belong to registrations.
 
 ## Snapshot
 
-- Combines trigger open state with active item, registered items, selected values, placement, and ARIA metadata.
+- Snapshot fields: `activeId`, `controlled`, `items`, `open`, `openSubmenuId`, `position`, `role`, `selectedId`.
+- Trigger ARIA attributes are applied by the consumer from `open` and the bound content ID; they are not a separate snapshot object.
 
 ## Commands
 
-- `open`, `close`, `toggle`, `registerItem`, `handleTrigger`, `handleKeyDown`, and `select` are the main commands.
+- Component commands: `bind`, `close`, `handleKeyDown`, `open`, `registerItem`, `registerSubmenu`, `select`, `setActive`, `toggle`, `handleTrigger`.
 
 ## Events
 
-- Activation and selection events can be cancelled before action side effects run.
+- Events: `beforeClose`, `beforeOpen`, `close`, `open`, `afterClose`, `afterOpen`, `beforeSelect`, `select`, `stateChange`.
+- Menu selection and open/close lifecycle events are shared with Menu.
 
 ## Change reasons
 
-- `trigger`, `keyboard`, `pointer`, `typeahead`, `submenu`, `selection`, and `outside` explain navigation and dismissal.
+- Change reasons: `pointer`, `keyboard`, `programmatic`, `trigger`, `escape-key`, `outside-pointer`, `focus-out`, `selection`, `context-menu`, `hover`, `focus`.
 
 ## Controlled mode
 
@@ -84,7 +87,7 @@ The usual case lets the controller own open state and active item movement.
 
 - Unregister items and submenu branches when DOM changes, then release trigger/content listeners.
 
-## Complete example
+## Minimal lifecycle example
 
 ```ts
 import { createDropdownMenu } from 'ui-headless-runtime';

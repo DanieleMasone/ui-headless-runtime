@@ -28,23 +28,27 @@ Create Navigation Menu during component mount or setup, subscribe before renderi
 
 ## Options
 
-- Mode, delay, controlled open item, placement, item registration, and nested content options configure navigation.
+- Public options: `closeDelay`, `mode`, `openDelay`, `positioning`, `defaultValue`, `getValue`, `onValueChange`, `subscribeValue`.
+- IDs, disabled state, text, values, submenu metadata, and `hasContent` belong to each registered `NavigationMenuItem`.
 
 ## Snapshot
 
-- Reports active/open item, mode, registered items, placement metadata, delay state, and ARIA relationships.
+- Snapshot fields: `activeId`, `controlled`, `items`, `mode`, `openId`, `position`.
+- Delay timers and consumer ARIA relationships are not exposed as snapshot fields.
 
 ## Commands
 
-- `registerItem`, `scheduleOpen`, `scheduleClose`, `open`, `close`, `toggle`, and `handleKeyDown` are central.
+- Component commands: `bind`, `close`, `handleKeyDown`, `openItem`, `registerItem`, `scheduleClose`, `scheduleOpen`, `setMode`.
+- `handleKeyDown(event)` infers the registered item from `event.currentTarget`; `handleKeyDown(itemId, event)` is the explicit framework-forwarding overload. There are no public `open` or `toggle` commands.
 
 ## Events
 
-- Open/close events identify pointer intent, keyboard movement, outside dismissal, and mode changes.
+- Events: `beforeClose`, `beforeOpen`, `close`, `open`, `stateChange`.
+- Events contain the affected item, resulting `openId`, and typed details.
 
 ## Change reasons
 
-- `pointer`, `keyboard`, `delay`, `outside`, `selection`, `mode`, `programmatic`, and `controlled` are useful.
+- Change reasons: `programmatic`, `pointer`, `keyboard`, `outside-pointer`.
 
 ## Controlled mode
 
@@ -68,13 +72,15 @@ Uncontrolled mode owns open item and delayed pointer intent.
 
 ## Keyboard interaction
 
-- Arrow keys: Move the active item, skipping disabled items.
-- Home / End: Move to the first or last enabled item.
-- Type characters: Move by normalized typeahead.
+- Enter / Space / ArrowDown / ArrowUp: Open content from the registered trigger.
+- Arrow keys: Move between registered items while content is open, skipping disabled items.
+- Home / End: Move to the first or last enabled item while content is open.
+- Type characters: Move by normalized typeahead while content is open.
+- Escape: Close the current content.
 
 ## Focus behavior
 
-- Arrow keys move between registered items; Escape closes open content and returns focus appropriately.
+- Opening preserves the current trigger as the active item. Navigation keys move DOM focus through registered item elements while content is open; Escape closes content without choosing a responsive breakpoint.
 
 ## Nested behavior
 
@@ -84,7 +90,7 @@ Uncontrolled mode owns open item and delayed pointer intent.
 
 - Clear delayed open/close timers and unregister items when navigation changes.
 
-## Complete example
+## Minimal lifecycle example
 
 ```ts
 import { createNavigationMenu } from 'ui-headless-runtime';

@@ -131,7 +131,7 @@ export function createAccordion(options: AccordionOptions = {}): AccordionContro
     }),
   });
   const host = createControllerHost<AccordionSnapshot, AccordionEvents>(
-    build(options.defaultValue ?? [], options.getValue !== undefined),
+    build(options.getValue?.() ?? options.defaultValue ?? [], options.getValue !== undefined),
   );
   const sync = (): void => {
     host.update(build(state.get(), state.controlled));

@@ -294,6 +294,38 @@ describe('Tooltip timers and scope', () => {
 });
 
 describe('Toast queue', () => {
+  it('publishes an authoritative controlled queue initially and advances its sequence', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    let records: readonly ToastRecord[] = [
+      Object.freeze({
+        id: 'existing',
+        message: 'Existing notification',
+        status: 'info',
+        priority: 0,
+        politeness: 'polite',
+        duration: 100,
+        paused: false,
+        sequence: 7,
+      }),
+    ];
+    const toast = createToast({
+      getToasts: () => records,
+      onToastsChange(next) {
+        records = next;
+      },
+    });
+
+    expect(toast.getSnapshot()).toMatchObject({ controlled: true, all: [{ id: 'existing' }] });
+    toast.show({ id: 'next', message: 'Next notification', duration: null });
+    expect(toast.getSnapshot().all.find((record) => record.id === 'next')?.sequence).toBe(8);
+    vi.advanceTimersByTime(100);
+    expect(toast.getSnapshot().all.map((record) => record.id)).toEqual(['next']);
+
+    toast.destroy();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('orders, deduplicates, limits, updates, pauses, resumes and times out', () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
@@ -410,6 +442,29 @@ describe('Toast queue', () => {
 });
 
 describe('Combobox async and input behavior', () => {
+  it('uses authoritative controlled input and selection for its initial query and filtering', () => {
+    const combobox = createCombobox({
+      defaultInputValue: 'fallback',
+      defaultSelectedValue: null,
+      getInputValue: () => 'Ada',
+      getSelectedValue: () => 'ada',
+      filter: (option, query) => option.text.startsWith(query),
+    });
+    combobox.registerOption({ id: 'ada', text: 'Ada Lovelace', value: 'ada' });
+    combobox.registerOption({ id: 'grace', text: 'Grace Hopper', value: 'grace' });
+
+    expect(combobox.getSnapshot()).toMatchObject({
+      inputControlled: true,
+      selectionControlled: true,
+      inputValue: 'Ada',
+      query: 'Ada',
+      selectedValue: 'ada',
+      options: [{ id: 'ada' }],
+    });
+
+    combobox.destroy();
+  });
+
   it('filters, navigates, selects, handles composition and ignores stale async responses', async () => {
     const resolvers = new Map<
       string,

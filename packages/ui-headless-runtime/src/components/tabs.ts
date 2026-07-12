@@ -128,7 +128,7 @@ export function createTabs(options: TabsOptions = {}): TabsController {
     })),
   });
   const host = createControllerHost<TabsSnapshot, TabsEvents>(
-    build(options.defaultValue ?? null, options.getValue !== undefined),
+    build(options.getValue?.() ?? options.defaultValue ?? null, options.getValue !== undefined),
   );
   const sync = (): void => {
     host.update(build(state.get(), state.controlled));

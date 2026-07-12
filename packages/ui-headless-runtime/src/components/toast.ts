@@ -134,7 +134,8 @@ export interface ToastController
 /** Creates a priority queue with deterministic ordering, pausable timers, and promise lifecycle. @public */
 export function createToast(options: ToastOptions = {}): ToastController {
   const maxVisible = Math.max(1, options.maxVisible ?? 3);
-  let sequence = 0;
+  const initialRecords = options.getToasts?.() ?? [];
+  let sequence = initialRecords.reduce((highest, record) => Math.max(highest, record.sequence), 0);
   const timers = new Map<
     string,
     {
@@ -150,7 +151,7 @@ export function createToast(options: ToastOptions = {}): ToastController {
     return { visible: all.slice(0, maxVisible), queued: all.slice(maxVisible), all, controlled };
   };
   const host = createControllerHost<ToastSnapshot, ToastEvents>(
-    build([], options.getToasts !== undefined),
+    build(initialRecords, options.getToasts !== undefined),
   );
   let reconcileTimers = (): void => undefined;
   const sync = (): void => {
@@ -316,6 +317,7 @@ export function createToast(options: ToastOptions = {}): ToastController {
   };
   host.resources.add(() => state.destroy());
   host.resources.add(() => [...timers.keys()].forEach(clearTimer));
+  sync();
   return {
     getSnapshot: host.getSnapshot,
     subscribe: host.subscribe,

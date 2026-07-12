@@ -1,3 +1,14 @@
+/**
+ * Framework-agnostic headless UI controllers, shared interaction primitives, and public types.
+ *
+ * @remarks
+ * The package owns state transitions and behavior but never renders markup or ships CSS. Consumers
+ * bind optional DOM resources after rendering and must release bindings, subscriptions, and
+ * controllers during unmount. Importing the package does not require browser globals.
+ *
+ * @packageDocumentation
+ */
+
 export type {
   ChangeDetails,
   ControllableValueOptions,

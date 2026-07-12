@@ -1,6 +1,6 @@
 # Getting started
 
-The npm package name is `ui-headless-runtime`. The package is release-ready in this repository, but the public npm package is not published yet. After the first Trusted Publishing release, install it with:
+The npm package name is `ui-headless-runtime`. The public npm package is not published yet; its owner must complete the documented registry bootstrap and Trusted Publishing setup before the first stable OIDC release. After that release, install it with:
 
 ```sh
 npm install ui-headless-runtime

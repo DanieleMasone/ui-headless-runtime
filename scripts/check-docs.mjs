@@ -136,12 +136,175 @@ const requiredComponentSections = [
   'Focus behavior',
   'Nested behavior',
   'Cleanup',
-  'Complete example',
+  'Minimal lifecycle example',
   'Edge cases',
   'Limitations',
   'Related links',
   'API reference',
 ];
+
+const apiReport = await readFile(
+  resolve(root, 'packages', 'ui-headless-runtime', 'etc', 'ui-headless-runtime.api.md'),
+  'utf8',
+);
+const controllableOptions = ['ControllableValueOptions'];
+const openEvents = ['OpenLifecycleEvents'];
+const openReasons = ['OpenChangeReason'];
+const menuOptions = ['MenuOptions', ...controllableOptions];
+const menuSnapshots = ['MenuSnapshot'];
+const menuControllers = ['MenuController'];
+const menuEvents = ['MenuEvents', ...openEvents];
+const menuReasons = ['MenuSelectReason', ...openReasons];
+const componentApiContracts = {
+  accordion: {
+    options: ['AccordionOptions', ...controllableOptions],
+    snapshot: ['AccordionSnapshot'],
+    commands: ['AccordionController'],
+    events: ['AccordionEvents'],
+    reasons: ['AccordionChangeReason'],
+  },
+  collapsible: {
+    options: ['DisclosureOptions', ...controllableOptions],
+    snapshot: ['DisclosureSnapshot'],
+    commands: ['DisclosureController'],
+    events: ['DisclosureEvents'],
+    reasons: ['DisclosureChangeReason'],
+  },
+  combobox: {
+    options: ['ComboboxOptions'],
+    snapshot: ['ComboboxSnapshot'],
+    commands: ['ComboboxController'],
+    events: ['ComboboxEvents', ...openEvents],
+    reasons: ['ComboboxInputReason', 'ListboxChangeReason', ...openReasons],
+  },
+  'command-palette': {
+    options: ['CommandPaletteOptions'],
+    snapshot: ['CommandPaletteSnapshot'],
+    commands: ['CommandPaletteController'],
+    events: ['CommandPaletteEvents', ...openEvents],
+    reasons: ['CommandPaletteReason', ...openReasons],
+  },
+  'context-menu': {
+    options: menuOptions,
+    snapshot: menuSnapshots,
+    commands: [...menuControllers, 'ContextMenuController'],
+    events: menuEvents,
+    reasons: menuReasons,
+  },
+  dialog: {
+    options: ['DialogOptions', ...controllableOptions],
+    snapshot: ['DialogSnapshot', 'OpenSnapshot'],
+    commands: ['DialogController'],
+    events: openEvents,
+    reasons: openReasons,
+  },
+  disclosure: {
+    options: ['DisclosureOptions', ...controllableOptions],
+    snapshot: ['DisclosureSnapshot'],
+    commands: ['DisclosureController'],
+    events: ['DisclosureEvents'],
+    reasons: ['DisclosureChangeReason'],
+  },
+  'dropdown-menu': {
+    options: menuOptions,
+    snapshot: menuSnapshots,
+    commands: [...menuControllers, 'DropdownMenuController'],
+    events: menuEvents,
+    reasons: menuReasons,
+  },
+  listbox: {
+    options: ['ListboxOptions', ...controllableOptions],
+    snapshot: ['ListboxSnapshot'],
+    commands: ['ListboxController'],
+    events: ['ListboxEvents'],
+    reasons: ['ListboxChangeReason'],
+  },
+  menu: {
+    options: menuOptions,
+    snapshot: menuSnapshots,
+    commands: menuControllers,
+    events: menuEvents,
+    reasons: menuReasons,
+  },
+  'navigation-menu': {
+    options: ['NavigationMenuOptions', ...controllableOptions],
+    snapshot: ['NavigationMenuSnapshot'],
+    commands: ['NavigationMenuController'],
+    events: ['NavigationMenuEvents'],
+    reasons: ['NavigationMenuReason'],
+  },
+  popover: {
+    options: ['PopoverOptions', ...controllableOptions],
+    snapshot: ['OpenSnapshot'],
+    commands: ['PopoverController'],
+    events: openEvents,
+    reasons: openReasons,
+  },
+  tabs: {
+    options: ['TabsOptions', ...controllableOptions],
+    snapshot: ['TabsSnapshot'],
+    commands: ['TabsController'],
+    events: ['TabsEvents'],
+    reasons: ['TabsChangeReason'],
+  },
+  toast: {
+    options: ['ToastOptions'],
+    snapshot: ['ToastSnapshot'],
+    commands: ['ToastController'],
+    events: ['ToastEvents'],
+    reasons: ['ToastChangeReason'],
+  },
+  tooltip: {
+    options: ['TooltipOptions', ...controllableOptions],
+    snapshot: ['TooltipSnapshot', 'OpenSnapshot'],
+    commands: ['TooltipController'],
+    events: openEvents,
+    reasons: openReasons,
+  },
+  'tree-view': {
+    options: ['TreeOptions'],
+    snapshot: ['TreeSnapshot'],
+    commands: ['TreeController'],
+    events: ['TreeEvents'],
+    reasons: ['TreeChangeReason'],
+  },
+};
+const escapeRegularExpression = (value) => value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+const interfaceMembers = (name) => {
+  const escapedName = escapeRegularExpression(name);
+  const block = new RegExp(
+    `^export interface ${escapedName}(?:<[^\\n{]+>)?(?:\\s+extends[^\\{]+)? \\{([\\s\\S]*?)^\\}`,
+    'mu',
+  ).exec(apiReport)?.[1];
+  if (!block) throw new Error(`API report is missing interface ${name}.`);
+  return [
+    ...block.matchAll(/^[ ]{4}(?:readonly )?([A-Za-z][A-Za-z0-9_]*)(?:\??:|(?:<[^\n(]+>)?\()/gmu),
+  ].map((match) => match[1]);
+};
+const unionMembers = (name) => {
+  const escapedName = escapeRegularExpression(name);
+  const declaration = new RegExp(`^export type ${escapedName} = ([^;]+);$`, 'mu').exec(
+    apiReport,
+  )?.[1];
+  if (!declaration) throw new Error(`API report is missing union ${name}.`);
+  return [...declaration.matchAll(/'([^']+)'/gu)].map((match) => match[1]);
+};
+const documentedMembers = (source, label, componentId) => {
+  const line = source.split(/\r?\n/u).find((value) => value.startsWith(`- ${label}:`));
+  if (!line) throw new Error(`Component documentation is missing "${label}": ${componentId}`);
+  return [...line.matchAll(/`([^`]+)`/gu)].map((match) => match[1]);
+};
+const assertContract = (source, componentId, label, symbols, resolveMembers) => {
+  const expected = new Set(symbols.flatMap(resolveMembers));
+  const documented = new Set(documentedMembers(source, label, componentId));
+  const missing = [...expected].filter((member) => !documented.has(member));
+  const unexpected = [...documented].filter((member) => !expected.has(member));
+  if (missing.length > 0 || unexpected.length > 0) {
+    throw new Error(
+      `Component ${componentId} has a stale ${label} contract. Missing: ${missing.join(', ') || 'none'}. Unexpected: ${unexpected.join(', ') || 'none'}.`,
+    );
+  }
+};
 
 for (const component of componentCatalog) {
   const source = await readFile(resolve(root, 'docs', 'components', `${component.id}.md`), 'utf8');
@@ -153,6 +316,13 @@ for (const component of componentCatalog) {
       throw new Error(`Component documentation is missing "${section}": ${component.id}`);
     }
   }
+  const contract = componentApiContracts[component.id];
+  if (!contract) throw new Error(`Component API contract is missing: ${component.id}`);
+  assertContract(source, component.id, 'Public options', contract.options, interfaceMembers);
+  assertContract(source, component.id, 'Snapshot fields', contract.snapshot, interfaceMembers);
+  assertContract(source, component.id, 'Component commands', contract.commands, interfaceMembers);
+  assertContract(source, component.id, 'Events', contract.events, interfaceMembers);
+  assertContract(source, component.id, 'Change reasons', contract.reasons, unionMembers);
   const demoUrl = `${siteUrl}#${component.route}`;
   const apiReferenceUrl = `${siteUrl}${component.apiPath}`;
   if (!source.includes(`[Live demo](${demoUrl})`)) {
@@ -198,16 +368,20 @@ if (/\[[^\]]*(?:Svelte|Web Components)[^\]]*\]\([^)]*\)/iu.test(frameworkLanding
   throw new Error('Framework integration landing links an unsupported framework recipe.');
 }
 
-const legacyFrameworkGuides = new Set([
+const obsoleteGuides = new Set([
   'react.md',
   'vue.md',
   'angular.md',
   'svelte.md',
   'lit-web-components.md',
+  'controlled-state.md',
+  'custom-positioning.md',
+  'custom-renderer.md',
+  'ssr.md',
 ]);
 for (const file of await readdir(resolve(root, 'docs', 'guides'))) {
-  if (legacyFrameworkGuides.has(file)) {
-    throw new Error(`Legacy framework guide duplicates the canonical User Guide recipe: ${file}`);
+  if (obsoleteGuides.has(file)) {
+    throw new Error(`Guide duplicates a canonical User Guide page: ${file}`);
   }
 }
 

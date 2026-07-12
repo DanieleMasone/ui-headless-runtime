@@ -28,23 +28,27 @@ Create Listbox during component mount or setup, subscribe before rendering deriv
 
 ## Options
 
-- Selection mode, controlled value, default value, disabled options, loop, and active-descendant IDs configure behavior.
+- Public options: `id`, `loop`, `selectionMode`, `defaultValue`, `getValue`, `onValueChange`, `subscribeValue`.
+- Disabled state, display text, IDs, and optional submitted values belong to registered `ListboxOption` objects.
 
 ## Snapshot
 
-- Reports selected values, active option, option order, disabled state, and ARIA multiselect metadata.
+- Snapshot fields: `activeId`, `ariaMultiselectable`, `controlled`, `id`, `options`, `role`, `selectedValues`.
+- Each option snapshot contains `id`, `text`, `value`, `disabled`, `selected`, and `role`.
 
 ## Commands
 
-- `registerOption`, `select`, `toggle`, `setActive`, `handleKeyDown`, and `destroy` drive the listbox.
+- Component commands: `handleKeyDown`, `registerOption`, `select`, `setActive`.
+- Multiple-mode toggling is requested through `select`; there is no separate public `toggle` command.
 
 ## Events
 
-- Selection events include selected value(s), active option, and reason.
+- Events: `beforeSelect`, `select`, `stateChange`.
+- Payloads contain the selected option, resulting `selectedValues`, and typed change details.
 
 ## Change reasons
 
-- `keyboard`, `pointer`, `typeahead`, `selection`, `registration`, `programmatic`, and `controlled` are meaningful.
+- Change reasons: `programmatic`, `pointer`, `keyboard`, `typeahead`.
 
 ## Controlled mode
 
@@ -84,7 +88,7 @@ Uncontrolled listboxes own selected value(s) and active option.
 
 - Dynamic option removal recalculates active item and selected values.
 
-## Complete example
+## Minimal lifecycle example
 
 ```ts
 import { createListbox } from 'ui-headless-runtime';

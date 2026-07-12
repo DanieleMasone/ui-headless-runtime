@@ -10,7 +10,7 @@
 
 ## Commands
 
-Use `npm ci` for reproducible installs. `npm run setup:browsers`, `typecheck`, `lint`, `unused:check`, `test:coverage`, `test:browser`, `build`, `api:check`, `docs:check`, `package:check`, `build:site`, `site:check`, and `test:acceptance` are individual gates. `npm run ci` runs the local CI sequence. `npm run release:verify` covers publish gates without publishing.
+Use `npm ci` for reproducible installs. `npm run setup:browsers`, `typecheck`, `lint`, `unused:check`, `test:coverage`, `test:browser`, `build`, `api:check`, `docs:check`, `package:check`, `build:site`, `site:check`, and `test:acceptance` are individual gates. `npm run ci` runs the local CI sequence. `npm run release:metadata` checks synchronized versions, the finalized changelog entry, and npm registry availability. `npm run release:verify` covers all publish gates without publishing.
 
 ## Invariants
 
@@ -30,7 +30,7 @@ Use `npm ci` for reproducible installs. `npm run setup:browsers`, `typecheck`, `
 
 ## Public API and TSDoc
 
-Export intentionally through `src/index.ts`; avoid implementation exports and deep-import dependencies. Public symbols need meaningful TSDoc describing behavior, state ownership, lifecycle, reason, accessibility, invalid conditions, cleanup, SSR constraints, and limitations. TypeDoc is the API reference source of truth; run `npm run docs:api` and `npm run docs:check` for docs validation. Run `npm run api:update` only for intentional public changes and review the committed report.
+Export intentionally through `src/index.ts`; avoid implementation exports and deep-import dependencies. Public symbols need meaningful TSDoc describing behavior, state ownership, lifecycle, reason, accessibility, invalid conditions, cleanup, SSR constraints, and limitations. TypeDoc is the API reference source of truth; run `npm run docs:api` and `npm run docs:check` for docs validation. Component-page options, snapshots, commands, events, and reasons are checked against the committed API report. Run `npm run api:update` only for intentional public changes and review the committed report.
 
 ## Documentation policy
 

@@ -618,6 +618,7 @@ export interface NavigationMenuController extends RuntimeController<NavigationMe
     bind(elements: OverlayElements): () => void;
     close(details?: ChangeDetails<NavigationMenuReason>): void;
     handleKeyDown(event: KeyboardEvent): void;
+    handleKeyDown(itemId: string, event: KeyboardEvent): void;
     openItem(id: string, details?: ChangeDetails<NavigationMenuReason>): void;
     registerItem(item: NavigationMenuItem, element?: HTMLElement): () => void;
     scheduleClose(event?: PointerEvent): void;
@@ -1056,7 +1057,5 @@ export interface VirtualAnchor {
     readonly contextElement?: Element;
     getBoundingClientRect(): AnchorRect;
 }
-
-// (No @packageDocumentation comment for this package)
 
 ```

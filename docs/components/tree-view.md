@@ -28,23 +28,27 @@ Create Tree View during component mount or setup, subscribe before rendering der
 
 ## Options
 
-- Selection mode, expanded IDs, disabled nodes, async loading markers, loop, and direction configure traversal.
+- Public options: `defaultExpandedIds`, `defaultSelectedIds`, `getExpandedIds`, `getSelectedIds`, `multiple`, `onExpandedIdsChange`, `onSelectedIdsChange`, `subscribeExpandedIds`, `subscribeSelectedIds`.
+- Parent relationships, disabled state, child availability, loading state, IDs, and text belong to each registered `TreeNode`.
 
 ## Snapshot
 
-- Reports visible preorder nodes, active node, selected IDs, expanded IDs, level, set size, position in set, and loading state.
+- Snapshot fields: `activeId`, `ariaMultiselectable`, `expandedIds`, `expansionControlled`, `role`, `selectedIds`, `selectionControlled`, `visibleNodes`.
+- Visible node snapshots expose `id`, `parentId`, `level`, `setSize`, `positionInSet`, `expanded`, `selected`, `disabled`, `loading`, `role`, and `tabIndex`.
 
 ## Commands
 
-- `registerNode`, `expand`, `collapse`, `toggle`, `select`, `setActive`, and `handleKeyDown` drive the tree.
+- Component commands: `handleKeyDown`, `registerNode`, `select`, `setActive`, `toggle`.
+- Expansion and collapse both use `toggle(id, details)`; there are no separate public `expand` or `collapse` commands.
 
 ## Events
 
-- Expansion and selection events include node ID, parent relationships, and reason.
+- Events: `beforeExpand`, `beforeSelect`, `expand`, `select`, `stateChange`.
+- Payloads contain the affected registered node and typed change details.
 
 ## Change reasons
 
-- `keyboard`, `pointer`, `typeahead`, `expand`, `collapse`, `selection`, `registration`, and `async` are key.
+- Change reasons: `programmatic`, `pointer`, `keyboard`, `async-load`.
 
 ## Controlled mode
 
@@ -84,7 +88,7 @@ Uncontrolled trees own selected, expanded, and active IDs.
 
 - Removing the active node chooses a valid visible neighbor and unregisters descendants.
 
-## Complete example
+## Minimal lifecycle example
 
 ```ts
 import { createTreeView } from 'ui-headless-runtime';

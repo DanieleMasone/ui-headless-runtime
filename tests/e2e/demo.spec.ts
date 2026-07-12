@@ -224,6 +224,68 @@ for (const component of componentCatalog) {
   });
 }
 
+test('demo composites expose their real keyboard, focus, and pointer contracts', async ({
+  page,
+}) => {
+  await visit(page, '/components/accordion');
+  let live = page.locator('.example-mount');
+  const overview = live.getByRole('button', { name: 'Overview' });
+  const security = live.getByRole('button', { name: 'Security' });
+  const billing = live.getByRole('button', { name: 'Billing' });
+  await expect(overview).toHaveAttribute('tabindex', '0');
+  await expect(security).toHaveAttribute('tabindex', '-1');
+  await overview.focus();
+  await page.keyboard.press('ArrowDown');
+  await expect(security).toBeFocused();
+  await expect(overview).toHaveAttribute('tabindex', '-1');
+  await expect(security).toHaveAttribute('tabindex', '0');
+  await page.keyboard.press('End');
+  await expect(billing).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(billing).toHaveAttribute('aria-expanded', 'true');
+  await expect(live.getByText('Billing settings and operational notes.')).toBeVisible();
+
+  await visit(page, '/components/tree-view');
+  live = page.locator('.example-mount');
+  const tree = live.getByRole('tree', { name: 'Workspace hierarchy' });
+  const workspace = live.getByRole('treeitem', { name: 'workspace' });
+  const design = live.getByRole('treeitem', { name: /design$/u });
+  const engineering = live.getByRole('treeitem', { name: /engineering$/u });
+  await expect(tree).not.toHaveAttribute('tabindex', /.+/u);
+  await expect(workspace).toHaveAttribute('tabindex', '0');
+  await expect(workspace).toHaveAttribute('aria-expanded', 'true');
+  await expect(design).toHaveAttribute('tabindex', '-1');
+  await workspace.focus();
+  await page.keyboard.press('ArrowDown');
+  await expect(design).toBeFocused();
+  await expect(design).toHaveAttribute('tabindex', '0');
+  await expect(workspace).toHaveAttribute('tabindex', '-1');
+  await engineering.click();
+  await expect(engineering).toBeFocused();
+  await expect(engineering).toHaveAttribute('tabindex', '0');
+  await expect(engineering).toHaveAttribute('aria-expanded', 'true');
+  await expect(engineering).toHaveAttribute('aria-selected', 'true');
+  await expect(live.getByRole('treeitem', { name: /web$/u })).toBeVisible();
+  await engineering.click();
+  await expect(engineering).toHaveAttribute('aria-expanded', 'false');
+  await expect(live.getByRole('treeitem', { name: /web$/u })).toHaveCount(0);
+  await design.click();
+  await expect(design).toBeFocused();
+  await expect(design).toHaveAttribute('tabindex', '0');
+  await expect(design).toHaveAttribute('aria-selected', 'true');
+  await expect(design).not.toHaveAttribute('aria-expanded');
+
+  await visit(page, '/components/context-menu');
+  live = page.locator('.example-mount');
+  const contextTrigger = live.getByRole('button', { name: 'Right-click project' });
+  const contextMenu = live.getByRole('menu', { name: 'Project actions' });
+  await expect(contextMenu).toBeHidden();
+  await contextTrigger.click();
+  await expect(contextMenu).toBeHidden();
+  await contextTrigger.click({ button: 'right' });
+  await expect(contextMenu).toBeVisible();
+});
+
 test('scenario selection, source copy, API and coverage links are wired', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'clipboard', {
