@@ -4,6 +4,14 @@ All notable changes follow Keep a Changelog structure and semantic versioning.
 
 ## Unreleased
 
+## [0.1.1] - 2026-07-13
+
+### Changed
+
+- Updated npm publication metadata after the first public package release.
+- Updated README installation and package links now that `ui-headless-runtime` is available on npm.
+- Documented the release model: `0.1.0` manual package creation, future releases through GitHub Release and npm Trusted Publishing/OIDC.
+
 ## [0.1.0] - 2026-07-13
 
 ### Added
