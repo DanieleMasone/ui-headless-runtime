@@ -4,7 +4,9 @@ Publishing is triggered only by a published GitHub Release whose tag is `vX.Y.Z`
 
 ## Published baseline
 
-`ui-headless-runtime@0.1.0` was published manually as the one-time first public release that created the npm package. The `latest` dist-tag points to `0.1.0`. Do not rerun the failed `v0.1.0` GitHub Release publish job: npm versions are immutable and `0.1.0` already exists. Every later version uses the verified GitHub Release workflow and npm Trusted Publishing OIDC.
+`ui-headless-runtime@0.1.0` was published manually as the one-time first public release that created the npm package. `ui-headless-runtime@0.1.1` was then published successfully by the GitHub Release workflow through npm Trusted Publishing OIDC and is the current `latest` version.
+
+Do not rerun `v0.1.0` or `v0.1.1` to publish. Both npm versions already exist and npm versions are immutable. Every future release, including `1.0.0`, must use the verified GitHub Release workflow and OIDC.
 
 ## npm Trusted Publishing setup
 
@@ -22,7 +24,7 @@ Do not add `NPM_TOKEN`, `NODE_AUTH_TOKEN`, or a GitHub environment named `npm` t
 
 ## Release procedure
 
-The following procedure applies to versions after `0.1.0`:
+The following procedure applies to versions after `0.1.1`:
 
 1. Update the root, demo, publishable package, and lockfile versions together; finalize the matching `CHANGELOG.md` entry.
 2. Run `npm ci`, `npm run release:verify`, and inspect `npm pack --dry-run`.
@@ -32,4 +34,4 @@ The following procedure applies to versions after `0.1.0`:
 6. The workflow checks synchronized versions, the finalized changelog, tag/version/commit, quality gates, docs, tarball, and registry availability before OIDC publish.
 7. Verify npm contents, dist-tag, provenance, ESM/CJS install, and GitHub Release notes.
 
-Versions cannot be overwritten. If publication fails after npm accepts a version, fix forward with a new version. If validation fails before npm accepts it, correct the release according to repository policy before publishing. Never rerun `v0.1.0` to publish because that npm version already exists.
+Versions cannot be overwritten. If publication fails after npm accepts a version, fix forward with a new version. If validation fails before npm accepts it, correct the release according to repository policy before publishing. Never rerun `v0.1.0` or `v0.1.1` to publish because both npm versions already exist.

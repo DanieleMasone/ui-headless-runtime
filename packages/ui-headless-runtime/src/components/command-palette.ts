@@ -1,10 +1,15 @@
 import { createCollection, fuzzyScore, type CollectionItem } from '../collections/collection';
 import { createControllerHost } from '../core/host';
-import type { ChangeDetails, EventSource, RuntimeController } from '../core/types';
+import type { ChangeDetails, RuntimeController, RuntimeEventSource } from '../core/types';
 import { listen } from '../dom/dom';
 import { createControllableValue } from '../state/controllable';
 import { createDialog, type DialogOptions } from './dialog';
-import type { OpenChangeEvent, OpenLifecycleEvents, OverlayElements } from './openable';
+import type {
+  OpenChangeEvent,
+  OpenChangeReason,
+  OpenLifecycleEvents,
+  OverlayElements,
+} from './openable';
 
 /** Registered command metadata and action. @public */
 export interface CommandItem extends CollectionItem {
@@ -29,7 +34,7 @@ export interface CommandShortcut {
 }
 
 /** Causes of Command Palette query and selection changes. @public */
-export type CommandPaletteReason = 'programmatic' | 'input' | 'keyboard' | 'pointer' | 'shortcut';
+export type CommandPaletteReason = 'programmatic' | 'input' | 'keyboard' | 'pointer';
 
 /** Immutable Command Palette snapshot. @public */
 export interface CommandPaletteSnapshot {
@@ -73,7 +78,7 @@ export interface CommandPaletteEvents extends Omit<OpenLifecycleEvents, 'stateCh
   readonly select: CommandPaletteSelectEvent;
   /** Event emitted after query changes. */
   readonly queryChange: CommandPaletteQueryEvent;
-  /** Event emitted for open, query, active-command, or selection changes. */
+  /** Event emitted for accepted open, query, or selection changes. */
   readonly stateChange: OpenChangeEvent | CommandPaletteSelectEvent | CommandPaletteQueryEvent;
 }
 
@@ -97,7 +102,7 @@ export interface CommandPaletteOptions {
 
 /** Headless Command Palette controller. @public */
 export interface CommandPaletteController
-  extends RuntimeController<CommandPaletteSnapshot>, EventSource<CommandPaletteEvents> {
+  extends RuntimeController<CommandPaletteSnapshot>, RuntimeEventSource<CommandPaletteEvents> {
   /** Registers a dynamic command and returns scoped cleanup. */
   registerCommand(command: CommandItem): () => void;
   /** Binds consumer-rendered modal dialog DOM. */
@@ -105,9 +110,9 @@ export interface CommandPaletteController
   /** Registers the configured global shortcut on an explicit owner document. */
   bindShortcut(ownerDocument: Document): () => void;
   /** Opens the palette. */
-  open(details?: ChangeDetails<CommandPaletteReason>): void;
+  open(details?: ChangeDetails<OpenChangeReason>): void;
   /** Closes the palette. */
-  close(details?: ChangeDetails<CommandPaletteReason>): void;
+  close(details?: ChangeDetails<OpenChangeReason>): void;
   /** Updates query and active command. */
   setQuery(query: string, details?: ChangeDetails<CommandPaletteReason>): void;
   /** Handles navigation, activation, and Escape. */
@@ -262,18 +267,8 @@ export function createCommandPalette(
         }),
       );
     },
-    open(changeDetails = { reason: 'programmatic' }) {
-      dialog.open({
-        reason: changeDetails.reason === 'shortcut' ? 'keyboard' : 'programmatic',
-        ...(changeDetails.event ? { event: changeDetails.event } : {}),
-      });
-    },
-    close(changeDetails = { reason: 'programmatic' }) {
-      dialog.close({
-        reason: 'programmatic',
-        ...(changeDetails.event ? { event: changeDetails.event } : {}),
-      });
-    },
+    open: (changeDetails = { reason: 'programmatic' }) => dialog.open(changeDetails),
+    close: (changeDetails = { reason: 'programmatic' }) => dialog.close(changeDetails),
     setQuery,
     handleKeyDown(event) {
       if (!host.alive()) return;

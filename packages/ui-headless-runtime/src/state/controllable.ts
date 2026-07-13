@@ -1,6 +1,6 @@
 import type { ChangeDetails, ControllableValueOptions, Unsubscribe } from '../core/types';
 
-/** Shared controlled/uncontrolled state cell with atomic, re-entrant-safe updates. @public */
+/** Shared controlled/uncontrolled state cell with atomic, re-entrant-safe updates. @internal */
 export interface ControllableValue<TValue, TReason extends string> {
   /** Reads the consumer-owned value in controlled mode or the internal value otherwise. */
   get(): TValue;
@@ -18,7 +18,7 @@ export interface ControllableValue<TValue, TReason extends string> {
  * @param options - Value reader, default, callback, and optional external subscription.
  * @param onExternalChange - Invalidates the owning controller when external state changes.
  * @returns An idempotently disposable value cell.
- * @public
+ * @internal
  */
 export function createControllableValue<TValue, TReason extends string>(
   options: ControllableValueOptions<TValue, TReason>,
@@ -37,6 +37,7 @@ export function createControllableValue<TValue, TReason extends string>(
   const notifyExternal = (): void => {
     if (destroyed) return;
     const value = get();
+    if (pendingRequest && !Object.is(pendingRequest.value, value)) pendingRequest = undefined;
     if (Object.is(lastObserved, value)) return;
     lastObserved = value;
     const details =
@@ -74,7 +75,7 @@ export function createControllableValue<TValue, TReason extends string>(
           const observed = get();
           if (!Object.is(before, observed)) {
             lastObserved = observed;
-            if (controlled && Object.is(observed, next.value)) pendingRequest = undefined;
+            if (controlled) pendingRequest = undefined;
             changed = true;
           }
         }

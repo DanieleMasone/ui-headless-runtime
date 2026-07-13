@@ -27,8 +27,9 @@ Use `npm ci` for reproducible installs. `npm run setup:browsers`, `typecheck`, `
 - Storybook is intentionally not part of the repository; keep the Vanilla TypeScript laboratory as the single behavior demo surface unless an ADR supersedes `docs/adr/no-storybook-for-runtime-demo.md`.
 - Canonical React, Vue, and Angular consumer recipes live under `docs/guide/frameworks/`. They are documentation, not compiled example apps or official adapters; do not add framework packages or runtime dependencies for them.
 - Dependency version updates are manual: run `npm outdated` quarterly, before release, and immediately when a security alert requires action.
-- Version `0.1.0` was the one-time manual package creation release. Do not rerun it; npm versions are immutable.
-- Future releases publish through `.github/workflows/release.yml` and npm Trusted Publishing OIDC. Never add long-lived npm tokens or a GitHub environment named `npm` to the normal release workflow.
+- `vitepress@2.0.0-alpha.17` is an exact, documentation-only exception: the latest stable VitePress line resolves to Vite/esbuild versions with unresolved npm advisories. Replace it only with a stable audit-clean release that passes docs, site, and acceptance gates.
+- Version `0.1.0` was the one-time manual package creation release; `0.1.1` validated the GitHub Release and npm Trusted Publishing OIDC pipeline. Do not rerun either release; npm versions are immutable.
+- Future releases, including `1.0.0`, publish through `.github/workflows/release.yml` and npm Trusted Publishing OIDC. Never add long-lived npm tokens or a GitHub environment named `npm` to the normal release workflow.
 
 ## Public API and TSDoc
 

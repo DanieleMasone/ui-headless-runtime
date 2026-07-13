@@ -1,8 +1,8 @@
 import type {
   ChangeDetails,
   ControllableValueOptions,
-  EventSource,
   RuntimeController,
+  RuntimeEventSource,
 } from '../core/types';
 import { createSnapshotProjection } from '../core/projection';
 import {
@@ -43,7 +43,7 @@ export interface DialogOptions extends Partial<
 
 /** Headless Dialog controller. @public */
 export interface DialogController
-  extends RuntimeController<DialogSnapshot>, EventSource<OpenLifecycleEvents> {
+  extends RuntimeController<DialogSnapshot>, RuntimeEventSource<OpenLifecycleEvents> {
   /** Opens programmatically unless the cancellable lifecycle vetoes it. */
   open(details?: ChangeDetails<OpenChangeReason>): void;
   /** Closes programmatically unless the cancellable lifecycle vetoes it. */
@@ -76,12 +76,17 @@ export function createDialog(options: DialogOptions = {}): DialogController {
     ...(options.initialFocus ? { initialFocus: options.initialFocus } : {}),
     ...(options.restoreFocus !== undefined ? { restoreFocus: options.restoreFocus } : {}),
   });
-  let boundElements: OverlayElements | undefined;
+  interface DialogBinding {
+    readonly elements: OverlayElements;
+    readonly token: symbol;
+  }
+  let binding: DialogBinding | undefined;
+  let destroyed = false;
   const projection = createSnapshotProjection(base, (snapshot: OpenSnapshot): DialogSnapshot => ({
     ...snapshot,
     modal,
     ariaModal: modal ? true : null,
-    hasBackdrop: boundElements?.backdrop !== undefined,
+    hasBackdrop: binding?.elements.backdrop !== undefined,
   }));
   return {
     getSnapshot: projection.getSnapshot,
@@ -93,20 +98,32 @@ export function createDialog(options: DialogOptions = {}): DialogController {
     close: (changeDetails = { reason: 'programmatic' }) => base.close(changeDetails),
     toggle: (changeDetails = { reason: 'programmatic' }) => base.toggle(changeDetails),
     bind(elements) {
-      boundElements = elements;
+      if (destroyed) return () => undefined;
+      const registration: DialogBinding = {
+        elements,
+        token: Symbol('dialog-binding'),
+      };
+      binding = registration;
+      const isCurrentBinding = (): boolean => !destroyed && binding === registration;
       projection.refresh();
+      if (!isCurrentBinding()) return () => undefined;
       const unbind = base.bind(elements);
       let active = true;
       return () => {
         if (!active) return;
         active = false;
         unbind();
-        if (boundElements === elements) {
-          boundElements = undefined;
+        if (binding === registration) {
+          binding = undefined;
           projection.refresh();
         }
       };
     },
-    destroy: projection.destroy,
+    destroy() {
+      if (destroyed) return;
+      destroyed = true;
+      binding = undefined;
+      projection.destroy();
+    },
   };
 }

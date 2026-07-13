@@ -2,32 +2,38 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   autoUpdatePosition,
   calculatePosition,
-  createCollection,
-  createControllableValue,
-  createDisposableScope,
-  createEventEmitter,
-  createRuntimeId,
-  createTimeoutManager,
   createVirtualAnchor,
-  eventTargets,
+  hasDOM,
+  type RuntimeEvent,
+} from '../../packages/ui-headless-runtime/src/index';
+import { createRuntimeId } from '../../packages/ui-headless-runtime/src/accessibility/ids';
+import {
+  createCollection,
   findTypeaheadMatch,
-  focusById,
-  focusInitial,
   fuzzyScore,
+  normalizeText,
+} from '../../packages/ui-headless-runtime/src/collections/collection';
+import { createDisposableScope } from '../../packages/ui-headless-runtime/src/core/disposables';
+import { createTimeoutManager } from '../../packages/ui-headless-runtime/src/core/timers';
+import {
+  eventTargets,
   getOwnerDocument,
   getOwnerWindow,
   getScrollableAncestors,
-  getTabbableElements,
-  hasDOM,
   inertSiblings,
   listen,
   lockDocumentScroll,
-  normalizeText,
   observeOutsideInteraction,
+} from '../../packages/ui-headless-runtime/src/dom/dom';
+import { createEventEmitter } from '../../packages/ui-headless-runtime/src/events/emitter';
+import {
+  focusById,
+  focusInitial,
+  getTabbableElements,
   restoreFocus,
   trapFocus,
-  type RuntimeEvent,
-} from '../../packages/ui-headless-runtime/src/index';
+} from '../../packages/ui-headless-runtime/src/focus/focus';
+import { createControllableValue } from '../../packages/ui-headless-runtime/src/state/controllable';
 
 afterEach(() => {
   document.body.replaceChildren();
@@ -242,13 +248,16 @@ describe('core resource ownership and events', () => {
     external = 2;
     notify();
     expect(observed).toHaveBeenLastCalledWith(2, undefined);
+    external = 1;
     notify();
-    expect(observed).toHaveBeenCalledOnce();
+    expect(observed).toHaveBeenLastCalledWith(1, undefined);
+    notify();
+    expect(observed).toHaveBeenCalledTimes(2);
     cell.destroy();
     cell.destroy();
     external = 3;
     notify();
-    expect(observed).toHaveBeenCalledOnce();
+    expect(observed).toHaveBeenCalledTimes(2);
     expect(cell.set(4, { reason: 'set' })).toBe(false);
   });
 });

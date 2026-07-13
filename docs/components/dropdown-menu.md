@@ -33,8 +33,8 @@ Create Dropdown Menu during component mount or setup, subscribe before rendering
 
 ## Snapshot
 
-- Snapshot fields: `activeId`, `controlled`, `items`, `open`, `openSubmenuId`, `position`, `role`, `selectedId`.
-- Trigger ARIA attributes are applied by the consumer from `open` and the bound content ID; they are not a separate snapshot object.
+- Snapshot fields: `activeId`, `contentId`, `controlled`, `items`, `open`, `openSubmenuId`, `position`, `role`, `selectedId`.
+- Trigger ARIA attributes are applied by the consumer from `open` and `contentId`; they are not a separate snapshot object.
 
 ## Commands
 
@@ -71,9 +71,14 @@ The usual case lets the controller own open state and active item movement.
 
 ## Keyboard interaction
 
-- Arrow keys: Move the active item, skipping disabled items.
+- Enter / Space / ArrowDown / ArrowUp: Open the menu from its trigger.
+- ArrowDown / ArrowUp: Move the active item, skipping disabled items.
 - Home / End: Move to the first or last enabled item.
+- Enter / Space: Activate the active item or open its submenu.
+- ArrowRight / ArrowLeft: Open or close a submenu.
 - Type characters: Move by normalized typeahead.
+- Escape: Close the topmost menu and restore trigger focus.
+- Tab / Shift+Tab: Close the menu without suppressing native focus traversal.
 
 ## Focus behavior
 

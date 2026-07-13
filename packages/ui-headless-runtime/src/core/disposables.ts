@@ -1,6 +1,6 @@
 import type { Unsubscribe } from './types';
 
-/** Owns cleanup functions and releases them once in reverse registration order. @public */
+/** Owns cleanup functions and releases them once in reverse registration order. @internal */
 export interface DisposableScope {
   /** Adds a cleanup function, or executes it immediately when the scope is already disposed. */
   add(dispose: Unsubscribe): Unsubscribe;
@@ -10,7 +10,7 @@ export interface DisposableScope {
   readonly disposed: boolean;
 }
 
-/** Creates an idempotent cleanup scope for listeners, timers, and observers. @public */
+/** Creates an idempotent cleanup scope for listeners, timers, and observers. @internal */
 export function createDisposableScope(): DisposableScope {
   const disposers = new Set<Unsubscribe>();
   let disposed = false;

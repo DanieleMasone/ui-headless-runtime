@@ -1,5 +1,5 @@
 /**
- * Framework-agnostic headless UI controllers, shared interaction primitives, and public types.
+ * Framework-agnostic headless UI controllers, positioning utilities, and public types.
  *
  * @remarks
  * The package owns state transitions and behavior but never renders markup or ships CSS. Consumers
@@ -12,52 +12,22 @@
 export type {
   ChangeDetails,
   ControllableValueOptions,
-  EventListener,
-  EventSource,
   RuntimeController,
   RuntimeEvent,
+  RuntimeEventListener,
+  RuntimeEventSource,
   SnapshotListener,
   Unsubscribe,
 } from './core/types';
-export { createDisposableScope, type DisposableScope } from './core/disposables';
-export { createTimeoutManager, type TimeoutManager } from './core/timers';
-export { createEventEmitter, type TypedEventEmitter } from './events/emitter';
-export { createControllableValue, type ControllableValue } from './state/controllable';
-export {
-  createCollection,
-  findTypeaheadMatch,
-  fuzzyScore,
-  normalizeText,
-  type CollectionItem,
-  type CollectionRegistry,
-} from './collections/collection';
-export { createRuntimeId } from './accessibility/ids';
-export {
-  eventTargets,
-  getOwnerDocument,
-  getOwnerWindow,
-  getScrollableAncestors,
-  hasDOM,
-  inertSiblings,
-  listen,
-  lockDocumentScroll,
-  observeOutsideInteraction,
-  type OutsideInteractionOptions,
-} from './dom/dom';
-export {
-  focusById,
-  focusInitial,
-  getTabbableElements,
-  restoreFocus,
-  trapFocus,
-} from './focus/focus';
+export type { CollectionItem } from './collections/collection';
+export { hasDOM } from './dom/dom';
 export {
   autoUpdatePosition,
   calculatePosition,
   createVirtualAnchor,
   type AnchorRect,
   type Placement,
-  type PositionOptions,
+  type FloatingPositionOptions,
   type PositionResult,
   type VirtualAnchor,
 } from './positioning/positioning';
@@ -148,6 +118,7 @@ export {
   type ComboboxOption,
   type ComboboxOptions,
   type ComboboxQueryEvent,
+  type ComboboxSelectReason,
   type ComboboxSelectEvent,
   type ComboboxSnapshot,
 } from './components/combobox';

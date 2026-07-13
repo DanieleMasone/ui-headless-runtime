@@ -1,6 +1,11 @@
 import { createRuntimeId } from '../accessibility/ids';
 import { createControllerHost } from '../core/host';
-import type { ChangeDetails, EventSource, RuntimeController, Unsubscribe } from '../core/types';
+import type {
+  ChangeDetails,
+  RuntimeController,
+  RuntimeEventSource,
+  Unsubscribe,
+} from '../core/types';
 import { createControllableValue } from '../state/controllable';
 import { listen } from '../dom/dom';
 
@@ -110,8 +115,8 @@ export interface ToastOptions {
 
 /** Headless Toast queue controller. @public */
 export interface ToastController
-  extends RuntimeController<ToastSnapshot>, EventSource<ToastEvents> {
-  /** Inserts or updates by ID and returns the stable record ID. */
+  extends RuntimeController<ToastSnapshot>, RuntimeEventSource<ToastEvents> {
+  /** Inserts or updates by ID and returns its stable ID; destroyed controllers return no new ID. */
   show(input: ToastInput): string;
   /** Partially updates an existing record. */
   update(id: string, input: Partial<Omit<ToastInput, 'id'>>): void;
@@ -234,7 +239,7 @@ export function createToast(options: ToastOptions = {}): ToastController {
     }
   };
   const show = (input: ToastInput): string => {
-    if (!host.alive()) return input.id ?? createRuntimeId('toast');
+    if (!host.alive()) return input.id ?? '';
     const existing = input.id ? state.get().find((toast) => toast.id === input.id) : undefined;
     if (existing) {
       updateRecord(existing.id, input, { reason: 'update' });

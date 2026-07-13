@@ -9,8 +9,8 @@ import { createTimeoutManager } from '../core/timers';
 import type {
   ChangeDetails,
   ControllableValueOptions,
-  EventSource,
   RuntimeController,
+  RuntimeEventSource,
 } from '../core/types';
 import { createControllableValue } from '../state/controllable';
 
@@ -94,7 +94,7 @@ export interface ListboxOptions extends Partial<
 
 /** Headless Listbox controller using active-descendant focus. @public */
 export interface ListboxController
-  extends RuntimeController<ListboxSnapshot>, EventSource<ListboxEvents> {
+  extends RuntimeController<ListboxSnapshot>, RuntimeEventSource<ListboxEvents> {
   /** Registers a dynamic option and returns cleanup scoped to that registration. */
   registerOption(option: ListboxOption): () => void;
   /** Sets the keyboard-active enabled option. */
@@ -141,7 +141,11 @@ export function createListbox(options: ListboxOptions = {}): ListboxController {
     changeDetails?: ChangeDetails<ListboxChangeReason>,
   ): void => {
     sync();
-    if (!changeDetails || !pendingSelection) return;
+    if (!changeDetails) {
+      pendingSelection = undefined;
+      return;
+    }
+    if (!pendingSelection) return;
     activeId = pendingSelection.option.id;
     const payload = { ...pendingSelection, selectedValues, details: changeDetails };
     pendingSelection = undefined;
@@ -160,7 +164,10 @@ export function createListbox(options: ListboxOptions = {}): ListboxController {
   );
   const setActive = (nextId: string | null): void => {
     if (!host.alive()) return;
-    if (nextId && collection.get(nextId)?.disabled) return;
+    if (nextId) {
+      const option = collection.get(nextId);
+      if (!option || option.disabled) return;
+    }
     if (activeId === nextId) return;
     activeId = nextId;
     sync();
@@ -203,10 +210,17 @@ export function createListbox(options: ListboxOptions = {}): ListboxController {
       if (!host.alive()) return () => undefined;
       const unregister = collection.register(option);
       if (!activeId && !option.disabled) activeId = option.id;
+      else if (activeId === option.id && option.disabled)
+        activeId = collection.edge('first') ?? null;
       sync();
+      let active = true;
       return () => {
+        if (!active) return;
+        active = false;
         unregister();
-        if (activeId === option.id) activeId = collection.edge('first') ?? null;
+        const current = collection.get(option.id);
+        if (activeId === option.id && (!current || current.disabled))
+          activeId = collection.edge('first') ?? null;
         sync();
       };
     },

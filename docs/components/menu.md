@@ -33,7 +33,7 @@ Create Menu during component mount or setup, subscribe before rendering derived 
 
 ## Snapshot
 
-- Snapshot fields: `activeId`, `controlled`, `items`, `open`, `openSubmenuId`, `position`, `role`, `selectedId`.
+- Snapshot fields: `activeId`, `contentId`, `controlled`, `items`, `open`, `openSubmenuId`, `position`, `role`, `selectedId`.
 - The internal typeahead buffer is not public snapshot state.
 
 ## Commands
@@ -53,11 +53,11 @@ Create Menu during component mount or setup, subscribe before rendering derived 
 
 ## Controlled mode
 
-Selection can be controlled externally while active item navigation remains local to the current menu surface.
+Only open state is consumer-controlled through `getValue`, `onValueChange`, and `subscribeValue`. Active item navigation, `selectedId`, and submenu state remain controller-owned.
 
 ## Uncontrolled mode
 
-The controller owns active item, typeahead buffer, and optional selected state.
+The controller owns open state, active item, typeahead buffer, `selectedId`, and submenu state.
 
 ## DOM binding
 
@@ -73,9 +73,13 @@ The controller owns active item, typeahead buffer, and optional selected state.
 
 ## Keyboard interaction
 
-- Arrow keys: Move the active item, skipping disabled items.
+- ArrowDown / ArrowUp: Move the active item, skipping disabled items.
 - Home / End: Move to the first or last enabled item.
+- Enter / Space: Activate the active item or open its submenu.
+- ArrowRight / ArrowLeft: Open or close a submenu.
 - Type characters: Move by normalized typeahead.
+- Escape: Close the topmost menu and restore focus when configured.
+- Tab / Shift+Tab: Close the menu without suppressing native focus traversal.
 
 ## Focus behavior
 

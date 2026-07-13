@@ -48,8 +48,8 @@ Create Command Palette during component mount or setup, subscribe before renderi
 
 ## Change reasons
 
-- Change reasons: `programmatic`, `input`, `keyboard`, `pointer`, `shortcut`, `trigger`, `escape-key`, `outside-pointer`, `focus-out`, `selection`, `context-menu`, `hover`, `focus`.
-- Palette query/selection commands use `CommandPaletteReason`; inherited dialog lifecycle events use `OpenChangeReason`.
+- Change reasons: `programmatic`, `input`, `keyboard`, `pointer`, `trigger`, `escape-key`, `outside-pointer`, `focus-out`, `selection`, `context-menu`, `hover`, `focus`.
+- Palette query/selection commands use `CommandPaletteReason`; inherited dialog lifecycle events use `OpenChangeReason`, with the configured shortcut reported as `keyboard`.
 
 ## Controlled mode
 
@@ -74,9 +74,11 @@ Uncontrolled palettes own open state, query, active item, and filtered command l
 ## Keyboard interaction
 
 - Control/Command+K: Toggle the palette.
-- Arrow keys: Move the active item, skipping disabled items.
-- Home / End: Move to the first or last enabled item.
-- Type characters: Move by normalized typeahead.
+- ArrowDown / ArrowUp: Move through filtered enabled commands.
+- Home / End: Move to the first or last filtered enabled command.
+- Enter: Run the active command.
+- Escape: Close the palette.
+- Type characters: Update the editable query and fuzzy-filter commands.
 
 ## Focus behavior
 

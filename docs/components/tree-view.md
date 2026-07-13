@@ -75,6 +75,8 @@ Uncontrolled trees own selected, expanded, and active IDs.
 - Up / Down: Move through visible nodes.
 - Left / Right: Collapse, expand, or move parent/child.
 - Home / End: Move to tree edges.
+- Enter / Space: Select the active node.
+- Type characters: Move by normalized typeahead.
 
 ## Focus behavior
 

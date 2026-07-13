@@ -1,31 +1,35 @@
+import type { CollectionItem } from '../collections/collection';
 import { createControllerHost } from '../core/host';
 import { createTimeoutManager } from '../core/timers';
 import type {
   ChangeDetails,
   ControllableValueOptions,
-  EventSource,
   RuntimeController,
+  RuntimeEventSource,
 } from '../core/types';
-import type { PositionOptions, PositionResult } from '../positioning/positioning';
+import type { FloatingPositionOptions, PositionResult } from '../positioning/positioning';
 import { createControllableValue } from '../state/controllable';
 import { createDisclosure, type DisclosureController } from './disclosure';
-import { createMenu, type MenuItem, type MenuOptions } from './menu';
-import type { OverlayElements } from './openable';
+import { createMenu, type MenuOptions } from './menu';
+import type { OpenChangeReason, OverlayElements } from './openable';
 
 /** Consumer-selected Navigation Menu presentation mode. @public */
 export type NavigationMenuMode = 'desktop' | 'compact';
 
 /** Causes of Navigation Menu open-item changes. @public */
-export type NavigationMenuReason = 'programmatic' | 'pointer' | 'keyboard' | 'outside-pointer';
+export type NavigationMenuReason =
+  'programmatic' | 'pointer' | 'keyboard' | 'outside-pointer' | 'focus-out';
 
 /** Navigation item registration supporting simple links and mega-menu content. @public */
-export interface NavigationMenuItem extends MenuItem {
+export interface NavigationMenuItem extends CollectionItem {
   /** Whether the item controls nested or mega-menu content. */
   readonly hasContent?: boolean;
 }
 
 /** Immutable Navigation Menu snapshot. @public */
 export interface NavigationMenuSnapshot {
+  /** Stable shared-content ID used by trigger `aria-controls` relationships. */
+  readonly contentId: string;
   /** Consumer-controlled responsive presentation mode. */
   readonly mode: NavigationMenuMode;
   /** Item whose nested content is open. */
@@ -68,6 +72,8 @@ export interface NavigationMenuEvents {
 export interface NavigationMenuOptions extends Partial<
   ControllableValueOptions<string | null, NavigationMenuReason>
 > {
+  /** Consumer-provided deterministic shared-content ID. */
+  readonly id?: string;
   /** Initial consumer-selected responsive mode. @defaultValue `desktop` */
   readonly mode?: NavigationMenuMode;
   /** Pointer open delay in desktop mode. @defaultValue `150` */
@@ -75,12 +81,12 @@ export interface NavigationMenuOptions extends Partial<
   /** Pointer close delay in desktop mode. @defaultValue `200` */
   readonly closeDelay?: number;
   /** Shared floating-content positioning options. */
-  readonly positioning?: PositionOptions;
+  readonly positioning?: FloatingPositionOptions;
 }
 
 /** Headless responsive Navigation Menu controller. @public */
 export interface NavigationMenuController
-  extends RuntimeController<NavigationMenuSnapshot>, EventSource<NavigationMenuEvents> {
+  extends RuntimeController<NavigationMenuSnapshot>, RuntimeEventSource<NavigationMenuEvents> {
   /** Registers a simple or content-bearing navigation item. */
   registerItem(item: NavigationMenuItem, element?: HTMLElement): () => void;
   /** Binds shared nested content for outside interaction and positioning. */
@@ -108,10 +114,11 @@ export function createNavigationMenu(
   let mode = options.mode ?? 'desktop';
   const menuOptions: MenuOptions = {
     closeOnSelect: false,
+    ...(options.id ? { id: options.id } : {}),
     ...(options.positioning ? { positioning: options.positioning } : {}),
   };
   const menu = createMenu(menuOptions);
-  const items = new Map<string, NavigationMenuItem>();
+  const items = new Map<string, { readonly item: NavigationMenuItem; readonly token: symbol }>();
   const itemElements = new Map<string, HTMLElement>();
   let activeBinding:
     | {
@@ -125,7 +132,9 @@ export function createNavigationMenu(
   const timer = createTimeoutManager();
   const initialMenu = menu.getSnapshot();
   const initialOpenId = options.getValue?.() ?? options.defaultValue ?? null;
+  let bypassMenuBeforeClose = false;
   const host = createControllerHost<NavigationMenuSnapshot, NavigationMenuEvents>({
+    contentId: initialMenu.contentId,
     mode,
     openId: initialOpenId,
     activeId: initialMenu.activeId,
@@ -134,55 +143,78 @@ export function createNavigationMenu(
     position: initialMenu.position,
   });
   const clearTimer = timer.clear;
-  const refreshBindingBranches = (): void => {
+  const itemFor = (id: string | null | undefined): NavigationMenuItem | undefined =>
+    id ? items.get(id)?.item : undefined;
+  const isOpenableItem = (item: NavigationMenuItem | undefined): item is NavigationMenuItem =>
+    Boolean(item?.hasContent && !item.disabled);
+  const effectiveOpenId = (): string | null => {
+    const openId = state.get();
+    return isOpenableItem(itemFor(openId)) ? openId : null;
+  };
+  const refreshBindingBranches = (openId = effectiveOpenId()): void => {
     if (!activeBinding) return;
     const branches = new Set([...activeBinding.explicitBranches, ...itemElements.values()]);
     activeBinding.branches.splice(0, activeBinding.branches.length, ...branches);
-    if (activeBinding.release) {
-      activeBinding.release();
-      activeBinding.release = menu.bind({
-        ...activeBinding.elements,
-        branches: activeBinding.branches,
-      });
-    }
+    const activeElement = openId ? itemElements.get(openId) : undefined;
+    activeBinding.release?.();
+    activeBinding.release = menu.bind({
+      ...activeBinding.elements,
+      ...(activeElement ? { trigger: activeElement, anchor: activeElement } : {}),
+      branches: activeBinding.branches,
+    });
   };
   const sync = (): void => {
     const menuSnapshot = menu.getSnapshot();
     host.update({
+      contentId: menuSnapshot.contentId,
       mode,
-      openId: state.get(),
+      openId: effectiveOpenId(),
       activeId: menuSnapshot.activeId,
       controlled: state.controlled,
-      items: Object.freeze([...items.values()]),
+      items: Object.freeze([...items.values()].map(({ item }) => item)),
       position: menuSnapshot.position,
     });
+  };
+  const closeMenu = (details: ChangeDetails<OpenChangeReason>): void => {
+    bypassMenuBeforeClose = true;
+    try {
+      menu.close(details);
+    } finally {
+      bypassMenuBeforeClose = false;
+    }
   };
   const commit = (
     openId: string | null,
     changeDetails?: ChangeDetails<NavigationMenuReason>,
   ): void => {
     const previousId = host.getSnapshot().openId;
-    if (previousId && previousId !== openId)
+    const nextOpenId = isOpenableItem(itemFor(openId)) ? openId : null;
+    if (previousId && previousId !== nextOpenId)
       disclosures.get(previousId)?.collapse({ reason: 'programmatic' });
-    if (openId) {
-      disclosures.get(openId)?.expand({ reason: 'programmatic' });
+    if (nextOpenId) {
+      disclosures.get(nextOpenId)?.expand({ reason: 'programmatic' });
+      refreshBindingBranches(nextOpenId);
       menu.open({
         reason: changeDetails?.reason === 'keyboard' ? 'keyboard' : 'trigger',
         ...(changeDetails?.event ? { event: changeDetails.event } : {}),
       });
-      menu.setActive(openId);
+      menu.setActive(nextOpenId);
     } else {
-      menu.close({
-        reason: changeDetails?.reason === 'outside-pointer' ? 'outside-pointer' : 'programmatic',
+      closeMenu({
+        reason:
+          changeDetails?.reason === 'outside-pointer' || changeDetails?.reason === 'focus-out'
+            ? changeDetails.reason
+            : 'programmatic',
         ...(changeDetails?.event ? { event: changeDetails.event } : {}),
       });
+      refreshBindingBranches(null);
     }
     sync();
     if (!changeDetails) return;
-    const item = items.get(openId ?? previousId ?? '');
+    const item = itemFor(nextOpenId ?? previousId);
     if (!item) return;
-    const payload = { item, openId, details: changeDetails };
-    host.emit(openId ? 'open' : 'close', payload);
+    const payload = { item, openId: nextOpenId, details: changeDetails };
+    host.emit(nextOpenId ? 'open' : 'close', payload);
     host.emit('stateChange', payload);
   };
   const state = createControllableValue<string | null, NavigationMenuReason>(
@@ -197,15 +229,16 @@ export function createNavigationMenu(
   const change = (
     openId: string | null,
     changeDetails: ChangeDetails<NavigationMenuReason>,
-  ): void => {
-    if (state.get() === openId) return;
+  ): boolean => {
+    if (state.get() === openId) return effectiveOpenId() === openId;
     const previousId = state.get();
-    const item = items.get(openId ?? previousId ?? '');
-    if (!item || item.disabled) return;
+    const item = itemFor(openId ?? previousId);
+    if (!item || (openId !== null && !isOpenableItem(item))) return false;
     const payload = { item, openId, details: changeDetails };
-    if (!host.emit(openId ? 'beforeOpen' : 'beforeClose', payload)) return;
+    if (!host.emit(openId ? 'beforeOpen' : 'beforeClose', payload)) return false;
     if (state.set(openId, changeDetails)) commit(openId, changeDetails);
-    else commit(state.get());
+    else sync();
+    return effectiveOpenId() === openId;
   };
   const handleKeyDown = (
     itemOrEvent: string | KeyboardEvent,
@@ -219,7 +252,7 @@ export function createNavigationMenu(
         ? itemOrEvent
         : [...itemElements].find(([, element]) => element === event.currentTarget)?.[0];
     const itemId = inferredId ?? menu.getSnapshot().activeId;
-    const item = itemId ? items.get(itemId) : undefined;
+    const item = itemFor(itemId);
     if (itemId && (!item || item.disabled)) return;
     if (itemId) menu.setActive(itemId);
 
@@ -231,25 +264,47 @@ export function createNavigationMenu(
     if (!menu.getSnapshot().open && itemId && item?.hasContent && opensFromTrigger) {
       event.preventDefault();
       change(itemId, { reason: 'keyboard', event });
-      menu.setActive(itemId);
       return;
     }
 
+    if (menu.getSnapshot().open && (event.key === 'ArrowRight' || event.key === 'ArrowLeft')) {
+      const enabled = [...items.values()]
+        .map(({ item: candidate }) => candidate)
+        .filter((candidate) => !candidate.disabled);
+      if (enabled.length === 0) return;
+      const currentIndex = enabled.findIndex((candidate) => candidate.id === itemId);
+      const delta = event.key === 'ArrowRight' ? 1 : -1;
+      const next = enabled[(currentIndex + delta + enabled.length) % enabled.length];
+      if (next) {
+        event.preventDefault();
+        if (next.hasContent) change(next.id, { reason: 'keyboard', event });
+        else if (change(null, { reason: 'keyboard', event })) {
+          menu.setActive(next.id);
+        }
+      }
+      return;
+    }
+
+    if (item && !item.hasContent && (event.key === 'Enter' || event.key === ' ')) return;
+
     menu.handleKeyDown(event);
+    if (event.key === 'Escape') return;
     const activeId = menu.getSnapshot().activeId;
-    if (opensFromTrigger && activeId && items.get(activeId)?.hasContent) {
+    if (opensFromTrigger && activeId && itemFor(activeId)?.hasContent) {
       change(activeId, { reason: 'keyboard', event });
-    } else if (event.key === 'Escape') {
-      if (state.get() !== null || menu.getSnapshot().open) event.preventDefault();
-      change(null, { reason: 'keyboard', event });
     }
   };
   host.resources.add(menu.subscribe(sync));
   host.resources.add(
-    menu.on('close', (event) => {
-      if (state.get() === null) return;
+    menu.on('beforeClose', (event) => {
+      if (bypassMenuBeforeClose || state.get() === null) return;
+      event.preventDefault();
       const reason: NavigationMenuReason =
-        event.detail.details.reason === 'escape-key' ? 'keyboard' : 'outside-pointer';
+        event.detail.details.reason === 'escape-key'
+          ? 'keyboard'
+          : event.detail.details.reason === 'focus-out'
+            ? 'focus-out'
+            : 'outside-pointer';
       change(null, {
         reason,
         ...(event.detail.details.event ? { event: event.detail.details.event } : {}),
@@ -259,7 +314,10 @@ export function createNavigationMenu(
   host.resources.add(clearTimer);
   host.resources.add(() => state.destroy());
   host.resources.add(() => menu.destroy());
-  host.resources.add(() => disclosures.forEach((disclosure) => disclosure.destroy()));
+  host.resources.add(() => {
+    disclosures.forEach((disclosure) => disclosure.destroy());
+    disclosures.clear();
+  });
   host.resources.add(() => items.clear());
   host.resources.add(() => itemElements.clear());
   host.resources.add(() => {
@@ -273,33 +331,51 @@ export function createNavigationMenu(
     once: host.once,
     registerItem(item, element) {
       if (!host.alive()) return () => undefined;
-      items.set(item.id, Object.freeze({ ...item }));
-      if (element) {
-        itemElements.set(item.id, element);
-        refreshBindingBranches();
-      }
+      const token = Symbol(item.id);
+      const registeredItem = Object.freeze({ ...item });
+      items.set(item.id, { item: registeredItem, token });
+      if (element) itemElements.set(item.id, element);
+      else itemElements.delete(item.id);
+      refreshBindingBranches();
       const unregisterMenu = menu.registerItem(item, element);
+      disclosures.get(item.id)?.destroy();
       const disclosure = createDisclosure({
         defaultValue: state.get() === item.id,
         ...(item.disabled !== undefined ? { disabled: item.disabled } : {}),
       });
       disclosures.set(item.id, disclosure);
-      if (state.get() === item.id) commit(item.id);
-      else sync();
+      if (state.get() === item.id && isOpenableItem(registeredItem)) commit(item.id);
+      else if (state.get() === item.id) {
+        const changeDetails: ChangeDetails<NavigationMenuReason> = { reason: 'programmatic' };
+        if (state.set(null, changeDetails)) commit(null, changeDetails);
+        else {
+          closeMenu({ reason: 'programmatic' });
+          sync();
+        }
+      } else sync();
+      let active = true;
       return () => {
+        if (!active) return;
+        active = false;
         unregisterMenu();
         disclosure.destroy();
-        if (disclosures.get(item.id) === disclosure) disclosures.delete(item.id);
-        if (itemElements.get(item.id) === element) {
-          itemElements.delete(item.id);
-          refreshBindingBranches();
+        if (items.get(item.id)?.token !== token) return;
+        if (state.get() === item.id) {
+          const changeDetails: ChangeDetails<NavigationMenuReason> = { reason: 'programmatic' };
+          if (state.set(null, changeDetails)) commit(null, changeDetails);
         }
-        if (items.get(item.id)?.text === item.text) items.delete(item.id);
-        if (state.get() === item.id) state.set(null, { reason: 'programmatic' });
+        if (disclosures.get(item.id) === disclosure) disclosures.delete(item.id);
+        itemElements.delete(item.id);
+        items.delete(item.id);
+        refreshBindingBranches();
+        if (host.getSnapshot().openId === item.id || !itemFor(state.get())) {
+          closeMenu({ reason: 'programmatic' });
+        }
         sync();
       };
     },
     bind(elements) {
+      if (!host.alive()) return () => undefined;
       const explicitBranches = elements.branches ?? [];
       const branches: Element[] = [];
       const binding: NonNullable<typeof activeBinding> = {
@@ -310,7 +386,6 @@ export function createNavigationMenu(
       };
       activeBinding = binding;
       refreshBindingBranches();
-      binding.release = menu.bind({ ...elements, branches });
       let active = true;
       return () => {
         if (!active) return;

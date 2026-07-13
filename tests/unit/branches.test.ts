@@ -4,6 +4,7 @@ import {
   createCombobox,
   createCommandPalette,
   createDialog,
+  createDisclosure,
   createListbox,
   createMenu,
   createNavigationMenu,
@@ -121,7 +122,15 @@ describe('controller host edge policies', () => {
     accordion.registerItem({ id: 'late', text: 'Late' })();
     accordion.toggle('late');
     accordion.focus('late');
-    accordion.handleTriggerKeyDown('late', key('Enter'));
+    const destroyedAccordionKey = key('Enter');
+    accordion.handleTriggerKeyDown('late', destroyedAccordionKey);
+    expect(destroyedAccordionKey.defaultPrevented).toBe(false);
+
+    const disclosure = createDisclosure();
+    disclosure.destroy();
+    const destroyedDisclosureKey = key('Enter');
+    disclosure.handleTriggerKeyDown(destroyedDisclosureKey);
+    expect(destroyedDisclosureKey.defaultPrevented).toBe(false);
 
     const tabs = createTabs();
     tabs.destroy();
@@ -154,6 +163,7 @@ describe('controller host edge policies', () => {
     popover.updatePosition();
 
     const tooltip = createTooltip();
+    expect(Object.isFrozen(tooltip.getSnapshot())).toBe(true);
     tooltip.destroy();
     tooltip.subscribe(vi.fn())();
     tooltip.bind(document.createElement('button'), document.createElement('div'))();
@@ -190,11 +200,35 @@ describe('controller host edge policies', () => {
 
     const toast = createToast();
     toast.destroy();
-    toast.show({ message: 'Late' });
+    expect(toast.show({ message: 'Late' })).toBe('');
+    expect(toast.show({ id: 'known', message: 'Late' })).toBe('known');
     toast.update('late', { message: 'Later' });
     toast.pause('late');
     toast.resume('late');
     toast.dismiss('late');
+  });
+
+  it('generates unique relationship IDs for default Accordion and Tabs instances', () => {
+    const firstAccordion = createAccordion();
+    const secondAccordion = createAccordion();
+    firstAccordion.registerItem({ id: 'shared', text: 'Shared' });
+    secondAccordion.registerItem({ id: 'shared', text: 'Shared' });
+    expect(firstAccordion.getSnapshot().items[0]?.triggerId).not.toBe(
+      secondAccordion.getSnapshot().items[0]?.triggerId,
+    );
+
+    const firstTabs = createTabs();
+    const secondTabs = createTabs();
+    firstTabs.registerTab({ id: 'shared', text: 'Shared' });
+    secondTabs.registerTab({ id: 'shared', text: 'Shared' });
+    expect(firstTabs.getSnapshot().items[0]?.tabId).not.toBe(
+      secondTabs.getSnapshot().items[0]?.tabId,
+    );
+
+    firstAccordion.destroy();
+    secondAccordion.destroy();
+    firstTabs.destroy();
+    secondTabs.destroy();
   });
 });
 
@@ -485,6 +519,7 @@ describe('remaining async, timing, and controlled branches', () => {
       closeDelay: 0,
       positioning: { placement: 'top' },
     });
+    expect(Object.isFrozen(tooltip.getSnapshot())).toBe(true);
     const trigger = document.createElement('button');
     const content = document.createElement('div');
     document.body.append(trigger, content);
@@ -493,6 +528,7 @@ describe('remaining async, timing, and controlled branches', () => {
       new PointerEvent('pointerenter', { bubbles: true, pointerType: 'mouse' }),
     );
     notify();
+    expect(Object.isFrozen(tooltip.getSnapshot())).toBe(true);
     trigger.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
     notify();
     tooltip.scheduleOpen('focus', new FocusEvent('focusin'));
@@ -561,6 +597,7 @@ describe('remaining async, timing, and controlled branches', () => {
     let selected: string | null = 'x';
     let inputNotify: () => void = () => undefined;
     let selectedNotify: () => void = () => undefined;
+    let selectedReason: string | undefined;
     const combobox = createCombobox({
       id: 'configured-combo',
       defaultInputValue: 'fallback',
@@ -574,8 +611,9 @@ describe('remaining async, timing, and controlled branches', () => {
         return () => undefined;
       },
       getSelectedValue: () => selected,
-      onSelectedValueChange(value) {
+      onSelectedValueChange(value, details) {
         selected = value;
+        selectedReason = details.reason;
       },
       subscribeSelectedValue(listener) {
         selectedNotify = listener;
@@ -585,6 +623,7 @@ describe('remaining async, timing, and controlled branches', () => {
       positioning: { placement: 'bottom-end' },
     });
     const remove = combobox.registerOption({ id: 'x', text: 'initial item', value: 'x' });
+    const removeOther = combobox.registerOption({ id: 'y', text: 'initial other', value: 'y' });
     combobox.setInputValue('initial');
     combobox.handleCompositionStart();
     const inputEvent = new InputEvent('input');
@@ -595,11 +634,13 @@ describe('remaining async, timing, and controlled branches', () => {
     const cancel = combobox.on('beforeSelect', (event) => event.preventDefault());
     combobox.select('x');
     cancel();
-    combobox.select('x', { reason: 'pointer', event: new MouseEvent('click') });
+    combobox.select('y', { reason: 'pointer', event: new MouseEvent('click') });
     inputNotify();
     selectedNotify();
+    expect(selectedReason).toBe('pointer');
     remove();
     remove();
+    removeOther();
     combobox.destroy();
   });
 
@@ -630,6 +671,14 @@ describe('Command Palette, Tree, and Navigation branches', () => {
       },
       matcher: (command, value) => (command.text.includes(value) ? 1 : Number.NEGATIVE_INFINITY),
     });
+    const openedWith = vi.fn();
+    const closedWith = vi.fn();
+    palette.on('open', (event) => {
+      openedWith(event.detail.details.reason);
+    });
+    palette.on('close', (event) => {
+      closedWith(event.detail.details.reason);
+    });
     const remove = palette.registerCommand({ id: 'async', text: 'async', perform: performed });
     palette.registerCommand({ id: 'disabled', text: 'disabled', disabled: true, perform: vi.fn() });
     palette.setQuery('async', { reason: 'input', event: new InputEvent('input') });
@@ -637,8 +686,10 @@ describe('Command Palette, Tree, and Navigation branches', () => {
     palette.setQuery('async');
     palette.select('missing');
     palette.select('disabled');
-    palette.open({ reason: 'shortcut', event: key('p') });
-    palette.close({ reason: 'keyboard', event: key('Escape') });
+    palette.open({ reason: 'trigger', event: key('p') });
+    palette.close({ reason: 'outside-pointer', event: new PointerEvent('pointerdown') });
+    expect(openedWith).toHaveBeenCalledWith('trigger');
+    expect(closedWith).toHaveBeenCalledWith('outside-pointer');
     const release = palette.bindShortcut(document);
     document.dispatchEvent(key('x', { altKey: true, shiftKey: true }));
     document.dispatchEvent(key('p', { altKey: false, shiftKey: true }));

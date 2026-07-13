@@ -15,6 +15,7 @@ export default function createNavigationMenuExample({
   const nav = element('nav');
   nav.setAttribute('aria-label', 'Example navigation');
   const panel = element('div', 'Mega-menu content is positioned without runtime CSS.');
+  panel.id = controller.getSnapshot().contentId;
   panel.className = 'example-panel';
   panel.setAttribute('aria-label', 'Navigation content');
   const cleanups: (() => void)[] = [];
@@ -23,7 +24,11 @@ export default function createNavigationMenuExample({
     ['products', 'Products'],
     ['solutions', 'Solutions'],
   ] as const) {
-    const item = button(label, () => controller.openItem(itemId, { reason: 'pointer' }));
+    const item = button(label, () => {
+      if (controller.getSnapshot().openId === itemId) controller.close({ reason: 'pointer' });
+      else controller.openItem(itemId, { reason: 'pointer' });
+    });
+    item.setAttribute('aria-controls', panel.id);
     item.addEventListener('pointerenter', (event) => controller.scheduleOpen(itemId, event));
     item.addEventListener('pointerleave', (event) => controller.scheduleClose(event));
     item.addEventListener('keydown', (event) => controller.handleKeyDown(event));
@@ -49,11 +54,13 @@ export default function createNavigationMenuExample({
   return adaptController(
     controller,
     (snapshot) => {
+      panel.id = snapshot.contentId;
       panel.hidden = snapshot.openId === null;
       panel.style.left = snapshot.position ? `${snapshot.position.x}px` : '';
       panel.style.top = snapshot.position ? `${snapshot.position.y}px` : '';
       triggers.forEach((trigger, index) => {
         const item = snapshot.items[index];
+        trigger.setAttribute('aria-controls', snapshot.contentId);
         trigger.setAttribute('aria-expanded', String(item?.id === snapshot.openId));
       });
     },

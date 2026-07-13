@@ -1,8 +1,8 @@
 import { fuzzyScore } from '../collections/collection';
 import { createControllerHost } from '../core/host';
-import type { ChangeDetails, EventSource, RuntimeController } from '../core/types';
+import type { ChangeDetails, RuntimeController, RuntimeEventSource } from '../core/types';
 import { isAbortError, isHTMLInputElement } from '../dom/dom';
-import type { PositionOptions, PositionResult } from '../positioning/positioning';
+import type { FloatingPositionOptions, PositionResult } from '../positioning/positioning';
 import { createControllableValue } from '../state/controllable';
 import {
   createListbox,
@@ -19,6 +19,16 @@ import {
 
 /** Causes of editable Combobox input changes. @public */
 export type ComboboxInputReason = 'programmatic' | 'input' | 'selection' | 'clear';
+
+/** Causes of Combobox option selection without exposing the internal Listbox engine. @public */
+export type ComboboxSelectReason = 'programmatic' | 'pointer' | 'keyboard';
+
+const normalizeSelectionDetails = (
+  details: ChangeDetails<ListboxChangeReason>,
+): ChangeDetails<ComboboxSelectReason> => {
+  const reason: ComboboxSelectReason = details.reason === 'typeahead' ? 'keyboard' : details.reason;
+  return details.event ? { reason, event: details.event } : { reason };
+};
 
 /** Combobox option with a required consumer value. @public */
 export interface ComboboxOption extends ListboxOption {
@@ -69,7 +79,7 @@ export interface ComboboxSelectEvent {
   /** Selected option. */
   readonly option: Readonly<ComboboxOption>;
   /** Typed selection cause and optional native event. */
-  readonly details: ChangeDetails<ListboxChangeReason>;
+  readonly details: ChangeDetails<ComboboxSelectReason>;
 }
 
 /** Combobox lifecycle event map. @public */
@@ -80,7 +90,7 @@ export interface ComboboxEvents extends Omit<OpenLifecycleEvents, 'stateChange'>
   readonly select: ComboboxSelectEvent;
   /** Event emitted whenever the search query changes. */
   readonly queryChange: ComboboxQueryEvent;
-  /** Event emitted for open, query, async, and selection mutations. */
+  /** Event emitted for accepted open, query, or selection changes. */
   readonly stateChange: OpenChangeEvent | ComboboxQueryEvent | ComboboxSelectEvent;
 }
 
@@ -104,7 +114,7 @@ export interface ComboboxOptions {
   /** Receives accepted selection requests. */
   readonly onSelectedValueChange?: (
     value: string | null,
-    details: ChangeDetails<ListboxChangeReason>,
+    details: ChangeDetails<ComboboxSelectReason>,
   ) => void;
   /** Subscribes to external selection changes. */
   readonly subscribeSelectedValue?: (listener: () => void) => () => void;
@@ -113,14 +123,14 @@ export interface ComboboxOptions {
   /** Loads query-specific options; stale responses are ignored by request generation. */
   readonly loadOptions?: (query: string, signal: AbortSignal) => Promise<readonly ComboboxOption[]>;
   /** Popup positioning options shared with other anchored components. */
-  readonly positioning?: PositionOptions;
+  readonly positioning?: FloatingPositionOptions;
   /** Deterministic ID prefix. */
   readonly id?: string;
 }
 
 /** Headless editable Combobox controller. @public */
 export interface ComboboxController
-  extends RuntimeController<ComboboxSnapshot>, EventSource<ComboboxEvents> {
+  extends RuntimeController<ComboboxSnapshot>, RuntimeEventSource<ComboboxEvents> {
   /** Registers a local option and returns cleanup scoped to that option. */
   registerOption(option: ComboboxOption): () => void;
   /** Binds input/popup DOM through the shared overlay layer. */
@@ -136,7 +146,7 @@ export interface ComboboxController
   /** Commits the final IME value and resumes filtering. */
   handleCompositionEnd(event: CompositionEvent): void;
   /** Selects a visible enabled option. */
-  select(id: string, details?: ChangeDetails<ListboxChangeReason>): void;
+  select(id: string, details?: ChangeDetails<ComboboxSelectReason>): void;
   /** Re-runs async suggestions for the current query. */
   refresh(): Promise<void>;
 }
@@ -215,10 +225,14 @@ export function createCombobox(options: ComboboxOptions = {}): ComboboxControlle
   };
   const commitSelection = (
     _value: string | null,
-    changeDetails?: ChangeDetails<ListboxChangeReason>,
+    changeDetails?: ChangeDetails<ComboboxSelectReason>,
   ): void => {
     sync();
-    if (!changeDetails || !pendingSelection) return;
+    if (!changeDetails) {
+      pendingSelection = undefined;
+      return;
+    }
+    if (!pendingSelection) return;
     const payload = { ...pendingSelection, details: changeDetails };
     pendingSelection = undefined;
     const inputDetails: ChangeDetails<ComboboxInputReason> = {
@@ -243,7 +257,7 @@ export function createCombobox(options: ComboboxOptions = {}): ComboboxControlle
     },
     commitInput,
   );
-  const selectedState = createControllableValue<string | null, ListboxChangeReason>(
+  const selectedState = createControllableValue<string | null, ComboboxSelectReason>(
     {
       defaultValue: options.defaultSelectedValue ?? null,
       ...(options.getSelectedValue ? { getValue: options.getSelectedValue } : {}),
@@ -294,7 +308,7 @@ export function createCombobox(options: ComboboxOptions = {}): ComboboxControlle
   };
   const selectOption = (
     id: string,
-    changeDetails: ChangeDetails<ListboxChangeReason> = { reason: 'programmatic' },
+    changeDetails: ChangeDetails<ComboboxSelectReason> = { reason: 'programmatic' },
   ): void => listbox.select(id, changeDetails);
   host.resources.add(listbox.subscribe(sync));
   host.resources.add(overlay.subscribe(sync));
@@ -319,7 +333,13 @@ export function createCombobox(options: ComboboxOptions = {}): ComboboxControlle
       const option =
         localOptions.get(event.detail.option.id) ??
         asyncOptions.find((item) => item.id === event.detail.option.id);
-      if (!option || !host.emit('beforeSelect', { option, details: event.detail.details }))
+      if (
+        !option ||
+        !host.emit('beforeSelect', {
+          option,
+          details: normalizeSelectionDetails(event.detail.details),
+        })
+      )
         event.preventDefault();
     }),
   );
@@ -330,10 +350,11 @@ export function createCombobox(options: ComboboxOptions = {}): ComboboxControlle
         localOptions.get(selection.option.id) ??
         asyncOptions.find((item) => item.id === selection.option.id);
       if (!option) return;
-      const payload = { option, details: selection.details };
+      const selectionDetails = normalizeSelectionDetails(selection.details);
+      const payload = { option, details: selectionDetails };
       pendingSelection = payload;
-      if (selectedState.set(option.value, selection.details))
-        commitSelection(option.value, selection.details);
+      if (selectedState.set(option.value, selectionDetails))
+        commitSelection(option.value, selectionDetails);
     }),
   );
   host.resources.add(() => inputState.destroy());
@@ -351,13 +372,14 @@ export function createCombobox(options: ComboboxOptions = {}): ComboboxControlle
     once: host.once,
     registerOption(option) {
       if (!host.alive()) return () => undefined;
-      localOptions.set(option.id, Object.freeze({ ...option }));
+      const registration = Object.freeze({ ...option });
+      localOptions.set(option.id, registration);
       rebuildVisible();
       let active = true;
       return () => {
         if (!active) return;
         active = false;
-        if (localOptions.get(option.id)?.value === option.value) localOptions.delete(option.id);
+        if (localOptions.get(option.id) === registration) localOptions.delete(option.id);
         rebuildVisible();
       };
     },

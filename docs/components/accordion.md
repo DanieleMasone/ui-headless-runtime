@@ -52,7 +52,7 @@ Create Accordion during component mount or setup, subscribe before rendering der
 
 ## Controlled mode
 
-Controlled accordions report the requested expanded value array/string and wait for the consumer store to commit it.
+Controlled accordions report the requested `readonly string[]` of expanded item IDs and wait for the consumer store to commit it.
 
 ## Uncontrolled mode
 
@@ -72,9 +72,9 @@ Uncontrolled accordions own the expanded set and active trigger.
 
 ## Keyboard interaction
 
-- Arrow keys: Move the active item, skipping disabled items.
-- Home / End: Move to the first or last enabled item.
-- Type characters: Move by normalized typeahead.
+- ArrowDown / ArrowUp: Move focus between enabled triggers.
+- Home / End: Move focus to the first or last enabled trigger.
+- Enter / Space: Toggle the focused section.
 
 ## Focus behavior
 

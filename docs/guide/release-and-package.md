@@ -13,7 +13,9 @@ The package is configured for npm Trusted Publishing through GitHub Releases.
 
 ## Release status
 
-`ui-headless-runtime@0.1.0` is published on npm under the `latest` dist-tag. It was published manually as the one-time package creation release. Do not rerun `v0.1.0` to publish it again; npm versions are immutable. Future versions publish from the verified GitHub Release workflow through npm Trusted Publishing OIDC.
+`ui-headless-runtime@0.1.0` was published manually as the one-time package creation release. Version `0.1.1` was published successfully by the GitHub Release workflow through npm Trusted Publishing OIDC and is the current `latest` version. Do not rerun either release; npm versions are immutable. Future versions, including `1.0.0`, publish through the same verified GitHub Release and OIDC path.
+
+Consumers upgrading from `0.1.x` should review the [1.0 migration guide](./migrating-to-1.0) before adopting the stable package-root API.
 
 ## Verification
 

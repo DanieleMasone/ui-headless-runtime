@@ -13,6 +13,7 @@ Framework-agnostic TypeScript controllers for accessible, customizable UI behavi
 - [Live demo](https://danielemasone.github.io/ui-headless-runtime/)
 - [User Guide](https://danielemasone.github.io/ui-headless-runtime/docs/guide/)
 - [Framework integration recipes](https://danielemasone.github.io/ui-headless-runtime/docs/guide/framework-integration.html)
+- [Migrating from 0.1.x](https://danielemasone.github.io/ui-headless-runtime/docs/guide/migrating-to-1.0.html)
 - [Documentation](https://danielemasone.github.io/ui-headless-runtime/docs/)
 - [API reference](https://danielemasone.github.io/ui-headless-runtime/api/)
 - [Coverage report](https://danielemasone.github.io/ui-headless-runtime/coverage/)
@@ -106,7 +107,11 @@ Useful commands are documented in [CONTRIBUTING.md](CONTRIBUTING.md). Generated 
 
 ## Release
 
-Version `0.1.0` was published manually as the one-time package creation release. Future versions publish only from a GitHub Release with a matching `vX.Y.Z` tag through npm Trusted Publishing OIDC; no persistent npm publish token or npm GitHub environment is used. See [release operations](https://danielemasone.github.io/ui-headless-runtime/docs/releasing.html).
+Version `0.1.0` was the one-time manual package creation release. Version `0.1.1` then
+validated the GitHub Release and npm Trusted Publishing OIDC pipeline. Neither immutable npm
+version should be rerun; future releases, including `1.0.0`, publish only from a GitHub Release
+with a matching `vX.Y.Z` tag through OIDC. No persistent npm publish token or npm GitHub
+environment is used. See [release operations](https://danielemasone.github.io/ui-headless-runtime/docs/releasing.html).
 
 ## Contributing
 

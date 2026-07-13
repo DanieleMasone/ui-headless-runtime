@@ -47,8 +47,8 @@ Create Combobox during component mount or setup, subscribe before rendering deri
 
 ## Change reasons
 
-- Change reasons: `programmatic`, `input`, `selection`, `clear`, `pointer`, `keyboard`, `typeahead`, `trigger`, `escape-key`, `outside-pointer`, `focus-out`, `context-menu`, `hover`, `focus`.
-- Input/query events use `ComboboxInputReason`, selection uses `ListboxChangeReason`, and inherited overlay lifecycle events use `OpenChangeReason`.
+- Change reasons: `programmatic`, `input`, `selection`, `clear`, `pointer`, `keyboard`, `trigger`, `escape-key`, `outside-pointer`, `focus-out`, `context-menu`, `hover`, `focus`.
+- Input/query events use `ComboboxInputReason`, selection uses `ComboboxSelectReason`, and inherited overlay lifecycle events use `OpenChangeReason`.
 
 ## Controlled mode
 

@@ -8,7 +8,7 @@ Install Node 24 and npm 11, clone the repository, and run `npm ci`. Run `npm run
 
 Run `npm run format`, `npm run lint`, `npm run unused:check`, and `npm run typecheck`. Unit tests use `npm run test:unit`; coverage uses `npm run test:coverage`; real-browser integration uses `npm run test:browser`. Playwright uses the production `site-dist` artifact, so run coverage, `npm run build`, `npm run docs:check`, `npm run build:site`, and `npm run site:check` before `npm run test:acceptance`.
 
-Dependency version updates are manual. Run `npm outdated` and `npm audit` before each release, quarterly during maintenance, and immediately when a security alert requires action. Dependabot security alerts and the dependency graph remain useful, but version-update PRs are intentionally disabled to avoid noisy grouped toolchain updates.
+Dependency version updates are manual. Run `npm outdated` and `npm audit` before each release, quarterly during maintenance, and immediately when a security alert requires action. Dependabot security alerts and the dependency graph remain useful, but version-update PRs are intentionally disabled to avoid noisy grouped toolchain updates. The exact `vitepress@2.0.0-alpha.17` development dependency is a documentation-only exception because the latest stable line resolves to Vite/esbuild versions with unresolved npm advisories; replace it only with a stable audit-clean release that passes documentation, site, and acceptance gates.
 
 ## Public API and docs
 

@@ -7,7 +7,6 @@ import {
   createTooltip,
   type ToastRecord,
 } from '../../packages/ui-headless-runtime/src/index';
-
 beforeAll(() => {
   if (globalThis.PointerEvent === undefined) {
     Object.defineProperty(globalThis, 'PointerEvent', { value: MouseEvent, configurable: true });
@@ -114,6 +113,535 @@ describe('Dialog and Popover overlays', () => {
     expect(parent.getSnapshot().open).toBe(false);
     child.destroy();
     parent.destroy();
+
+    const destroyed = createDialog();
+    destroyed.destroy();
+    const lateBackdrop = document.createElement('div');
+    destroyed.bind({ content: contentA, backdrop: lateBackdrop })();
+    expect(destroyed.getSnapshot().hasBackdrop).toBe(false);
+  });
+
+  it('coordinates focus and inert state for nested modal content and out-of-order closes', () => {
+    const app = document.createElement('main');
+    const parentTrigger = document.createElement('button');
+    const parentPortal = document.createElement('div');
+    const parentContent = document.createElement('div');
+    const parentAction = document.createElement('button');
+    const childTrigger = document.createElement('button');
+    const childBackdrop = document.createElement('div');
+    const childContent = document.createElement('div');
+    const childAction = document.createElement('button');
+    app.append(parentTrigger);
+    childContent.append(childAction);
+    parentContent.append(parentAction, childTrigger, childBackdrop, childContent);
+    parentPortal.append(parentContent);
+    document.body.append(app, parentPortal);
+    visible(parentAction);
+    visible(childAction);
+    parentTrigger.focus();
+
+    const parent = createDialog({ initialFocus: () => parentAction });
+    const child = createDialog({ initialFocus: () => childAction });
+    const releaseInitialParentBinding = parent.bind({
+      trigger: parentTrigger,
+      content: parentContent,
+    });
+    child.bind({ trigger: childTrigger, content: childContent, backdrop: childBackdrop });
+
+    parent.open();
+    expect(document.activeElement).toBe(parentAction);
+    child.open();
+    expect(document.activeElement).toBe(childAction);
+    expect(parent.getSnapshot()).toMatchObject({ open: true, topmost: false });
+    expect(child.getSnapshot()).toMatchObject({ open: true, topmost: true });
+    expect(app.inert).toBe(true);
+    expect(parentAction.inert).toBe(true);
+    expect(childTrigger.inert).toBe(true);
+    expect(childBackdrop.inert).not.toBe(true);
+    expect(childContent.inert).not.toBe(true);
+
+    releaseInitialParentBinding();
+    const releaseParentRebind = parent.bind({ trigger: parentTrigger, content: parentContent });
+    expect(child.getSnapshot().topmost).toBe(true);
+    expect(document.activeElement).toBe(childAction);
+    const outside = document.createElement('button');
+    document.body.append(outside);
+    outside.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    expect(child.getSnapshot().open).toBe(false);
+    expect(parent.getSnapshot()).toMatchObject({ open: true, topmost: true });
+
+    child.open();
+    childBackdrop.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    expect(child.getSnapshot().open).toBe(false);
+    expect(parent.getSnapshot()).toMatchObject({ open: true, topmost: true });
+    expect(parentAction.inert).not.toBe(true);
+    expect(app.inert).toBe(true);
+
+    child.open();
+    parent.close();
+    expect(parent.getSnapshot().open).toBe(false);
+    expect(child.getSnapshot()).toMatchObject({ open: true, topmost: true });
+    expect(parentAction.inert).toBe(true);
+    expect(app.inert).toBe(true);
+    expect(document.activeElement).toBe(childAction);
+    child.close();
+    expect(app.inert).not.toBe(true);
+    expect(parentAction.inert).not.toBe(true);
+    expect(document.documentElement.style.overflow).toBe('');
+
+    releaseParentRebind();
+    child.destroy();
+    parent.destroy();
+  });
+
+  it('finishes destroyed modal cleanup before publishing the restored topmost layer', () => {
+    const parentContent = document.createElement('div');
+    const parentAction = document.createElement('button');
+    const childContent = document.createElement('div');
+    const childAction = document.createElement('button');
+    childContent.append(childAction);
+    parentContent.append(parentAction, childContent);
+    document.body.append(parentContent);
+    visible(parentAction);
+    visible(childAction);
+    const parent = createDialog({ initialFocus: () => parentAction });
+    const child = createDialog({ initialFocus: () => childAction });
+    const originalParentActionInert = parentAction.inert;
+    parent.bind({ content: parentContent });
+    child.bind({ content: childContent });
+    parent.open();
+    child.open();
+    expect(parentAction.inert).toBe(true);
+
+    const inertWhenParentRegainedTopmost: boolean[] = [];
+    parent.subscribe((snapshot) => {
+      if (snapshot.open && snapshot.topmost) {
+        inertWhenParentRegainedTopmost.push(parentAction.inert);
+      }
+    });
+    child.destroy();
+
+    expect(parent.getSnapshot()).toMatchObject({ open: true, topmost: true });
+    expect(inertWhenParentRegainedTopmost).toEqual([originalParentActionInert]);
+    expect(parentAction.inert).toBe(originalParentActionInert);
+    parent.destroy();
+  });
+
+  it('preserves modal focus ownership across rebinds and controlled external close', () => {
+    const outside = document.createElement('button');
+    const content = document.createElement('div');
+    const first = document.createElement('button');
+    const last = document.createElement('button');
+    content.append(first, last);
+    document.body.append(outside, content);
+    visible(first);
+    visible(last);
+    visible(outside);
+    outside.focus();
+    const dialog = createDialog({ initialFocus: () => outside });
+    const releaseInitialBinding = dialog.bind({ content });
+    dialog.open();
+    expect(document.activeElement).toBe(first);
+    last.focus();
+    releaseInitialBinding();
+    const releaseReboundBinding = dialog.bind({ content });
+    expect(document.activeElement).toBe(last);
+    dialog.close();
+    expect(document.activeElement).toBe(outside);
+    releaseReboundBinding();
+    dialog.destroy();
+
+    let open = true;
+    let notify: () => void = () => undefined;
+    const trigger = document.createElement('button');
+    document.body.append(trigger);
+    const controlled = createDialog({
+      getValue: () => open,
+      subscribeValue(listener) {
+        notify = listener;
+        return () => undefined;
+      },
+      initialFocus: () => first,
+    });
+    controlled.bind({ trigger, content });
+    expect(document.activeElement).toBe(first);
+    open = false;
+    notify();
+    expect(document.activeElement).toBe(trigger);
+    controlled.destroy();
+  });
+
+  it('focuses replacement content when a topmost modal is rebound during its open session', () => {
+    const outside = document.createElement('button');
+    const originalContent = document.createElement('div');
+    const originalAction = document.createElement('button');
+    const replacementContent = document.createElement('div');
+    const replacementAction = document.createElement('button');
+    originalContent.append(originalAction);
+    replacementContent.append(replacementAction);
+    document.body.append(outside, originalContent, replacementContent);
+    visible(outside);
+    visible(originalAction);
+    visible(replacementAction);
+    outside.focus();
+
+    let preferredFocus = originalAction;
+    const dialog = createDialog({ initialFocus: () => preferredFocus });
+    const releaseOriginalBinding = dialog.bind({ content: originalContent });
+    dialog.open();
+    expect(document.activeElement).toBe(originalAction);
+
+    releaseOriginalBinding();
+    originalContent.remove();
+    preferredFocus = replacementAction;
+    const releaseReplacementBinding = dialog.bind({ content: replacementContent });
+    expect(dialog.getSnapshot()).toMatchObject({ open: true, topmost: true });
+    expect(document.activeElement).toBe(replacementAction);
+
+    dialog.close();
+    expect(document.activeElement).toBe(outside);
+    releaseReplacementBinding();
+    dialog.destroy();
+  });
+
+  it('keeps binding ownership per registration and cleans up fallback focus without clobbering consumers', () => {
+    const originalTrigger = document.createElement('button');
+    const replacementTrigger = document.createElement('button');
+    const content = document.createElement('div');
+    const backdrop = document.createElement('div');
+    document.body.append(originalTrigger, replacementTrigger, content, backdrop);
+    originalTrigger.focus();
+    const dialog = createDialog();
+    const elements = { trigger: originalTrigger, content, backdrop };
+    const releaseFirst = dialog.bind(elements);
+    const releaseLatest = dialog.bind(elements);
+
+    releaseFirst();
+    dialog.open();
+    expect(dialog.getSnapshot()).toMatchObject({ open: true, topmost: true, hasBackdrop: true });
+    expect(document.activeElement).toBe(content);
+    expect(content.getAttribute('tabindex')).toBe('-1');
+    dialog.close();
+    expect(content.hasAttribute('tabindex')).toBe(false);
+    expect(document.activeElement).toBe(originalTrigger);
+
+    dialog.open();
+    content.tabIndex = 0;
+    originalTrigger.remove();
+    const releaseReplacement = dialog.bind({ trigger: replacementTrigger, content, backdrop });
+    dialog.close();
+    expect(content.getAttribute('tabindex')).toBe('0');
+    expect(document.activeElement).toBe(replacementTrigger);
+
+    releaseLatest();
+    expect(dialog.getSnapshot().hasBackdrop).toBe(true);
+    releaseReplacement();
+    expect(dialog.getSnapshot().hasBackdrop).toBe(false);
+    dialog.destroy();
+  });
+
+  it('restores to the current trigger when the captured trigger disconnects after a rebind', () => {
+    const originalTrigger = document.createElement('button');
+    const currentTrigger = document.createElement('button');
+    const content = document.createElement('div');
+    const action = document.createElement('button');
+    content.append(action);
+    document.body.append(originalTrigger, currentTrigger, content);
+    visible(action);
+    originalTrigger.focus();
+    const dialog = createDialog({ initialFocus: () => action });
+    dialog.bind({ trigger: originalTrigger, content });
+    dialog.open();
+    dialog.bind({ trigger: currentTrigger, content });
+    originalTrigger.remove();
+
+    dialog.close();
+
+    expect(document.activeElement).toBe(currentTrigger);
+    dialog.destroy();
+  });
+
+  it('does not let restore fallback steal focus from a reentrant open session', () => {
+    const originalTrigger = document.createElement('button');
+    const currentTrigger = document.createElement('button');
+    const content = document.createElement('div');
+    const action = document.createElement('button');
+    content.append(action);
+    document.body.append(originalTrigger, currentTrigger, content);
+    visible(action);
+    originalTrigger.focus();
+    const dialog = createDialog({ initialFocus: () => action });
+    dialog.bind({ trigger: originalTrigger, content });
+    dialog.open();
+    dialog.bind({ trigger: currentTrigger, content });
+    originalTrigger.addEventListener(
+      'focus',
+      () => {
+        dialog.open();
+      },
+      { once: true },
+    );
+
+    dialog.close();
+
+    expect(dialog.getSnapshot().open).toBe(true);
+    expect(document.activeElement).toBe(action);
+    dialog.destroy();
+  });
+
+  it('revalidates an open session after reentrant initial-focus callbacks', () => {
+    const trigger = document.createElement('button');
+    const firstContent = document.createElement('div');
+    const firstAction = document.createElement('button');
+    const replacementContent = document.createElement('div');
+    const replacementAction = document.createElement('button');
+    firstContent.append(firstAction);
+    replacementContent.append(replacementAction);
+    document.body.append(trigger, firstContent, replacementContent);
+    visible(firstAction);
+    visible(replacementAction);
+    trigger.focus();
+    let shouldRebind = true;
+    let dialog = createDialog({
+      initialFocus() {
+        if (shouldRebind) {
+          shouldRebind = false;
+          dialog.bind({ trigger, content: replacementContent });
+          return firstAction;
+        }
+        return replacementAction;
+      },
+    });
+    dialog.bind({ trigger, content: firstContent });
+    dialog.open();
+    expect(dialog.getSnapshot().open).toBe(true);
+    expect(document.activeElement).toBe(replacementAction);
+    dialog.destroy();
+
+    trigger.focus();
+    dialog = createDialog({
+      initialFocus() {
+        dialog.close();
+        return firstAction;
+      },
+    });
+    dialog.bind({ trigger, content: firstContent });
+    dialog.open();
+    expect(dialog.getSnapshot().open).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+    expect(firstContent.hasAttribute('tabindex')).toBe(false);
+
+    trigger.focus();
+    dialog = createDialog({
+      initialFocus() {
+        dialog.destroy();
+        return firstAction;
+      },
+    });
+    dialog.bind({ trigger, content: firstContent });
+    dialog.open();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('does not focus a parent whose initial-focus resolver opens a higher overlay', () => {
+    const parentContent = document.createElement('div');
+    const parentAction = document.createElement('button');
+    const childContent = document.createElement('div');
+    const childAction = document.createElement('button');
+    parentContent.append(parentAction);
+    childContent.append(childAction);
+    document.body.append(parentContent, childContent);
+    visible(parentAction);
+    visible(childAction);
+    const child = createDialog({ initialFocus: () => childAction });
+    child.bind({ content: childContent });
+    const parent = createDialog({
+      initialFocus() {
+        child.open();
+        return parentAction;
+      },
+    });
+    parent.bind({ content: parentContent });
+
+    parent.open();
+
+    expect(parent.getSnapshot()).toMatchObject({ open: true, topmost: false });
+    expect(child.getSnapshot()).toMatchObject({ open: true, topmost: true });
+    expect(document.activeElement).toBe(childAction);
+    child.destroy();
+    parent.destroy();
+  });
+
+  it('abandons stale open and close lifecycles when snapshot subscribers reverse transitions', () => {
+    const trigger = document.createElement('button');
+    const content = document.createElement('div');
+    const action = document.createElement('button');
+    content.append(action);
+    document.body.append(trigger, content);
+    visible(action);
+    trigger.focus();
+    const dialog = createDialog({ initialFocus: () => action });
+    dialog.bind({ trigger, content });
+    const opened = vi.fn();
+    const afterOpened = vi.fn();
+    const closed = vi.fn();
+    const afterClosed = vi.fn();
+    dialog.on('open', opened);
+    dialog.on('afterOpen', afterOpened);
+    dialog.on('close', closed);
+    dialog.on('afterClose', afterClosed);
+    let reverseOpen = true;
+    const releaseOpenReversal = dialog.subscribe((snapshot) => {
+      if (reverseOpen && snapshot.open) {
+        reverseOpen = false;
+        dialog.close();
+      }
+    });
+
+    dialog.open();
+    expect(dialog.getSnapshot()).toMatchObject({ open: false, topmost: false });
+    expect(opened).not.toHaveBeenCalled();
+    expect(afterOpened).not.toHaveBeenCalled();
+    expect(closed).toHaveBeenCalledOnce();
+    expect(afterClosed).toHaveBeenCalledOnce();
+    expect(document.documentElement.style.overflow).toBe('');
+    releaseOpenReversal();
+
+    dialog.open();
+    expect(document.activeElement).toBe(action);
+    opened.mockClear();
+    afterOpened.mockClear();
+    closed.mockClear();
+    afterClosed.mockClear();
+    let reverseClose = true;
+    const releaseCloseReversal = dialog.subscribe((snapshot) => {
+      if (reverseClose && !snapshot.open) {
+        reverseClose = false;
+        dialog.open();
+      }
+    });
+    dialog.close();
+    expect(dialog.getSnapshot()).toMatchObject({ open: true, topmost: true });
+    expect(closed).not.toHaveBeenCalled();
+    expect(afterClosed).not.toHaveBeenCalled();
+    expect(opened).toHaveBeenCalledOnce();
+    expect(afterOpened).toHaveBeenCalledOnce();
+    expect(document.activeElement).toBe(action);
+    releaseCloseReversal();
+    dialog.close();
+    expect(document.activeElement).toBe(trigger);
+    dialog.destroy();
+  });
+
+  it('ignores same-direction commands issued during their own cancellable lifecycle', () => {
+    const popover = createPopover();
+    const beforeOpen = vi.fn(() => {
+      popover.open();
+      popover.toggle();
+    });
+    const beforeClose = vi.fn(() => {
+      popover.close();
+      popover.toggle();
+    });
+    const opened = vi.fn();
+    const closed = vi.fn();
+    popover.on('beforeOpen', beforeOpen);
+    popover.on('beforeClose', beforeClose);
+    popover.on('open', opened);
+    popover.on('close', closed);
+
+    popover.open();
+    expect(popover.getSnapshot().open).toBe(true);
+    expect(beforeOpen).toHaveBeenCalledOnce();
+    expect(opened).toHaveBeenCalledOnce();
+
+    popover.close();
+    expect(popover.getSnapshot().open).toBe(false);
+    expect(beforeClose).toHaveBeenCalledOnce();
+    expect(closed).toHaveBeenCalledOnce();
+    popover.destroy();
+  });
+
+  it('stabilizes stack membership when a topmost publication closes its predecessor', () => {
+    const parentContent = document.createElement('div');
+    const childContent = document.createElement('div');
+    document.body.append(parentContent, childContent);
+    const parent = createPopover();
+    const child = createPopover();
+    parent.bind({ content: parentContent });
+    child.bind({ content: childContent });
+    parent.open();
+    let closeParent = true;
+    parent.subscribe((snapshot) => {
+      if (closeParent && snapshot.open && !snapshot.topmost) {
+        closeParent = false;
+        parent.close();
+      }
+    });
+
+    child.open();
+    expect(parent.getSnapshot()).toMatchObject({ open: false, topmost: false });
+    expect(child.getSnapshot()).toMatchObject({ open: true, topmost: true });
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+    );
+    expect(child.getSnapshot()).toMatchObject({ open: false, topmost: false });
+    child.destroy();
+    parent.destroy();
+  });
+
+  it('extends a modal focus and inert scope through a portalled non-trapping overlay', () => {
+    const app = document.createElement('main');
+    const parentPortal = document.createElement('div');
+    const childPortal = document.createElement('div');
+    const parentTrigger = document.createElement('button');
+    const parentContent = document.createElement('div');
+    const parentFirst = document.createElement('button');
+    const parentLast = document.createElement('button');
+    const childContent = document.createElement('div');
+    const childFirst = document.createElement('button');
+    const childLast = document.createElement('button');
+    app.append(parentTrigger);
+    parentContent.append(parentFirst, parentLast);
+    childContent.append(childFirst, childLast);
+    parentPortal.append(parentContent);
+    childPortal.append(childContent);
+    document.body.append(app, parentPortal, childPortal);
+    for (const element of [parentFirst, parentLast, childFirst, childLast]) visible(element);
+    parentTrigger.focus();
+
+    const parent = createDialog({ initialFocus: () => parentFirst });
+    const child = createPopover({ closeOnFocusOutside: false });
+    parent.bind({ trigger: parentTrigger, content: parentContent });
+    child.bind({ content: childContent });
+    parent.open();
+    child.open();
+    expect(app.inert).toBe(true);
+    expect(childPortal.inert).not.toBe(true);
+    expect(childContent.closest('[inert]')).toBeNull();
+
+    childLast.focus();
+    childLast.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }),
+    );
+    expect(document.activeElement).toBe(parentFirst);
+    parentFirst.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Tab',
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    expect(document.activeElement).toBe(childLast);
+
+    child.close();
+    expect(childPortal.inert).toBe(true);
+    parent.close();
+    expect(app.inert).not.toBe(true);
+    expect(childPortal.inert).not.toBe(true);
+    child.destroy();
+    parent.destroy();
   });
 
   it('recognizes a dynamically stacked descendant overlay without an explicit branch', () => {
@@ -130,6 +658,84 @@ describe('Dialog and Popover overlays', () => {
     expect(parent.getSnapshot().open).toBe(true);
     child.destroy();
     parent.destroy();
+  });
+
+  it('preserves a detached middle overlay session order when a predecessor closes', () => {
+    const firstContent = document.createElement('div');
+    const middleContent = document.createElement('div');
+    const topContent = document.createElement('div');
+    document.body.append(firstContent, middleContent, topContent);
+    const first = createPopover();
+    const middle = createPopover();
+    const top = createPopover();
+    first.bind({ content: firstContent });
+    const releaseMiddle = middle.bind({ content: middleContent });
+    top.bind({ content: topContent });
+    first.open();
+    middle.open();
+    top.open();
+    expect(top.getSnapshot().topmost).toBe(true);
+
+    releaseMiddle();
+    first.close();
+    middle.bind({ content: middleContent });
+    expect(top.getSnapshot().topmost).toBe(true);
+    expect(middle.getSnapshot()).toMatchObject({ open: true, topmost: false });
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+    );
+    expect(top.getSnapshot().open).toBe(false);
+    expect(middle.getSnapshot()).toMatchObject({ open: true, topmost: true });
+
+    top.destroy();
+    middle.destroy();
+    first.destroy();
+  });
+
+  it('does not restore detached middle-dialog focus over a higher open dialog', () => {
+    const firstTrigger = document.createElement('button');
+    const middleTrigger = document.createElement('button');
+    const topTrigger = document.createElement('button');
+    const firstContent = document.createElement('div');
+    const middleContent = document.createElement('div');
+    const topContent = document.createElement('div');
+    const firstAction = document.createElement('button');
+    const middleAction = document.createElement('button');
+    const topAction = document.createElement('button');
+    firstContent.append(firstAction);
+    middleContent.append(middleAction);
+    topContent.append(topAction);
+    document.body.append(
+      firstTrigger,
+      middleTrigger,
+      topTrigger,
+      firstContent,
+      middleContent,
+      topContent,
+    );
+    visible(firstAction);
+    visible(middleAction);
+    visible(topAction);
+    const first = createDialog({ modal: false, initialFocus: () => firstAction });
+    const middle = createDialog({ modal: false, initialFocus: () => middleAction });
+    const top = createDialog({ modal: false, initialFocus: () => topAction });
+    first.bind({ trigger: firstTrigger, content: firstContent });
+    const releaseMiddle = middle.bind({ trigger: middleTrigger, content: middleContent });
+    top.bind({ trigger: topTrigger, content: topContent });
+    first.open();
+    middle.open();
+    top.open();
+    expect(document.activeElement).toBe(topAction);
+
+    releaseMiddle();
+    middle.close();
+    expect(middle.getSnapshot().open).toBe(false);
+    expect(top.getSnapshot()).toMatchObject({ open: true, topmost: true });
+    expect(document.activeElement).toBe(topAction);
+
+    top.destroy();
+    middle.destroy();
+    first.destroy();
   });
 
   it('supports cancellable controlled popover state, positioning, branches and focus-out', () => {
@@ -557,6 +1163,42 @@ describe('Combobox async and input behavior', () => {
     combobox.destroy();
   });
 
+  it('does not attribute a later external Combobox value to a superseded request', () => {
+    let selectedValue: string | null = null;
+    let notifySelection: () => void = () => undefined;
+    const selectionRequest = vi.fn<(value: string | null) => void>();
+    const combobox = createCombobox({
+      getSelectedValue: () => selectedValue,
+      onSelectedValueChange: selectionRequest,
+      subscribeSelectedValue(listener) {
+        notifySelection = listener;
+        return () => undefined;
+      },
+    });
+    combobox.registerOption({ id: 'alpha', text: 'Alpha', value: 'a' });
+    combobox.registerOption({ id: 'beta', text: 'Beta', value: 'b' });
+    const selected = vi.fn();
+    const queryChanged = vi.fn();
+    combobox.on('select', selected);
+    combobox.on('queryChange', queryChanged);
+
+    combobox.select('alpha', { reason: 'keyboard' });
+    expect(selectionRequest).toHaveBeenCalledWith('a', { reason: 'keyboard' });
+    selectedValue = 'b';
+    notifySelection();
+    selectedValue = 'a';
+    notifySelection();
+
+    expect(combobox.getSnapshot()).toMatchObject({
+      selectedValue: 'a',
+      inputValue: '',
+      query: '',
+    });
+    expect(selected).not.toHaveBeenCalled();
+    expect(queryChanged).not.toHaveBeenCalled();
+    combobox.destroy();
+  });
+
   it('commits subscribed Combobox stores, preserves replacement registrations, and handles input edges', () => {
     let inputValue = '';
     let selectedValue: string | null = null;
@@ -579,9 +1221,12 @@ describe('Combobox async and input behavior', () => {
       },
       filter: (option, query) => option.text.toLowerCase().startsWith(query.toLowerCase()),
     });
-    const stale = combobox.registerOption({ id: 'item', text: 'Old', value: 'old' });
+    const stale = combobox.registerOption({ id: 'item', text: 'Old', value: 'item' });
     const current = combobox.registerOption({ id: 'item', text: 'Item', value: 'item' });
     stale();
+    expect(combobox.getSnapshot().options).toEqual([
+      expect.objectContaining({ id: 'item', text: 'Item', value: 'item' }),
+    ]);
     inputValue = 'External';
     notifyInput();
     selectedValue = 'external-selection';

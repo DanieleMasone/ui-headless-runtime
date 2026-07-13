@@ -1,8 +1,8 @@
-import type { EventSource, RuntimeController } from 'ui-headless-runtime';
+import type { RuntimeController, RuntimeEventSource } from 'ui-headless-runtime';
 import type { DemoEvent, ExampleInstance } from './types';
 
 export const adaptController = <TSnapshot extends object, TEvents extends object>(
-  controller: RuntimeController<TSnapshot> & EventSource<TEvents>,
+  controller: RuntimeController<TSnapshot> & RuntimeEventSource<TEvents>,
   render: (snapshot: Readonly<TSnapshot>) => void,
   emit: (event: DemoEvent) => void,
   cleanup: () => void = () => undefined,

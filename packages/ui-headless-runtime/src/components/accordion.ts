@@ -1,10 +1,11 @@
+import { createRuntimeId } from '../accessibility/ids';
 import { createCollection, type CollectionItem } from '../collections/collection';
 import { createControllerHost } from '../core/host';
 import type {
   ChangeDetails,
   ControllableValueOptions,
-  EventSource,
   RuntimeController,
+  RuntimeEventSource,
 } from '../core/types';
 import { focusById } from '../focus/focus';
 import { createControllableValue } from '../state/controllable';
@@ -88,7 +89,7 @@ export interface AccordionOptions extends Partial<
 
 /** Headless Accordion controller. @public */
 export interface AccordionController
-  extends RuntimeController<AccordionSnapshot>, EventSource<AccordionEvents> {
+  extends RuntimeController<AccordionSnapshot>, RuntimeEventSource<AccordionEvents> {
   /** Registers an item and optional trigger element for roving focus. */
   registerItem(item: AccordionItem, trigger?: HTMLElement): () => void;
   /** Toggles an item according to single/multiple and collapsible rules. */
@@ -102,9 +103,10 @@ export interface AccordionController
 /** Creates an Accordion that reuses the shared collection and controllable-state layers. @public */
 export function createAccordion(options: AccordionOptions = {}): AccordionController {
   const type = options.type ?? 'single';
-  const prefix = options.id ?? 'accordion';
+  const prefix = options.id ?? createRuntimeId('accordion');
   const collection = createCollection<AccordionItem>();
   const triggers = new Map<string, HTMLElement>();
+  const registrations = new Map<string, symbol>();
   let focusedId: string | null = null;
   const build = (expandedIds: readonly string[], controlled: boolean): AccordionSnapshot => ({
     type,
@@ -183,6 +185,8 @@ export function createAccordion(options: AccordionOptions = {}): AccordionContro
   };
   host.resources.add(() => state.destroy());
   host.resources.add(() => collection.clear());
+  host.resources.add(() => triggers.clear());
+  host.resources.add(() => registrations.clear());
   return {
     getSnapshot: host.getSnapshot,
     subscribe: host.subscribe,
@@ -191,22 +195,32 @@ export function createAccordion(options: AccordionOptions = {}): AccordionContro
     once: host.once,
     registerItem(item, trigger) {
       if (!host.alive()) return () => undefined;
+      const token = Symbol(item.id);
+      registrations.set(item.id, token);
       const unregister = collection.register(item);
       if (trigger) triggers.set(item.id, trigger);
+      else triggers.delete(item.id);
       if (!focusedId && !item.disabled) focusedId = item.id;
+      else if (focusedId === item.id && item.disabled) focusedId = collection.edge('first') ?? null;
       sync();
       let active = true;
       return () => {
         if (!active) return;
         active = false;
         unregister();
-        if (triggers.get(item.id) === trigger) triggers.delete(item.id);
-        if (focusedId === item.id) focusedId = collection.edge('first') ?? null;
+        if (registrations.get(item.id) === token) {
+          registrations.delete(item.id);
+          triggers.delete(item.id);
+        }
+        const current = collection.get(item.id);
+        if (focusedId === item.id && (!current || current.disabled))
+          focusedId = collection.edge('first') ?? null;
         sync();
       };
     },
     toggle,
     handleTriggerKeyDown(itemId, event) {
+      if (!host.alive()) return;
       let target: string | undefined;
       if (event.key === 'ArrowDown') target = collection.move(itemId, 1, options.loop ?? true);
       else if (event.key === 'ArrowUp') target = collection.move(itemId, -1, options.loop ?? true);

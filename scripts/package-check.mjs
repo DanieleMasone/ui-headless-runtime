@@ -16,6 +16,30 @@ const runtimeDependencySections = [
   'bundleDependencies',
   'bundledDependencies',
 ];
+const internalRuntimeExports = [
+  'createCollection',
+  'createControllableValue',
+  'createDisposableScope',
+  'createEventEmitter',
+  'createRuntimeId',
+  'createTimeoutManager',
+  'eventTargets',
+  'findTypeaheadMatch',
+  'focusById',
+  'focusInitial',
+  'fuzzyScore',
+  'getOwnerDocument',
+  'getOwnerWindow',
+  'getScrollableAncestors',
+  'getTabbableElements',
+  'inertSiblings',
+  'listen',
+  'lockDocumentScroll',
+  'normalizeText',
+  'observeOutsideInteraction',
+  'restoreFocus',
+  'trapFocus',
+];
 const assertNoRuntimeDependencies = (manifest, location) => {
   for (const section of runtimeDependencySections) {
     const declared = manifest[section] ?? {};
@@ -100,12 +124,15 @@ assertNoRuntimeDependencies(installedManifest, 'Installed package');
 const esmSmoke = resolve(consumer, 'esm-smoke.mjs');
 await writeFile(
   esmSmoke,
-  `import { createDialog, hasDOM } from 'ui-headless-runtime';\nif (hasDOM()) throw new Error('SSR import unexpectedly detected a DOM.');\nconst dialog = createDialog();\nif (dialog.getSnapshot().open) throw new Error('Unexpected Dialog default.');\ndialog.destroy();\n`,
+  `import * as runtime from 'ui-headless-runtime';\nconst internalExports = ${JSON.stringify(internalRuntimeExports)};\nfor (const name of internalExports) { if (name in runtime) throw new Error(\`Internal export leaked: \${name}\`); }\nif (runtime.hasDOM()) throw new Error('SSR import unexpectedly detected a DOM.');\nconst dialog = runtime.createDialog();\nif (dialog.getSnapshot().open) throw new Error('Unexpected Dialog default.');\ndialog.destroy();\n`,
 );
 await run(process.execPath, [esmSmoke], { cwd: consumer });
 const require = createRequire(resolve(consumer, 'consumer.cjs'));
 const cjs = require('ui-headless-runtime');
 if (typeof cjs.createTabs !== 'function') throw new Error('CJS public export is unavailable.');
+for (const name of internalRuntimeExports) {
+  if (name in cjs) throw new Error(`CJS internal export leaked: ${name}`);
+}
 try {
   require('ui-headless-runtime/src/index');
   throw new Error('A deep package import unexpectedly resolved.');
@@ -120,8 +147,11 @@ new Script(
 ).runInContext(sandbox);
 if (typeof sandbox.UIHeadlessRuntime?.createPopover !== 'function')
   throw new Error('IIFE global is unavailable.');
+for (const name of internalRuntimeExports) {
+  if (name in sandbox.UIHeadlessRuntime) throw new Error(`IIFE internal export leaked: ${name}`);
+}
 
-const consumerSource = `import { createDialog, type DialogSnapshot } from 'ui-headless-runtime';\nconst dialog = createDialog();\nconst snapshot: Readonly<DialogSnapshot> = dialog.getSnapshot();\nconsole.log(snapshot.open);\ndialog.destroy();\n`;
+const consumerSource = `import { createDialog, type DialogSnapshot, type FloatingPositionOptions, type RuntimeEventListener, type RuntimeEventSource } from 'ui-headless-runtime';\ntype Events = { change: { value: number } };\nconst listener: RuntimeEventListener<Events['change']> = (event) => console.log(event.detail.value);\nconst source = null as RuntimeEventSource<Events> | null;\nconst positioning = { placement: 'bottom-start' } satisfies FloatingPositionOptions;\nvoid listener;\nvoid source;\nvoid positioning;\nconst dialog = createDialog();\nconst snapshot: Readonly<DialogSnapshot> = dialog.getSnapshot();\nconsole.log(snapshot.open);\ndialog.destroy();\n`;
 await writeFile(resolve(consumer, 'index.ts'), consumerSource);
 await run(
   process.execPath,

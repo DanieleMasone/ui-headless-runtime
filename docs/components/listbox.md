@@ -52,7 +52,7 @@ Create Listbox during component mount or setup, subscribe before rendering deriv
 
 ## Controlled mode
 
-Controlled listboxes emit requested value arrays or scalar values and wait for committed props.
+Controlled listboxes emit a requested `readonly string[]`; single-select mode limits that array to at most one value. The controller waits for the consumer store to commit it.
 
 ## Uncontrolled mode
 
@@ -72,8 +72,9 @@ Uncontrolled listboxes own selected value(s) and active option.
 
 ## Keyboard interaction
 
-- Arrow keys: Move the active item, skipping disabled items.
+- ArrowDown / ArrowUp: Move the active item, skipping disabled items.
 - Home / End: Move to the first or last enabled item.
+- Enter / Space: Select the active option.
 - Type characters: Move by normalized typeahead.
 
 ## Focus behavior

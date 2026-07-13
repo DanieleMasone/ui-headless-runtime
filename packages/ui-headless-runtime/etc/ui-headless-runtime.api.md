@@ -15,7 +15,7 @@ export interface AccordionChangeEvent {
 export type AccordionChangeReason = 'programmatic' | 'trigger' | 'keyboard';
 
 // @public
-export interface AccordionController extends RuntimeController<AccordionSnapshot>, EventSource_2<AccordionEvents> {
+export interface AccordionController extends RuntimeController<AccordionSnapshot>, RuntimeEventSource<AccordionEvents> {
     focus(itemId: string): void;
     handleTriggerKeyDown(itemId: string, event: KeyboardEvent): void;
     registerItem(item: AccordionItem, trigger?: HTMLElement): () => void;
@@ -79,7 +79,7 @@ export function autoUpdatePosition(anchor: Element | VirtualAnchor, floating: El
 export function calculatePosition(anchor: AnchorRect, floating: Readonly<{
     width: number;
     height: number;
-}>, options?: PositionOptions_2): PositionResult;
+}>, options?: FloatingPositionOptions): PositionResult;
 
 // @public
 export interface ChangeDetails<TReason extends string> {
@@ -98,17 +98,7 @@ export interface CollectionItem {
 }
 
 // @public
-export interface CollectionRegistry<TItem extends CollectionItem> {
-    clear(): void;
-    edge(edge: 'first' | 'last'): string | undefined;
-    get(id: string): TItem | undefined;
-    items(): readonly TItem[];
-    move(fromId: string | undefined, delta: 1 | -1, loop?: boolean): string | undefined;
-    register(item: TItem): Unsubscribe;
-}
-
-// @public
-export interface ComboboxController extends RuntimeController<ComboboxSnapshot>, EventSource_2<ComboboxEvents> {
+export interface ComboboxController extends RuntimeController<ComboboxSnapshot>, RuntimeEventSource<ComboboxEvents> {
     bind(elements: OverlayElements): () => void;
     handleCompositionEnd(event: CompositionEvent): void;
     handleCompositionStart(): void;
@@ -116,7 +106,7 @@ export interface ComboboxController extends RuntimeController<ComboboxSnapshot>,
     handleKeyDown(event: KeyboardEvent): void;
     refresh(): Promise<void>;
     registerOption(option: ComboboxOption): () => void;
-    select(id: string, details?: ChangeDetails<ListboxChangeReason>): void;
+    select(id: string, details?: ChangeDetails<ComboboxSelectReason>): void;
     setInputValue(value: string, details?: ChangeDetails<ComboboxInputReason>): void;
 }
 
@@ -146,8 +136,8 @@ export interface ComboboxOptions {
     readonly id?: string;
     readonly loadOptions?: (query: string, signal: AbortSignal) => Promise<readonly ComboboxOption[]>;
     readonly onInputValueChange?: (value: string, details: ChangeDetails<ComboboxInputReason>) => void;
-    readonly onSelectedValueChange?: (value: string | null, details: ChangeDetails<ListboxChangeReason>) => void;
-    readonly positioning?: PositionOptions_2;
+    readonly onSelectedValueChange?: (value: string | null, details: ChangeDetails<ComboboxSelectReason>) => void;
+    readonly positioning?: FloatingPositionOptions;
     readonly subscribeInputValue?: (listener: () => void) => () => void;
     readonly subscribeSelectedValue?: (listener: () => void) => () => void;
 }
@@ -160,9 +150,12 @@ export interface ComboboxQueryEvent {
 
 // @public
 export interface ComboboxSelectEvent {
-    readonly details: ChangeDetails<ListboxChangeReason>;
+    readonly details: ChangeDetails<ComboboxSelectReason>;
     readonly option: Readonly<ComboboxOption>;
 }
+
+// @public
+export type ComboboxSelectReason = 'programmatic' | 'pointer' | 'keyboard';
 
 // @public
 export interface ComboboxSnapshot {
@@ -189,12 +182,12 @@ export interface CommandItem extends CollectionItem {
 }
 
 // @public
-export interface CommandPaletteController extends RuntimeController<CommandPaletteSnapshot>, EventSource_2<CommandPaletteEvents> {
+export interface CommandPaletteController extends RuntimeController<CommandPaletteSnapshot>, RuntimeEventSource<CommandPaletteEvents> {
     bind(elements: OverlayElements): () => void;
     bindShortcut(ownerDocument: Document): () => void;
-    close(details?: ChangeDetails<CommandPaletteReason>): void;
+    close(details?: ChangeDetails<OpenChangeReason>): void;
     handleKeyDown(event: KeyboardEvent): void;
-    open(details?: ChangeDetails<CommandPaletteReason>): void;
+    open(details?: ChangeDetails<OpenChangeReason>): void;
     registerCommand(command: CommandItem): () => void;
     select(id: string, details?: ChangeDetails<CommandPaletteReason>): void;
     setQuery(query: string, details?: ChangeDetails<CommandPaletteReason>): void;
@@ -226,7 +219,7 @@ export interface CommandPaletteQueryEvent {
 }
 
 // @public
-export type CommandPaletteReason = 'programmatic' | 'input' | 'keyboard' | 'pointer' | 'shortcut';
+export type CommandPaletteReason = 'programmatic' | 'input' | 'keyboard' | 'pointer';
 
 // @public
 export interface CommandPaletteSelectEvent {
@@ -260,14 +253,6 @@ export interface ContextMenuController extends MenuController {
 }
 
 // @public
-export interface ControllableValue<TValue, TReason extends string> {
-    readonly controlled: boolean;
-    destroy(): void;
-    get(): TValue;
-    set(value: TValue, details: ChangeDetails<TReason>): boolean;
-}
-
-// @public
 export interface ControllableValueOptions<TValue, TReason extends string> {
     readonly defaultValue: TValue;
     readonly getValue?: () => TValue;
@@ -282,9 +267,6 @@ export function createAccordion(options?: AccordionOptions): AccordionController
 export function createCollapsible(options?: DisclosureOptions): CollapsibleController;
 
 // @public
-export function createCollection<TItem extends CollectionItem>(): CollectionRegistry<TItem>;
-
-// @public
 export function createCombobox(options?: ComboboxOptions): ComboboxController;
 
 // @public
@@ -294,22 +276,13 @@ export function createCommandPalette(options?: CommandPaletteOptions): CommandPa
 export function createContextMenu(options?: MenuOptions): ContextMenuController;
 
 // @public
-export function createControllableValue<TValue, TReason extends string>(options: ControllableValueOptions<TValue, TReason>, onExternalChange: (value: TValue, details?: ChangeDetails<TReason>) => void): ControllableValue<TValue, TReason>;
-
-// @public
 export function createDialog(options?: DialogOptions): DialogController;
 
 // @public
 export function createDisclosure(options?: DisclosureOptions): DisclosureController;
 
 // @public
-export function createDisposableScope(): DisposableScope;
-
-// @public
 export function createDropdownMenu(options?: MenuOptions): DropdownMenuController;
-
-// @public
-export function createEventEmitter<TEvents extends object>(): TypedEventEmitter<TEvents>;
 
 // @public
 export function createListbox(options?: ListboxOptions): ListboxController;
@@ -324,13 +297,7 @@ export function createNavigationMenu(options?: NavigationMenuOptions): Navigatio
 export function createPopover(options?: PopoverOptions): PopoverController;
 
 // @public
-export function createRuntimeId(prefix?: string): string;
-
-// @public
 export function createTabs(options?: TabsOptions): TabsController;
-
-// @public
-export function createTimeoutManager(): TimeoutManager;
 
 // @public
 export function createToast(options?: ToastOptions): ToastController;
@@ -345,7 +312,7 @@ export function createTreeView(options?: TreeOptions): TreeController;
 export function createVirtualAnchor(x: number, y: number, contextElement?: Element): VirtualAnchor;
 
 // @public
-export interface DialogController extends RuntimeController<DialogSnapshot>, EventSource_2<OpenLifecycleEvents> {
+export interface DialogController extends RuntimeController<DialogSnapshot>, RuntimeEventSource<OpenLifecycleEvents> {
     bind(elements: OverlayElements): () => void;
     close(details?: ChangeDetails<OpenChangeReason>): void;
     open(details?: ChangeDetails<OpenChangeReason>): void;
@@ -379,7 +346,7 @@ export interface DisclosureChangeEvent {
 export type DisclosureChangeReason = 'programmatic' | 'trigger' | 'keyboard';
 
 // @public
-export interface DisclosureController extends RuntimeController<DisclosureSnapshot>, EventSource_2<DisclosureEvents> {
+export interface DisclosureController extends RuntimeController<DisclosureSnapshot>, RuntimeEventSource<DisclosureEvents> {
     collapse(details?: ChangeDetails<DisclosureChangeReason>): void;
     expand(details?: ChangeDetails<DisclosureChangeReason>): void;
     handleTriggerClick(event: MouseEvent): void;
@@ -431,67 +398,30 @@ export interface DisclosureTriggerProps {
 }
 
 // @public
-export interface DisposableScope {
-    add(dispose: Unsubscribe): Unsubscribe;
-    dispose(): void;
-    readonly disposed: boolean;
-}
-
-// @public
 export interface DropdownMenuController extends MenuController {
     handleTrigger(event: MouseEvent | KeyboardEvent): void;
 }
 
 // @public
-type EventListener_2<TPayload> = (event: RuntimeEvent<TPayload>) => void;
-export { EventListener_2 as EventListener }
-
-// @public
-interface EventSource_2<TEvents extends object> {
-    off<TKey extends keyof TEvents>(type: TKey, listener: EventListener_2<TEvents[TKey]>): void;
-    on<TKey extends keyof TEvents>(type: TKey, listener: EventListener_2<TEvents[TKey]>): Unsubscribe;
-    once<TKey extends keyof TEvents>(type: TKey, listener: EventListener_2<TEvents[TKey]>): Unsubscribe;
+export interface FloatingPositionOptions {
+    readonly collisionPadding?: number;
+    readonly flip?: boolean;
+    readonly offset?: number;
+    readonly placement?: Placement;
+    readonly rtl?: boolean;
+    readonly shift?: boolean;
+    readonly viewportHeight?: number;
+    readonly viewportWidth?: number;
 }
-export { EventSource_2 as EventSource }
-
-// @public
-export function eventTargets(event: Event, boundary: Node): boolean;
-
-// @public
-export function findTypeaheadMatch<TItem extends CollectionItem>(items: readonly TItem[], query: string, afterId?: string): string | undefined;
-
-// @public
-export function focusById(elements: ReadonlyMap<string, HTMLElement>, id: string | undefined): boolean;
-
-// @public
-export function focusInitial(container: HTMLElement, preferred?: HTMLElement | null): HTMLElement;
-
-// @public
-export function fuzzyScore(value: string, query: string): number;
-
-// @public
-export function getOwnerDocument(element?: Node | null): Document | undefined;
-
-// @public
-export function getOwnerWindow(element?: Node | null): Window | undefined;
-
-// @public
-export function getScrollableAncestors(element: Element): readonly Element[];
-
-// @public
-export function getTabbableElements(container: Element): readonly HTMLElement[];
 
 // @public
 export function hasDOM(): boolean;
 
 // @public
-export function inertSiblings(element: Element): Unsubscribe;
-
-// @public
 export type ListboxChangeReason = 'programmatic' | 'pointer' | 'keyboard' | 'typeahead';
 
 // @public
-export interface ListboxController extends RuntimeController<ListboxSnapshot>, EventSource_2<ListboxEvents> {
+export interface ListboxController extends RuntimeController<ListboxSnapshot>, RuntimeEventSource<ListboxEvents> {
     handleKeyDown(event: KeyboardEvent): void;
     registerOption(option: ListboxOption): () => void;
     select(id: string, details?: ChangeDetails<ListboxChangeReason>): void;
@@ -549,13 +479,7 @@ export interface ListboxSnapshot {
 }
 
 // @public
-export function listen<TEvent extends Event>(target: EventTarget, type: string, listener: (event: TEvent) => void, options?: AddEventListenerOptions | boolean): Unsubscribe;
-
-// @public
-export function lockDocumentScroll(ownerDocument: Document): Unsubscribe;
-
-// @public
-export interface MenuController extends RuntimeController<MenuSnapshot>, EventSource_2<MenuEvents> {
+export interface MenuController extends RuntimeController<MenuSnapshot>, RuntimeEventSource<MenuEvents> {
     bind(elements: OverlayElements): () => void;
     close(details?: ChangeDetails<OpenChangeReason>): void;
     handleKeyDown(event: KeyboardEvent): void;
@@ -589,7 +513,7 @@ export interface MenuOptions extends Partial<ControllableValueOptions<boolean, O
     readonly closeOnSelect?: boolean;
     readonly id?: string;
     readonly loop?: boolean;
-    readonly positioning?: PositionOptions_2;
+    readonly positioning?: FloatingPositionOptions;
 }
 
 // @public
@@ -604,6 +528,7 @@ export type MenuSelectReason = 'pointer' | 'keyboard' | 'programmatic';
 // @public
 export interface MenuSnapshot {
     readonly activeId: string | null;
+    readonly contentId: string;
     readonly controlled: boolean;
     readonly items: readonly Readonly<MenuItem>[];
     readonly open: boolean;
@@ -614,7 +539,7 @@ export interface MenuSnapshot {
 }
 
 // @public
-export interface NavigationMenuController extends RuntimeController<NavigationMenuSnapshot>, EventSource_2<NavigationMenuEvents> {
+export interface NavigationMenuController extends RuntimeController<NavigationMenuSnapshot>, RuntimeEventSource<NavigationMenuEvents> {
     bind(elements: OverlayElements): () => void;
     close(details?: ChangeDetails<NavigationMenuReason>): void;
     handleKeyDown(event: KeyboardEvent): void;
@@ -643,7 +568,7 @@ export interface NavigationMenuEvents {
 }
 
 // @public
-export interface NavigationMenuItem extends MenuItem {
+export interface NavigationMenuItem extends CollectionItem {
     readonly hasContent?: boolean;
 }
 
@@ -653,29 +578,25 @@ export type NavigationMenuMode = 'desktop' | 'compact';
 // @public
 export interface NavigationMenuOptions extends Partial<ControllableValueOptions<string | null, NavigationMenuReason>> {
     readonly closeDelay?: number;
+    readonly id?: string;
     readonly mode?: NavigationMenuMode;
     readonly openDelay?: number;
-    readonly positioning?: PositionOptions_2;
+    readonly positioning?: FloatingPositionOptions;
 }
 
 // @public
-export type NavigationMenuReason = 'programmatic' | 'pointer' | 'keyboard' | 'outside-pointer';
+export type NavigationMenuReason = 'programmatic' | 'pointer' | 'keyboard' | 'outside-pointer' | 'focus-out';
 
 // @public
 export interface NavigationMenuSnapshot {
     readonly activeId: string | null;
+    readonly contentId: string;
     readonly controlled: boolean;
     readonly items: readonly Readonly<NavigationMenuItem>[];
     readonly mode: NavigationMenuMode;
     readonly openId: string | null;
     readonly position: PositionResult | null;
 }
-
-// @public
-export function normalizeText(value: string): string;
-
-// @public
-export function observeOutsideInteraction(options: OutsideInteractionOptions): Unsubscribe;
 
 // @public
 export interface OpenChangeEvent<TReason extends OpenChangeReason = OpenChangeReason> {
@@ -708,14 +629,6 @@ export interface OpenSnapshot {
 }
 
 // @public
-export interface OutsideInteractionOptions {
-    readonly boundary: Element;
-    readonly branches?: readonly Element[];
-    readonly onFocusOutside?: (event: FocusEvent) => void;
-    readonly onPointerOutside?: (event: PointerEvent) => void;
-}
-
-// @public
 export interface OverlayElements {
     readonly anchor?: Element | VirtualAnchor;
     readonly backdrop?: HTMLElement;
@@ -728,7 +641,7 @@ export interface OverlayElements {
 export type Placement = 'top-start' | 'top' | 'top-end' | 'right-start' | 'right' | 'right-end' | 'bottom-start' | 'bottom' | 'bottom-end' | 'left-start' | 'left' | 'left-end';
 
 // @public
-export interface PopoverController extends RuntimeController<OpenSnapshot>, EventSource_2<OpenLifecycleEvents> {
+export interface PopoverController extends RuntimeController<OpenSnapshot>, RuntimeEventSource<OpenLifecycleEvents> {
     bind(elements: OverlayElements): () => void;
     close(details?: ChangeDetails<OpenChangeReason>): void;
     open(details?: ChangeDetails<OpenChangeReason>): void;
@@ -741,22 +654,9 @@ export interface PopoverOptions extends Partial<ControllableValueOptions<boolean
     readonly closeOnFocusOutside?: boolean;
     readonly focusContent?: boolean;
     readonly id?: string;
-    readonly positioning?: PositionOptions_2;
+    readonly positioning?: FloatingPositionOptions;
     readonly restoreFocus?: boolean;
 }
-
-// @public
-interface PositionOptions_2 {
-    readonly collisionPadding?: number;
-    readonly flip?: boolean;
-    readonly offset?: number;
-    readonly placement?: Placement;
-    readonly rtl?: boolean;
-    readonly shift?: boolean;
-    readonly viewportHeight?: number;
-    readonly viewportWidth?: number;
-}
-export { PositionOptions_2 as PositionOptions }
 
 // @public
 export interface PositionResult {
@@ -766,9 +666,6 @@ export interface PositionResult {
     readonly x: number;
     readonly y: number;
 }
-
-// @public
-export function restoreFocus(target: HTMLElement | null | undefined): boolean;
 
 // @public
 export interface RuntimeController<TSnapshot> {
@@ -782,6 +679,16 @@ export interface RuntimeEvent<TPayload> {
     readonly defaultPrevented: boolean;
     readonly detail: Readonly<TPayload>;
     preventDefault(): void;
+}
+
+// @public
+export type RuntimeEventListener<TPayload> = (event: RuntimeEvent<TPayload>) => void;
+
+// @public
+export interface RuntimeEventSource<TEvents extends object> {
+    off<TKey extends keyof TEvents>(type: TKey, listener: RuntimeEventListener<TEvents[TKey]>): void;
+    on<TKey extends keyof TEvents>(type: TKey, listener: RuntimeEventListener<TEvents[TKey]>): Unsubscribe;
+    once<TKey extends keyof TEvents>(type: TKey, listener: RuntimeEventListener<TEvents[TKey]>): Unsubscribe;
 }
 
 // @public
@@ -816,7 +723,7 @@ export interface TabsChangeEvent {
 export type TabsChangeReason = 'programmatic' | 'pointer' | 'keyboard' | 'focus';
 
 // @public
-export interface TabsController extends RuntimeController<TabsSnapshot>, EventSource_2<TabsEvents> {
+export interface TabsController extends RuntimeController<TabsSnapshot>, RuntimeEventSource<TabsEvents> {
     focus(id: string, details?: ChangeDetails<TabsChangeReason>): void;
     handleKeyDown(id: string, event: KeyboardEvent): void;
     registerTab(item: TabItem, element?: HTMLElement): () => void;
@@ -853,17 +760,10 @@ export interface TabsSnapshot {
 }
 
 // @public
-export interface TimeoutManager {
-    clear(): void;
-    readonly pending: boolean;
-    schedule(callback: () => void, delay: number): void;
-}
-
-// @public
 export type ToastChangeReason = 'programmatic' | 'timeout' | 'dismiss' | 'promise' | 'update';
 
 // @public
-export interface ToastController extends RuntimeController<ToastSnapshot>, EventSource_2<ToastEvents> {
+export interface ToastController extends RuntimeController<ToastSnapshot>, RuntimeEventSource<ToastEvents> {
     bindPause(id: string, element: HTMLElement): () => void;
     dismiss(id: string, details?: ChangeDetails<ToastChangeReason>): void;
     pause(id: string): void;
@@ -940,7 +840,7 @@ export interface ToastSnapshot {
 export type ToastStatus = 'loading' | 'success' | 'error' | 'info';
 
 // @public
-export interface TooltipController extends RuntimeController<TooltipSnapshot>, EventSource_2<OpenLifecycleEvents> {
+export interface TooltipController extends RuntimeController<TooltipSnapshot>, RuntimeEventSource<OpenLifecycleEvents> {
     bind(trigger: HTMLElement, content: HTMLElement): () => void;
     close(details?: ChangeDetails<OpenChangeReason>): void;
     scheduleClose(reason?: 'hover' | 'focus-out', event?: Event): void;
@@ -952,7 +852,7 @@ export interface TooltipOptions extends Partial<ControllableValueOptions<boolean
     readonly closeDelay?: number;
     readonly id?: string;
     readonly openDelay?: number;
-    readonly positioning?: PositionOptions_2;
+    readonly positioning?: FloatingPositionOptions;
     readonly scope?: string;
 }
 
@@ -964,9 +864,6 @@ export interface TooltipSnapshot extends OpenSnapshot {
 }
 
 // @public
-export function trapFocus(container: HTMLElement): Unsubscribe;
-
-// @public
 export interface TreeChangeEvent {
     readonly details: ChangeDetails<TreeChangeReason>;
     readonly node: Readonly<TreeNode>;
@@ -976,7 +873,7 @@ export interface TreeChangeEvent {
 export type TreeChangeReason = 'programmatic' | 'pointer' | 'keyboard' | 'async-load';
 
 // @public
-export interface TreeController extends RuntimeController<TreeSnapshot>, EventSource_2<TreeEvents> {
+export interface TreeController extends RuntimeController<TreeSnapshot>, RuntimeEventSource<TreeEvents> {
     handleKeyDown(event: KeyboardEvent): void;
     registerNode(node: TreeNode): () => void;
     select(id: string, details?: ChangeDetails<TreeChangeReason>): void;
@@ -1038,15 +935,6 @@ export interface TreeSnapshot {
     readonly selectedIds: readonly string[];
     readonly selectionControlled: boolean;
     readonly visibleNodes: readonly TreeNodeSnapshot[];
-}
-
-// @public
-export interface TypedEventEmitter<TEvents extends object> {
-    clear(): void;
-    emit<TKey extends keyof TEvents>(type: TKey, detail: TEvents[TKey]): boolean;
-    off<TKey extends keyof TEvents>(type: TKey, listener: EventListener_2<TEvents[TKey]>): void;
-    on<TKey extends keyof TEvents>(type: TKey, listener: EventListener_2<TEvents[TKey]>): Unsubscribe;
-    once<TKey extends keyof TEvents>(type: TKey, listener: EventListener_2<TEvents[TKey]>): Unsubscribe;
 }
 
 // @public

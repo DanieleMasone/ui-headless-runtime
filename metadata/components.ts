@@ -60,9 +60,23 @@ const overlayKeys = [
   keyboard('Tab / Shift+Tab', 'Move focus according to the configured focus scope.'),
 ];
 
-const collectionKeys = [
+const collectionNavigationKeys = [
   keyboard('Arrow keys', 'Move the active item, skipping disabled items.'),
   keyboard('Home / End', 'Move to the first or last enabled item.'),
+];
+
+const menuKeys = [
+  ...collectionNavigationKeys,
+  keyboard('Enter / Space', 'Activate the active item or open its submenu.'),
+  keyboard('ArrowRight / ArrowLeft', 'Open or close a submenu.'),
+  keyboard('Type characters', 'Move by normalized typeahead.'),
+  keyboard('Tab / Shift+Tab', 'Close the menu and continue native focus navigation.'),
+  keyboard('Escape', 'Close the topmost menu and restore focus when configured.'),
+];
+
+const listboxKeys = [
+  ...collectionNavigationKeys,
+  keyboard('Enter / Space', 'Select the active option.'),
   keyboard('Type characters', 'Move by normalized typeahead.'),
 ];
 
@@ -70,6 +84,8 @@ const navigationMenuKeys = [
   keyboard('Enter / Space / ArrowDown / ArrowUp', 'Open content from its registered trigger.'),
   keyboard('Arrow keys', 'Move between registered items while content is open.'),
   keyboard('Home / End', 'Move to an edge item while content is open.'),
+  keyboard('Type characters', 'Move by normalized typeahead while content is open.'),
+  keyboard('Tab / Shift+Tab', 'Close open content and continue native focus navigation.'),
   keyboard('Escape', 'Close content without changing the consumer-selected responsive mode.'),
 ];
 
@@ -140,7 +156,10 @@ export const componentCatalog = [
       scenario('disabled', 'Disabled item', 'Navigation skips unavailable actions.'),
       scenario('submenu', 'Submenu', 'ArrowRight requests nested content.'),
     ],
-    collectionKeys,
+    [
+      keyboard('Enter / Space / ArrowDown / ArrowUp', 'Open the menu from its trigger.'),
+      ...menuKeys,
+    ],
   ),
   define(
     'context-menu',
@@ -153,7 +172,7 @@ export const componentCatalog = [
       scenario('keyboard', 'Keyboard', 'Open from Shift+F10 or ContextMenu.'),
       scenario('submenu', 'Submenu', 'Nested actions reuse Menu navigation.'),
     ],
-    collectionKeys,
+    [keyboard('ContextMenu / Shift+F10', 'Open the menu at the keyboard anchor.'), ...menuKeys],
   ),
   define(
     'tooltip',
@@ -182,7 +201,11 @@ export const componentCatalog = [
       scenario('multiple', 'Multiple', 'Several sections may remain expanded.'),
       scenario('dynamic', 'Dynamic', 'Registration cleanup preserves valid focus.'),
     ],
-    collectionKeys,
+    [
+      keyboard('ArrowDown / ArrowUp', 'Move focus between enabled triggers.'),
+      keyboard('Home / End', 'Move focus to the first or last enabled trigger.'),
+      keyboard('Enter / Space', 'Toggle the focused section.'),
+    ],
   ),
   define(
     'tabs',
@@ -195,7 +218,11 @@ export const componentCatalog = [
       scenario('manual', 'Manual', 'Enter or Space commits selection.'),
       scenario('vertical', 'Vertical', 'Up and Down replace horizontal arrows.'),
     ],
-    collectionKeys,
+    [
+      keyboard('Arrow keys', 'Move focus using orientation and text direction.'),
+      keyboard('Home / End', 'Move focus to the first or last enabled tab.'),
+      keyboard('Enter / Space', 'Activate the focused tab in manual mode.'),
+    ],
   ),
   define(
     'disclosure',
@@ -234,7 +261,14 @@ export const componentCatalog = [
       scenario('groups', 'Groups', 'Commands retain group metadata.'),
       scenario('empty', 'Empty', 'No-match state is explicit.'),
     ],
-    [keyboard('Control/Command+K', 'Toggle the palette.'), ...collectionKeys],
+    [
+      keyboard('Control/Command+K', 'Toggle the palette.'),
+      keyboard('ArrowDown / ArrowUp', 'Move through filtered enabled commands.'),
+      keyboard('Home / End', 'Move to the first or last filtered enabled command.'),
+      keyboard('Enter', 'Run the active command.'),
+      keyboard('Escape', 'Close the palette.'),
+      keyboard('Type characters', 'Update the editable query and fuzzy-filter commands.'),
+    ],
   ),
   define(
     'menu',
@@ -247,7 +281,7 @@ export const componentCatalog = [
       scenario('typeahead', 'Typeahead', 'Normalized text lookup.'),
       scenario('long', 'Long collection', 'Loop behavior is configurable.'),
     ],
-    collectionKeys,
+    menuKeys,
   ),
   define(
     'listbox',
@@ -260,7 +294,7 @@ export const componentCatalog = [
       scenario('multiple', 'Multiple', 'Selection toggles independently.'),
       scenario('disabled', 'Disabled', 'Unavailable options are skipped.'),
     ],
-    collectionKeys,
+    listboxKeys,
   ),
   define(
     'combobox',
@@ -294,6 +328,8 @@ export const componentCatalog = [
       keyboard('Up / Down', 'Move through visible nodes.'),
       keyboard('Left / Right', 'Collapse, expand, or move parent/child.'),
       keyboard('Home / End', 'Move to tree edges.'),
+      keyboard('Enter / Space', 'Select the active node.'),
+      keyboard('Type characters', 'Move by normalized typeahead.'),
     ],
   ),
   define(
@@ -308,7 +344,6 @@ export const componentCatalog = [
       scenario('mega', 'Mega menu', 'Nested content uses shared positioning.'),
     ],
     navigationMenuKeys,
-    'experimental',
   ),
   define(
     'collapsible',

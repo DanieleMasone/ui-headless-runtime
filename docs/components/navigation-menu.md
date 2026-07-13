@@ -4,7 +4,7 @@
 
 Simple and mega-menu content with consumer-selected responsive mode.
 
-Pattern: Navigation Menu. Status: experimental.
+Pattern: Navigation Menu. Status: stable.
 
 ## When to use
 
@@ -28,13 +28,13 @@ Create Navigation Menu during component mount or setup, subscribe before renderi
 
 ## Options
 
-- Public options: `closeDelay`, `mode`, `openDelay`, `positioning`, `defaultValue`, `getValue`, `onValueChange`, `subscribeValue`.
-- IDs, disabled state, text, values, submenu metadata, and `hasContent` belong to each registered `NavigationMenuItem`.
+- Public options: `closeDelay`, `id`, `mode`, `openDelay`, `positioning`, `defaultValue`, `getValue`, `onValueChange`, `subscribeValue`.
+- Each registered `NavigationMenuItem` extends `CollectionItem` with optional `hasContent`. Menu-only fields such as `kind`, `value`, and `submenuId` are not part of this contract.
 
 ## Snapshot
 
-- Snapshot fields: `activeId`, `controlled`, `items`, `mode`, `openId`, `position`.
-- Delay timers and consumer ARIA relationships are not exposed as snapshot fields.
+- Snapshot fields: `activeId`, `contentId`, `controlled`, `items`, `mode`, `openId`, `position`.
+- `contentId` is the stable shared-panel ID for trigger `aria-controls` relationships. Delay timers are not exposed as snapshot fields.
 
 ## Commands
 
@@ -48,15 +48,15 @@ Create Navigation Menu during component mount or setup, subscribe before renderi
 
 ## Change reasons
 
-- Change reasons: `programmatic`, `pointer`, `keyboard`, `outside-pointer`.
+- Change reasons: `programmatic`, `pointer`, `keyboard`, `outside-pointer`, `focus-out`.
 
 ## Controlled mode
 
-Controlled navigation menus let the app shell own responsive mode and active route while runtime handles interaction.
+Only `openId` is consumer-controlled through `getValue`, `onValueChange`, and `subscribeValue`. The consumer selects responsive mode with the initial `mode` option and `setMode`; active-route state remains outside the controller contract.
 
 ## Uncontrolled mode
 
-Uncontrolled mode owns open item and delayed pointer intent.
+Uncontrolled mode owns `openId` and delayed pointer intent. Responsive mode is still consumer-selected, and active-route state remains application-owned.
 
 ## DOM binding
 
@@ -77,6 +77,7 @@ Uncontrolled mode owns open item and delayed pointer intent.
 - Home / End: Move to the first or last enabled item while content is open.
 - Type characters: Move by normalized typeahead while content is open.
 - Escape: Close the current content.
+- Tab / Shift+Tab: Close open content without suppressing native focus traversal.
 
 ## Focus behavior
 

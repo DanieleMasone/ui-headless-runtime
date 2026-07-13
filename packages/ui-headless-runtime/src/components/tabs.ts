@@ -1,10 +1,11 @@
+import { createRuntimeId } from '../accessibility/ids';
 import { createCollection, type CollectionItem } from '../collections/collection';
 import { createControllerHost } from '../core/host';
 import type {
   ChangeDetails,
   ControllableValueOptions,
-  EventSource,
   RuntimeController,
+  RuntimeEventSource,
 } from '../core/types';
 import { focusById } from '../focus/focus';
 import { createControllableValue } from '../state/controllable';
@@ -93,7 +94,8 @@ export interface TabsOptions extends Partial<
 }
 
 /** Headless Tabs controller. @public */
-export interface TabsController extends RuntimeController<TabsSnapshot>, EventSource<TabsEvents> {
+export interface TabsController
+  extends RuntimeController<TabsSnapshot>, RuntimeEventSource<TabsEvents> {
   /** Registers a dynamic tab and optional focusable tab element. */
   registerTab(item: TabItem, element?: HTMLElement): () => void;
   /** Selects an enabled tab and synchronizes roving focus. */
@@ -108,9 +110,10 @@ export interface TabsController extends RuntimeController<TabsSnapshot>, EventSo
 export function createTabs(options: TabsOptions = {}): TabsController {
   const collection = createCollection<TabItem>();
   const elements = new Map<string, HTMLElement>();
+  const registrations = new Map<string, symbol>();
   const orientation = options.orientation ?? 'horizontal';
   const activation = options.activation ?? 'automatic';
-  const prefix = options.id ?? 'tabs';
+  const prefix = options.id ?? createRuntimeId('tabs');
   let focusedId: string | null = null;
   const build = (selectedId: string | null, controlled: boolean): TabsSnapshot => ({
     selectedId,
@@ -180,6 +183,8 @@ export function createTabs(options: TabsOptions = {}): TabsController {
   };
   host.resources.add(() => state.destroy());
   host.resources.add(() => collection.clear());
+  host.resources.add(() => elements.clear());
+  host.resources.add(() => registrations.clear());
   return {
     getSnapshot: host.getSnapshot,
     subscribe: host.subscribe,
@@ -188,16 +193,30 @@ export function createTabs(options: TabsOptions = {}): TabsController {
     once: host.once,
     registerTab(item, element) {
       if (!host.alive()) return () => undefined;
+      const token = Symbol(item.id);
+      registrations.set(item.id, token);
       const unregister = collection.register(item);
       if (element) elements.set(item.id, element);
+      else elements.delete(item.id);
       if (!focusedId && !item.disabled) focusedId = item.id;
+      else if (focusedId === item.id && item.disabled) focusedId = collection.edge('first') ?? null;
       if (!state.get() && !item.disabled) state.set(item.id, { reason: 'programmatic' });
+      else if (state.get() === item.id && item.disabled)
+        state.set(collection.edge('first') ?? null, { reason: 'programmatic' });
       sync();
+      let active = true;
       return () => {
+        if (!active) return;
+        active = false;
         unregister();
-        if (elements.get(item.id) === element) elements.delete(item.id);
-        if (focusedId === item.id) focusedId = collection.edge('first') ?? null;
-        if (state.get() === item.id) {
+        if (registrations.get(item.id) === token) {
+          registrations.delete(item.id);
+          elements.delete(item.id);
+        }
+        const current = collection.get(item.id);
+        if (focusedId === item.id && (!current || current.disabled))
+          focusedId = collection.edge('first') ?? null;
+        if (state.get() === item.id && (!current || current.disabled)) {
           const next = collection.edge('first') ?? null;
           state.set(next, { reason: 'programmatic' });
         }

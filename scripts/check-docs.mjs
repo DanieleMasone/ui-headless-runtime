@@ -27,6 +27,7 @@ const requiredGuidePages = [
   'framework-integration',
   'testing',
   'troubleshooting',
+  'migrating-to-1.0',
   'release-and-package',
 ];
 const frameworkGuides = [
@@ -175,7 +176,7 @@ const componentApiContracts = {
     snapshot: ['ComboboxSnapshot'],
     commands: ['ComboboxController'],
     events: ['ComboboxEvents', ...openEvents],
-    reasons: ['ComboboxInputReason', 'ListboxChangeReason', ...openReasons],
+    reasons: ['ComboboxInputReason', 'ComboboxSelectReason', ...openReasons],
   },
   'command-palette': {
     options: ['CommandPaletteOptions'],

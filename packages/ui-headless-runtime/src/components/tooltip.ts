@@ -2,13 +2,13 @@ import { createRuntimeId } from '../accessibility/ids';
 import type {
   ChangeDetails,
   ControllableValueOptions,
-  EventSource,
   RuntimeController,
+  RuntimeEventSource,
 } from '../core/types';
 import { createDisposableScope } from '../core/disposables';
 import { createTimeoutManager } from '../core/timers';
 import { listen } from '../dom/dom';
-import type { PositionOptions } from '../positioning/positioning';
+import type { FloatingPositionOptions } from '../positioning/positioning';
 import {
   createOpenController,
   type OpenChangeReason,
@@ -39,12 +39,12 @@ export interface TooltipOptions extends Partial<
   /** Scope in which only one tooltip may be active. @defaultValue `default` */
   readonly scope?: string;
   /** Shared anchored positioning options. */
-  readonly positioning?: PositionOptions;
+  readonly positioning?: FloatingPositionOptions;
 }
 
 /** Headless non-interactive Tooltip controller. @public */
 export interface TooltipController
-  extends RuntimeController<TooltipSnapshot>, EventSource<OpenLifecycleEvents> {
+  extends RuntimeController<TooltipSnapshot>, RuntimeEventSource<OpenLifecycleEvents> {
   /** Binds trigger/content listeners and positioning; touch pointer entry is intentionally ignored. */
   bind(trigger: HTMLElement, content: HTMLElement): () => void;
   /** Opens after the configured pointer delay, or immediately for keyboard focus. */
@@ -77,12 +77,13 @@ export function createTooltip(options: TooltipOptions = {}): TooltipController {
   let binding = createDisposableScope();
   let destroyed = false;
   const listeners = new Set<(snapshot: Readonly<TooltipSnapshot>) => void>();
-  const map = (snapshot: OpenSnapshot): TooltipSnapshot => ({
-    ...snapshot,
-    triggerId: `${id}-trigger`,
-    ariaDescribedby: snapshot.open ? `${id}-content` : null,
-    role: 'tooltip',
-  });
+  const map = (snapshot: OpenSnapshot): TooltipSnapshot =>
+    Object.freeze({
+      ...snapshot,
+      triggerId: `${id}-trigger`,
+      ariaDescribedby: snapshot.open ? `${id}-content` : null,
+      role: 'tooltip',
+    });
   let current = map(overlay.getSnapshot());
   const clearTimer = timer.clear;
   const close = (

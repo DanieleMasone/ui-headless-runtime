@@ -26,6 +26,7 @@ Use this guide when you want to integrate the runtime into a product. Use the ar
   - [Angular integration](./frameworks/angular)
 - [Testing](./testing)
 - [Troubleshooting](./troubleshooting)
+- [Migrating to 1.0](./migrating-to-1.0)
 - [Release and package](./release-and-package)
 
 ## What the runtime is not

@@ -37,7 +37,7 @@ export interface VirtualAnchor {
 }
 
 /** Collision and geometry settings shared by anchored components. @public */
-export interface PositionOptions {
+export interface FloatingPositionOptions {
   /** Preferred side and alignment. @defaultValue `bottom-start` */
   readonly placement?: Placement;
   /** Gap between anchor and floating element in CSS pixels. @defaultValue `4` */
@@ -85,7 +85,7 @@ const opposite = (placement: Placement): Placement => {
 export function calculatePosition(
   anchor: AnchorRect,
   floating: Readonly<{ width: number; height: number }>,
-  options: PositionOptions = {},
+  options: FloatingPositionOptions = {},
 ): PositionResult {
   const preferred = options.placement ?? 'bottom-start';
   const gap = options.offset ?? 4;

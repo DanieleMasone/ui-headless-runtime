@@ -1,6 +1,6 @@
 # Framework integration
 
-UI Headless Runtime exposes renderer-neutral TypeScript controllers. Version 0.1.0 does not ship official React, Vue, Angular, Svelte, or Web Component adapters. The publishable package declares no framework dependencies, and these recipes add no direct framework dependency to the workspace.
+UI Headless Runtime exposes renderer-neutral TypeScript controllers. The package does not ship official React, Vue, Angular, Svelte, or Web Component adapters. It declares no framework dependencies, and these recipes add no direct framework dependency to the workspace.
 
 The pages in this section are consumer-side recipes. They demonstrate how an application can connect the public controller API to its own framework lifecycle without creating a second source of interaction state.
 
@@ -26,7 +26,7 @@ Controller commands after `destroy()` are no-ops, and release functions are idem
 
 These recipes are maintained as documentation, not compiled framework applications. The repository intentionally does not add React, Vue, or Angular dependencies merely to render code samples. Each page states its assumptions; validate the final snippet in the consumer application's own framework, compiler, SSR, and test configuration.
 
-Svelte, Lit, Web Components, and other DOM-capable renderers can apply the same controller contract, but version 0.1.0 does not publish dedicated recipes or adapters for them.
+Svelte, Lit, Web Components, and other DOM-capable renderers can apply the same controller contract, but the package does not publish dedicated recipes or adapters for them.
 
 ## CSS ownership
 

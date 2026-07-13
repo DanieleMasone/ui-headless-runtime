@@ -1,10 +1,10 @@
 import type {
   ChangeDetails,
   ControllableValueOptions,
-  EventSource,
   RuntimeController,
+  RuntimeEventSource,
 } from '../core/types';
-import type { PositionOptions } from '../positioning/positioning';
+import type { FloatingPositionOptions } from '../positioning/positioning';
 import {
   createOpenController,
   type OpenChangeReason,
@@ -26,12 +26,12 @@ export interface PopoverOptions extends Partial<
   /** Restores trigger focus after keyboard dismissal. @defaultValue `true` */
   readonly restoreFocus?: boolean;
   /** Shared placement and collision configuration. */
-  readonly positioning?: PositionOptions;
+  readonly positioning?: FloatingPositionOptions;
 }
 
 /** Headless Popover command, event, binding, and positioning surface. @public */
 export interface PopoverController
-  extends RuntimeController<OpenSnapshot>, EventSource<OpenLifecycleEvents> {
+  extends RuntimeController<OpenSnapshot>, RuntimeEventSource<OpenLifecycleEvents> {
   /** Opens with a typed cause. */
   open(details?: ChangeDetails<OpenChangeReason>): void;
   /** Closes with a typed cause. */

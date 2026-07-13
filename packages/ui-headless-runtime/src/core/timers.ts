@@ -1,4 +1,4 @@
-/** Owns one replaceable timeout and exposes deterministic idempotent cleanup. @public */
+/** Owns one replaceable timeout and exposes deterministic idempotent cleanup. @internal */
 export interface TimeoutManager {
   /** Replaces any pending callback and schedules the next callback after `delay` milliseconds. */
   schedule(callback: () => void, delay: number): void;
@@ -13,7 +13,7 @@ export interface TimeoutManager {
  *
  * @remarks A fired callback releases its timer before invoking consumer code, so re-entrant
  * scheduling is safe. The manager never reads DOM globals and can be disposed with `clear()`.
- * @public
+ * @internal
  */
 export function createTimeoutManager(): TimeoutManager {
   let timer: ReturnType<typeof setTimeout> | undefined;

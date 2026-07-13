@@ -31,6 +31,7 @@ const guideOrder = [
   'framework-integration',
   'testing',
   'troubleshooting',
+  'migrating-to-1.0',
   'release-and-package',
 ];
 const frameworkOrder = ['react', 'vue', 'angular'];

@@ -1,13 +1,19 @@
-import type { EventListener, RuntimeEvent, Unsubscribe } from '../core/types';
+import type { RuntimeEvent, RuntimeEventListener, Unsubscribe } from '../core/types';
 
-/** Typed event emitter with deterministic delivery and cancellable events. @public */
+/** Typed event emitter with deterministic delivery and cancellable events. @internal */
 export interface TypedEventEmitter<TEvents extends object> {
   /** Registers a listener and returns an idempotent unsubscribe function. */
-  on<TKey extends keyof TEvents>(type: TKey, listener: EventListener<TEvents[TKey]>): Unsubscribe;
+  on<TKey extends keyof TEvents>(
+    type: TKey,
+    listener: RuntimeEventListener<TEvents[TKey]>,
+  ): Unsubscribe;
   /** Removes a listener registered for the specified event. */
-  off<TKey extends keyof TEvents>(type: TKey, listener: EventListener<TEvents[TKey]>): void;
+  off<TKey extends keyof TEvents>(type: TKey, listener: RuntimeEventListener<TEvents[TKey]>): void;
   /** Registers a listener for one delivery. */
-  once<TKey extends keyof TEvents>(type: TKey, listener: EventListener<TEvents[TKey]>): Unsubscribe;
+  once<TKey extends keyof TEvents>(
+    type: TKey,
+    listener: RuntimeEventListener<TEvents[TKey]>,
+  ): Unsubscribe;
   /** Delivers a typed payload and returns false when a listener cancelled it. */
   emit<TKey extends keyof TEvents>(type: TKey, detail: TEvents[TKey]): boolean;
   /** Removes every listener. */
@@ -18,17 +24,17 @@ export interface TypedEventEmitter<TEvents extends object> {
  * Creates an emitter whose listener snapshot is stable during each emission.
  *
  * @remarks Listener additions/removals during emission affect the next emission only.
- * @public
+ * @internal
  */
 export function createEventEmitter<TEvents extends object>(): TypedEventEmitter<TEvents> {
-  const listeners = new Map<keyof TEvents, Set<EventListener<unknown>>>();
+  const listeners = new Map<keyof TEvents, Set<RuntimeEventListener<unknown>>>();
   const on = <TKey extends keyof TEvents>(
     type: TKey,
-    listener: EventListener<TEvents[TKey]>,
+    listener: RuntimeEventListener<TEvents[TKey]>,
   ): Unsubscribe => {
-    const bucket = listeners.get(type) ?? new Set<EventListener<unknown>>();
+    const bucket = listeners.get(type) ?? new Set<RuntimeEventListener<unknown>>();
     listeners.set(type, bucket);
-    const genericListener = listener as EventListener<unknown>;
+    const genericListener = listener as RuntimeEventListener<unknown>;
     bucket.add(genericListener);
     let active = true;
     return () => {
@@ -42,7 +48,7 @@ export function createEventEmitter<TEvents extends object>(): TypedEventEmitter<
     on,
     off(type, listener) {
       const bucket = listeners.get(type);
-      bucket?.delete(listener as EventListener<unknown>);
+      bucket?.delete(listener as RuntimeEventListener<unknown>);
       if (bucket?.size === 0) listeners.delete(type);
     },
     once(type, listener) {

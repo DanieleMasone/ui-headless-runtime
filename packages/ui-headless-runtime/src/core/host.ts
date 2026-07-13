@@ -1,15 +1,15 @@
 import { createDisposableScope } from './disposables';
 import { createEventEmitter } from '../events/emitter';
 import type {
-  EventListener,
-  EventSource,
   RuntimeController,
   SnapshotListener,
+  RuntimeEventListener,
+  RuntimeEventSource,
   Unsubscribe,
 } from './types';
 
 export interface ControllerHost<TSnapshot extends object, TEvents extends object>
-  extends RuntimeController<TSnapshot>, EventSource<TEvents> {
+  extends RuntimeController<TSnapshot>, RuntimeEventSource<TEvents> {
   readonly resources: ReturnType<typeof createDisposableScope>;
   readonly alive: () => boolean;
   update(next: TSnapshot): boolean;
@@ -72,16 +72,19 @@ export function createControllerHost<TSnapshot extends object, TEvents extends o
     emit: events.emit,
     on<TKey extends keyof TEvents>(
       type: TKey,
-      listener: EventListener<TEvents[TKey]>,
+      listener: RuntimeEventListener<TEvents[TKey]>,
     ): Unsubscribe {
       return destroyed ? () => undefined : events.on(type, listener);
     },
-    off<TKey extends keyof TEvents>(type: TKey, listener: EventListener<TEvents[TKey]>): void {
+    off<TKey extends keyof TEvents>(
+      type: TKey,
+      listener: RuntimeEventListener<TEvents[TKey]>,
+    ): void {
       events.off(type, listener);
     },
     once<TKey extends keyof TEvents>(
       type: TKey,
-      listener: EventListener<TEvents[TKey]>,
+      listener: RuntimeEventListener<TEvents[TKey]>,
     ): Unsubscribe {
       return destroyed ? () => undefined : events.once(type, listener);
     },

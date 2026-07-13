@@ -32,7 +32,7 @@ Create Context Menu during component mount or setup, subscribe before rendering 
 
 ## Snapshot
 
-- Snapshot fields: `activeId`, `controlled`, `items`, `open`, `openSubmenuId`, `position`, `role`, `selectedId`.
+- Snapshot fields: `activeId`, `contentId`, `controlled`, `items`, `open`, `openSubmenuId`, `position`, `role`, `selectedId`.
 - The public position is a collision-aware `PositionResult`, not the raw pointer coordinate pair.
 
 ## Commands
@@ -71,9 +71,14 @@ Uncontrolled mode opens immediately at the current pointer or keyboard-derived v
 
 ## Keyboard interaction
 
-- Arrow keys: Move the active item, skipping disabled items.
+- ContextMenu / Shift+F10: Open the menu at its keyboard anchor.
+- ArrowDown / ArrowUp: Move the active item, skipping disabled items.
 - Home / End: Move to the first or last enabled item.
+- Enter / Space: Activate the active item or open its submenu.
+- ArrowRight / ArrowLeft: Open or close a submenu.
 - Type characters: Move by normalized typeahead.
+- Escape: Close the topmost menu and restore trigger focus.
+- Tab / Shift+Tab: Close the menu without suppressing native focus traversal.
 
 ## Focus behavior
 

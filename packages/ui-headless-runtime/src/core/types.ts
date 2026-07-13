@@ -41,8 +41,8 @@ export interface ControllableValueOptions<TValue, TReason extends string> {
   readonly subscribeValue?: (listener: () => void) => Unsubscribe;
 }
 
-/** Function that may veto a cancellable lifecycle event. @public */
-export type EventListener<TPayload> = (event: RuntimeEvent<TPayload>) => void;
+/** Function that may veto a cancellable runtime lifecycle event. @public */
+export type RuntimeEventListener<TPayload> = (event: RuntimeEvent<TPayload>) => void;
 
 /** Typed cancellable lifecycle event delivered by runtime controllers. @public */
 export interface RuntimeEvent<TPayload> {
@@ -55,11 +55,17 @@ export interface RuntimeEvent<TPayload> {
 }
 
 /** Uniform typed event surface implemented by interactive controllers. @public */
-export interface EventSource<TEvents extends object> {
+export interface RuntimeEventSource<TEvents extends object> {
   /** Registers a listener and returns an idempotent unsubscribe function. */
-  on<TKey extends keyof TEvents>(type: TKey, listener: EventListener<TEvents[TKey]>): Unsubscribe;
+  on<TKey extends keyof TEvents>(
+    type: TKey,
+    listener: RuntimeEventListener<TEvents[TKey]>,
+  ): Unsubscribe;
   /** Removes a previously registered listener. */
-  off<TKey extends keyof TEvents>(type: TKey, listener: EventListener<TEvents[TKey]>): void;
+  off<TKey extends keyof TEvents>(type: TKey, listener: RuntimeEventListener<TEvents[TKey]>): void;
   /** Registers a listener that is automatically removed after its first call. */
-  once<TKey extends keyof TEvents>(type: TKey, listener: EventListener<TEvents[TKey]>): Unsubscribe;
+  once<TKey extends keyof TEvents>(
+    type: TKey,
+    listener: RuntimeEventListener<TEvents[TKey]>,
+  ): Unsubscribe;
 }

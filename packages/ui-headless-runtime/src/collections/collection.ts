@@ -10,7 +10,7 @@ export interface CollectionItem {
   readonly disabled?: boolean;
 }
 
-/** Dynamic ordered item registry. @public */
+/** Dynamic ordered item registry. @internal */
 export interface CollectionRegistry<TItem extends CollectionItem> {
   /** Registers or replaces an item and returns cleanup scoped to that registration. */
   register(item: TItem): Unsubscribe;
@@ -26,7 +26,7 @@ export interface CollectionRegistry<TItem extends CollectionItem> {
   clear(): void;
 }
 
-/** Creates the shared dynamic collection primitive. @public */
+/** Creates the shared dynamic collection primitive. @internal */
 export function createCollection<TItem extends CollectionItem>(): CollectionRegistry<TItem> {
   const entries = new Map<string, { item: TItem; token: symbol }>();
   return {
@@ -64,7 +64,7 @@ export function createCollection<TItem extends CollectionItem>(): CollectionRegi
   };
 }
 
-/** Normalizes human-readable item text for locale-aware typeahead matching. @public */
+/** Normalizes human-readable item text for locale-aware typeahead matching. @internal */
 export function normalizeText(value: string): string {
   return value
     .normalize('NFKD')
@@ -73,7 +73,7 @@ export function normalizeText(value: string): string {
     .toLocaleLowerCase();
 }
 
-/** Returns the first enabled item beginning with a normalized search buffer. @public */
+/** Returns the first enabled item beginning with a normalized search buffer. @internal */
 export function findTypeaheadMatch<TItem extends CollectionItem>(
   items: readonly TItem[],
   query: string,
@@ -87,7 +87,7 @@ export function findTypeaheadMatch<TItem extends CollectionItem>(
   return ordered.find((item) => normalizeText(item.text).startsWith(normalized))?.id;
 }
 
-/** Scores a fuzzy match; `Number.NEGATIVE_INFINITY` means no ordered match. @public */
+/** Scores a fuzzy match; `Number.NEGATIVE_INFINITY` means no ordered match. @internal */
 export function fuzzyScore(value: string, query: string): number {
   const haystack = normalizeText(value);
   const needle = normalizeText(query);

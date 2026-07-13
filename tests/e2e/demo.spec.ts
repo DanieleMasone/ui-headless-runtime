@@ -105,6 +105,13 @@ test('home, links, theme, search, history, and direct routes work', async ({ pag
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Behavior infrastructure');
   await expect(page.getByRole('link', { name: 'Explore components' })).toBeVisible();
   await expect(page.locator('.metric-grid')).toContainText('16');
+  const install = page.locator('.install');
+  await expect(install).toContainText('npm install ui-headless-runtime');
+  await expect(install).not.toContainText('pending');
+  await expect(install.getByRole('link', { name: 'View the package on npm' })).toHaveAttribute(
+    'href',
+    'https://www.npmjs.com/package/ui-headless-runtime',
+  );
 
   const theme = page.getByLabel('Theme');
   await theme.selectOption('dark');

@@ -4,22 +4,24 @@ import { createDisposableScope } from '../core/disposables';
 import type {
   ChangeDetails,
   ControllableValueOptions,
-  EventSource,
   RuntimeController,
+  RuntimeEventSource,
+  Unsubscribe,
 } from '../core/types';
 import {
+  eventTargets,
   inertSiblings,
   isHTMLElement,
   listen,
   lockDocumentScroll,
-  observeOutsideInteraction,
+  observeDocumentInteraction,
 } from '../dom/dom';
 import { focusInitial, restoreFocus, trapFocus } from '../focus/focus';
 import { createControllableValue } from '../state/controllable';
 import {
   autoUpdatePosition,
   calculatePosition,
-  type PositionOptions,
+  type FloatingPositionOptions,
   type PositionResult,
   type VirtualAnchor,
 } from '../positioning/positioning';
@@ -93,7 +95,7 @@ export interface OpenSnapshot {
   readonly position: PositionResult | null;
 }
 
-/** Shared options used by overlay-style component factories. @public */
+/** Shared options used by overlay-style component factories. @internal */
 export interface OpenControllerOptions extends Partial<
   ControllableValueOptions<boolean, OpenChangeReason>
 > {
@@ -120,12 +122,12 @@ export interface OpenControllerOptions extends Partial<
   /** Whether pointer/focus-out dismissal restores the pre-open target. */
   readonly restoreFocusOnOutside?: boolean;
   /** Shared anchored positioning options. */
-  readonly positioning?: PositionOptions;
+  readonly positioning?: FloatingPositionOptions;
 }
 
-/** Internal overlay primitive reused by all public overlay controllers. */
+/** Internal overlay primitive reused by all public overlay controllers. @internal */
 export interface OpenController
-  extends RuntimeController<OpenSnapshot>, EventSource<OpenLifecycleEvents> {
+  extends RuntimeController<OpenSnapshot>, RuntimeEventSource<OpenLifecycleEvents> {
   open(details: ChangeDetails<OpenChangeReason>): void;
   close(details: ChangeDetails<OpenChangeReason>): void;
   toggle(details: ChangeDetails<OpenChangeReason>): void;
@@ -136,15 +138,192 @@ export interface OpenController
 interface StackEntry {
   readonly id: string;
   readonly content: HTMLElement;
-  sync(): void;
+  readonly interactionBoundaries: readonly Element[];
+  readonly focusScopes: readonly Element[];
+  readonly inertBranches: readonly Element[];
+  readonly trapsFocus: boolean;
+  readonly modal: boolean;
+  readonly order: number;
+  handleEscape(event: KeyboardEvent): void;
+  handlePointerOutside(event: PointerEvent): void;
+  handleFocusOutside(event: FocusEvent): void;
+  setFocusTrap(scopes: readonly Element[] | undefined): void;
+  setInertScope(branches: readonly Element[] | undefined): void;
+  publish(topmost: boolean): void;
 }
 
 const overlayStacks = new WeakMap<Document, StackEntry[]>();
+const overlayStackOrders = new WeakMap<Document, number>();
+const overlayReconcileQueue = new Set<Document>();
+let overlayMutationDepth = 0;
+let flushingOverlayReconcileQueue = false;
+
+const sameElements = (
+  left: readonly Element[] | undefined,
+  right: readonly Element[] | undefined,
+): boolean =>
+  left === right ||
+  (left !== undefined &&
+    right !== undefined &&
+    left.length === right.length &&
+    left.every((element, index) => element === right[index]));
+
+const uniqueElements = (elements: readonly Element[]): readonly Element[] => [...new Set(elements)];
+
+const stackMatches = (ownerDocument: Document, expected: readonly StackEntry[]): boolean => {
+  const current = overlayStacks.get(ownerDocument) ?? [];
+  return (
+    current.length === expected.length && current.every((entry, index) => entry === expected[index])
+  );
+};
+
+const reconcileOverlayDocument = (ownerDocument: Document): void => {
+  const stack = [...(overlayStacks.get(ownerDocument) ?? [])];
+  if (stack.length === 0) return;
+
+  let focusOwnerIndex = -1;
+  let modalOwnerIndex = -1;
+  let index = stack.length;
+  for (const entry of [...stack].reverse()) {
+    index -= 1;
+    if (focusOwnerIndex < 0 && entry.trapsFocus) focusOwnerIndex = index;
+    if (modalOwnerIndex < 0 && entry.modal) modalOwnerIndex = index;
+    if (focusOwnerIndex >= 0 && modalOwnerIndex >= 0) break;
+  }
+
+  const focusOwner = stack[focusOwnerIndex];
+  if (focusOwner) {
+    focusOwner.setFocusTrap(
+      uniqueElements([
+        ...focusOwner.focusScopes,
+        ...stack.slice(focusOwnerIndex + 1).flatMap((entry) => entry.focusScopes),
+      ]),
+    );
+  }
+  const modalOwner = stack[modalOwnerIndex];
+  if (modalOwner) {
+    modalOwner.setInertScope(
+      uniqueElements([
+        ...modalOwner.inertBranches,
+        ...stack.slice(modalOwnerIndex + 1).flatMap((entry) => entry.focusScopes),
+      ]),
+    );
+  }
+  for (const entry of stack) {
+    if (entry !== focusOwner) entry.setFocusTrap(undefined);
+    if (entry !== modalOwner) entry.setInertScope(undefined);
+  }
+
+  if (!stackMatches(ownerDocument, stack)) {
+    overlayReconcileQueue.add(ownerDocument);
+    return;
+  }
+  for (const [index, entry] of stack.entries()) {
+    entry.publish(index === stack.length - 1);
+    if (!stackMatches(ownerDocument, stack)) {
+      overlayReconcileQueue.add(ownerDocument);
+      return;
+    }
+  }
+};
+
+const flushOverlayReconcileQueue = (): void => {
+  if (overlayMutationDepth > 0 || flushingOverlayReconcileQueue) return;
+  flushingOverlayReconcileQueue = true;
+  try {
+    while (overlayReconcileQueue.size > 0) {
+      for (const ownerDocument of overlayReconcileQueue) {
+        overlayReconcileQueue.delete(ownerDocument);
+        reconcileOverlayDocument(ownerDocument);
+        break;
+      }
+    }
+  } finally {
+    flushingOverlayReconcileQueue = false;
+  }
+};
+
+const requestOverlayReconcile = (ownerDocument: Document): void => {
+  overlayReconcileQueue.add(ownerDocument);
+  flushOverlayReconcileQueue();
+};
+
+const beginOverlayMutation = (): void => {
+  overlayMutationDepth += 1;
+};
+
+const endOverlayMutation = (): void => {
+  overlayMutationDepth -= 1;
+  flushOverlayReconcileQueue();
+};
+
+interface OverlayDocumentDispatcher {
+  count: number;
+  readonly release: Unsubscribe;
+}
+
+const overlayDocumentDispatchers = new WeakMap<Document, OverlayDocumentDispatcher>();
+
+const acquireOverlayDocumentDispatcher = (ownerDocument: Document): Unsubscribe => {
+  const current = overlayDocumentDispatchers.get(ownerDocument);
+  if (current) {
+    current.count += 1;
+  } else {
+    const releaseInteractions = observeDocumentInteraction({
+      ownerDocument,
+      onPointerDown(event) {
+        const topmost = overlayStacks.get(ownerDocument)?.at(-1);
+        if (
+          !topmost ||
+          topmost.interactionBoundaries.some((boundary) => eventTargets(event, boundary))
+        )
+          return;
+        topmost.handlePointerOutside(event);
+      },
+      onFocusIn(event) {
+        const topmost = overlayStacks.get(ownerDocument)?.at(-1);
+        if (
+          !topmost ||
+          topmost.interactionBoundaries.some((boundary) => eventTargets(event, boundary))
+        )
+          return;
+        topmost.handleFocusOutside(event);
+      },
+    });
+    const releaseEscape = listen<KeyboardEvent>(
+      ownerDocument,
+      'keydown',
+      (event) => {
+        if (event.key === 'Escape') overlayStacks.get(ownerDocument)?.at(-1)?.handleEscape(event);
+      },
+      true,
+    );
+    overlayDocumentDispatchers.set(ownerDocument, {
+      count: 1,
+      release() {
+        releaseEscape();
+        releaseInteractions();
+      },
+    });
+  }
+  let active = true;
+  return () => {
+    if (!active) return;
+    active = false;
+    const dispatcher = overlayDocumentDispatchers.get(ownerDocument);
+    if (!dispatcher) return;
+    dispatcher.count -= 1;
+    if (dispatcher.count === 0) {
+      dispatcher.release();
+      overlayDocumentDispatchers.delete(ownerDocument);
+    }
+  };
+};
 
 const details = <TReason extends OpenChangeReason>(
   reason: TReason,
-  event?: Event,
-): ChangeDetails<TReason> => (event ? { reason, event } : { reason });
+  event: Event,
+): ChangeDetails<TReason> => ({ reason, event });
 
 export function createOpenController(options: OpenControllerOptions): OpenController {
   const id = options.id ?? createRuntimeId(options.role);
@@ -158,20 +337,43 @@ export function createOpenController(options: OpenControllerOptions): OpenContro
     role: options.role,
     position: null,
   });
-  let bound: OverlayElements | undefined;
+  interface BindingRegistration {
+    readonly elements: OverlayElements;
+    readonly token: symbol;
+  }
+  let binding: BindingRegistration | undefined;
   let openResources = createDisposableScope();
   let restoreTarget: HTMLElement | null = null;
-  let stackDocument: Document | undefined;
-  let stackEntry: StackEntry | undefined;
+  let restoreTargetCaptured = false;
+  let activeEntry: StackEntry | undefined;
+  let sessionDocument: Document | undefined;
+  let sessionOrder: number | undefined;
+  let currentPosition: PositionResult | null = null;
+  let resourceGeneration = 0;
+  let transitionGeneration = 0;
+  let lifecycleRequestInFlight: boolean | undefined;
 
-  const refreshSnapshot = (position = host.getSnapshot().position): void => {
+  const refreshSnapshot = (topmost?: boolean): void => {
     const open = state.get();
-    const stack = bound ? overlayStacks.get(bound.content.ownerDocument) : undefined;
-    const topmost = open && stack?.at(-1)?.id === id;
+    const currentBinding = binding;
+    const stack = currentBinding
+      ? overlayStacks.get(currentBinding.elements.content.ownerDocument)
+      : undefined;
+    const resolvedTopmost =
+      open && (topmost ?? (activeEntry !== undefined && stack?.at(-1) === activeEntry));
     const current = host.getSnapshot();
-    if (current.open === open && current.topmost === topmost && current.position === position)
+    if (
+      current.open === open &&
+      current.topmost === resolvedTopmost &&
+      current.position === currentPosition
+    )
       return;
-    host.update({ ...current, open, topmost, position });
+    host.update({
+      ...current,
+      open,
+      topmost: resolvedTopmost,
+      position: currentPosition,
+    });
   };
   const state = createControllableValue<boolean, OpenChangeReason>(
     {
@@ -183,139 +385,318 @@ export function createOpenController(options: OpenControllerOptions): OpenContro
     (open, changeDetails) => commit(open, changeDetails),
   );
 
-  const updatePosition = (): void => {
-    if (!host.alive() || (!bound?.anchor && !bound?.trigger)) return;
-    const anchor = bound.anchor ?? bound.trigger;
-    if (!anchor) return;
+  const calculateBoundPosition = (currentBinding: BindingRegistration): PositionResult | null => {
+    const { content } = currentBinding.elements;
+    const anchor = currentBinding.elements.anchor ?? currentBinding.elements.trigger;
+    if (!anchor) return null;
     const rectangle = anchor.getBoundingClientRect();
-    const floating = bound.content.getBoundingClientRect();
-    const ownerWindow = bound.content.ownerDocument.defaultView;
+    const floating = content.getBoundingClientRect();
+    const ownerWindow = content.ownerDocument.defaultView;
     const viewportWidth = options.positioning?.viewportWidth ?? ownerWindow?.innerWidth;
     const viewportHeight = options.positioning?.viewportHeight ?? ownerWindow?.innerHeight;
-    refreshSnapshot(
-      calculatePosition(
-        rectangle,
-        { width: floating.width, height: floating.height },
-        {
-          ...options.positioning,
-          ...(viewportWidth !== undefined ? { viewportWidth } : {}),
-          ...(viewportHeight !== undefined ? { viewportHeight } : {}),
-        },
-      ),
+    return calculatePosition(
+      rectangle,
+      { width: floating.width, height: floating.height },
+      {
+        ...options.positioning,
+        ...(viewportWidth !== undefined ? { viewportWidth } : {}),
+        ...(viewportHeight !== undefined ? { viewportHeight } : {}),
+      },
     );
   };
 
-  const removeFromStack = (): void => {
-    if (!stackDocument || !stackEntry) return;
-    const stack = overlayStacks.get(stackDocument);
-    const index = stack?.indexOf(stackEntry) ?? -1;
-    if (stack && index >= 0) stack.splice(index, 1);
-    stack?.at(-1)?.sync();
-    if (stack?.length === 0) overlayStacks.delete(stackDocument);
-    stackDocument = undefined;
-    stackEntry = undefined;
+  const updatePositionFor = (currentBinding: BindingRegistration, generation: number): void => {
+    if (resourceGeneration !== generation || binding !== currentBinding || !state.get()) return;
+    const position = calculateBoundPosition(currentBinding);
+    if (resourceGeneration !== generation || binding !== currentBinding || !state.get()) return;
+    currentPosition = position;
+    refreshSnapshot();
+  };
+
+  const updatePosition = (): void => {
+    const currentBinding = binding;
+    if (!currentBinding) return;
+    updatePositionFor(currentBinding, resourceGeneration);
   };
 
   const syncResources = (): void => {
-    openResources.dispose();
-    openResources = createDisposableScope();
-    removeFromStack();
-    if (!host.alive() || !state.get() || !bound) {
-      refreshSnapshot(null);
-      return;
-    }
-    const { content, trigger, anchor, branches = [] } = bound;
-    const ownerDocument = content.ownerDocument;
-    restoreTarget =
-      trigger ??
-      (isHTMLElement(ownerDocument.activeElement, ownerDocument)
-        ? ownerDocument.activeElement
-        : null);
-    const stack = overlayStacks.get(ownerDocument) ?? [];
-    const entry: StackEntry = { id, content, sync: () => refreshSnapshot() };
-    stack.push(entry);
-    overlayStacks.set(ownerDocument, stack);
-    stackDocument = ownerDocument;
-    stackEntry = entry;
-    stack.at(-2)?.sync();
-    refreshSnapshot();
-    openResources.add(removeFromStack);
-    openResources.add(
-      listen<KeyboardEvent>(
-        ownerDocument,
-        'keydown',
-        (event) => {
-          if (
-            event.key === 'Escape' &&
-            (options.closeOnEscape ?? true) &&
-            stack.at(-1)?.id === id
-          ) {
+    resourceGeneration += 1;
+    const generation = resourceGeneration;
+    const currentBinding = binding;
+    const previousResources = openResources;
+    const localResources = createDisposableScope();
+    openResources = localResources;
+    currentPosition = null;
+    let createdEntry: StackEntry | undefined;
+    let establishingSessionBinding = false;
+
+    const isCurrent = (): boolean =>
+      host.alive() &&
+      resourceGeneration === generation &&
+      openResources === localResources &&
+      binding === currentBinding;
+    const isCurrentOpen = (): boolean => isCurrent() && state.get();
+
+    beginOverlayMutation();
+    try {
+      previousResources.dispose();
+      if (isCurrentOpen() && currentBinding) {
+        const { content, trigger, backdrop, anchor, branches = [] } = currentBinding.elements;
+        const ownerDocument = content.ownerDocument;
+        let activeSessionOrder = sessionOrder;
+        if (sessionDocument !== ownerDocument || activeSessionOrder === undefined) {
+          const order = (overlayStackOrders.get(ownerDocument) ?? 0) + 1;
+          overlayStackOrders.set(ownerDocument, order);
+          sessionDocument = ownerDocument;
+          sessionOrder = order;
+          activeSessionOrder = order;
+          restoreTarget = null;
+          restoreTargetCaptured = false;
+        }
+        establishingSessionBinding = !restoreTargetCaptured;
+        if (establishingSessionBinding) {
+          restoreTarget =
+            trigger ??
+            (isHTMLElement(ownerDocument.activeElement, ownerDocument)
+              ? ownerDocument.activeElement
+              : null);
+          restoreTargetCaptured = true;
+        } else if (!restoreTarget?.isConnected && trigger?.isConnected) {
+          restoreTarget = trigger;
+        }
+
+        const focusScopes = uniqueElements(
+          [content, ...branches].filter((scope) => scope.ownerDocument === ownerDocument),
+        );
+        const interactionBoundaries = uniqueElements(
+          [content, trigger, ...branches].filter(
+            (boundary): boundary is Element =>
+              boundary !== undefined && boundary.ownerDocument === ownerDocument,
+          ),
+        );
+        const inertBranches = uniqueElements(
+          [backdrop, ...branches].filter(
+            (branch): branch is Element =>
+              branch !== undefined && branch.ownerDocument === ownerDocument,
+          ),
+        );
+        let installedFocusScopes: readonly Element[] | undefined;
+        let installedInertBranches: readonly Element[] | undefined;
+        let releaseFocusTrap: Unsubscribe = () => undefined;
+        let releaseInertScope: Unsubscribe = () => undefined;
+
+        localResources.add(() => {
+          releaseFocusTrap();
+          releaseFocusTrap = () => undefined;
+          installedFocusScopes = undefined;
+        });
+        localResources.add(() => {
+          releaseInertScope();
+          releaseInertScope = () => undefined;
+          installedInertBranches = undefined;
+        });
+
+        const entry: StackEntry = {
+          id,
+          content,
+          interactionBoundaries,
+          focusScopes,
+          inertBranches,
+          trapsFocus: options.trapFocus ?? options.modal ?? false,
+          modal: options.modal ?? false,
+          order: activeSessionOrder,
+          handleEscape(event) {
+            if (!isCurrentOpen() || activeEntry !== entry || !(options.closeOnEscape ?? true))
+              return;
             event.preventDefault();
             change(false, details('escape-key', event));
-          }
-        },
-        true,
-      ),
-    );
-    openResources.add(
-      observeOutsideInteraction({
-        boundary: content,
-        branches: [trigger, ...branches].filter(
-          (branch): branch is Element => branch !== undefined,
-        ),
-        onPointerOutside(event) {
-          const higher = stack.slice(stack.findIndex((item) => item.id === id) + 1);
-          if (higher.some((item) => event.composedPath().includes(item.content))) return;
-          if (options.closeOnOutsidePointer ?? true) {
+          },
+          handlePointerOutside(event) {
+            if (
+              !isCurrentOpen() ||
+              activeEntry !== entry ||
+              !(options.closeOnOutsidePointer ?? true)
+            )
+              return;
             change(false, details('outside-pointer', event));
-          }
-        },
-        onFocusOutside(event) {
-          const higher = stack.slice(stack.findIndex((item) => item.id === id) + 1);
-          if (higher.some((item) => event.composedPath().includes(item.content))) return;
-          if (options.closeOnFocusOutside) change(false, details('focus-out', event));
-        },
-      }),
+          },
+          handleFocusOutside(event) {
+            if (!isCurrentOpen() || activeEntry !== entry || !options.closeOnFocusOutside) return;
+            change(false, details('focus-out', event));
+          },
+          setFocusTrap(scopes) {
+            if (!isCurrentOpen() || activeEntry !== entry) return;
+            if (sameElements(installedFocusScopes, scopes)) return;
+            const nextRelease = scopes
+              ? trapFocus(
+                  content,
+                  scopes.filter((scope) => scope !== content),
+                )
+              : () => undefined;
+            const previousRelease = releaseFocusTrap;
+            releaseFocusTrap = nextRelease;
+            installedFocusScopes = scopes;
+            previousRelease();
+          },
+          setInertScope(nextBranches) {
+            if (!isCurrentOpen() || activeEntry !== entry) return;
+            if (sameElements(installedInertBranches, nextBranches)) return;
+            const nextRelease = nextBranches
+              ? inertSiblings(
+                  content,
+                  nextBranches.filter((branch) => branch !== content),
+                  activeSessionOrder,
+                )
+              : () => undefined;
+            const previousRelease = releaseInertScope;
+            releaseInertScope = nextRelease;
+            installedInertBranches = nextBranches;
+            previousRelease();
+          },
+          publish(topmost) {
+            if (!isCurrentOpen() || activeEntry !== entry) return;
+            refreshSnapshot(topmost);
+          },
+        };
+        createdEntry = entry;
+        activeEntry = entry;
+        const stack = overlayStacks.get(ownerDocument) ?? [];
+        const orderedIndex = stack.findIndex((candidate) => candidate.order > activeSessionOrder);
+        stack.splice(orderedIndex < 0 ? stack.length : orderedIndex, 0, entry);
+        overlayStacks.set(ownerDocument, stack);
+        localResources.add(() => {
+          const currentStack = overlayStacks.get(ownerDocument);
+          const index = currentStack?.indexOf(entry) ?? -1;
+          if (currentStack && index >= 0) currentStack.splice(index, 1);
+          if (currentStack?.length === 0) overlayStacks.delete(ownerDocument);
+          if (activeEntry === entry) activeEntry = undefined;
+          requestOverlayReconcile(ownerDocument);
+        });
+        localResources.add(acquireOverlayDocumentDispatcher(ownerDocument));
+        if (options.modal) localResources.add(lockDocumentScroll(ownerDocument));
+
+        const positionedAnchor = anchor ?? trigger;
+        if (positionedAnchor) {
+          let installing = true;
+          const releasePositioning = autoUpdatePosition(positionedAnchor, content, () => {
+            if (installing) return;
+            updatePositionFor(currentBinding, generation);
+          });
+          localResources.add(releasePositioning);
+          installing = false;
+          const position = calculateBoundPosition(currentBinding);
+          if (isCurrentOpen() && activeEntry === entry) currentPosition = position;
+        }
+        requestOverlayReconcile(ownerDocument);
+      }
+    } catch (error) {
+      localResources.dispose();
+      throw error;
+    } finally {
+      endOverlayMutation();
+    }
+
+    if (!isCurrent()) return;
+    refreshSnapshot();
+    if (!isCurrentOpen() || !currentBinding || !createdEntry || activeEntry !== createdEntry)
+      return;
+    const { content, branches = [] } = currentBinding.elements;
+    const stack = overlayStacks.get(content.ownerDocument);
+    const activeElement = content.ownerDocument.activeElement;
+    const focusWithinBinding = [content, ...branches].some(
+      (scope) =>
+        activeElement !== null && (scope === activeElement || scope.contains(activeElement)),
     );
-    if (options.modal) {
-      openResources.add(lockDocumentScroll(ownerDocument));
-      openResources.add(inertSiblings(content));
-    }
-    if (options.trapFocus ?? options.modal ?? false) openResources.add(trapFocus(content));
-    if (anchor ?? trigger) {
-      openResources.add(
-        autoUpdatePosition((anchor ?? trigger) as Element | VirtualAnchor, content, updatePosition),
-      );
-    }
-    if (options.focusOnOpen ?? options.modal ?? options.trapFocus ?? false) {
-      focusInitial(content, options.initialFocus?.());
+    const shouldFocusBinding =
+      stack?.at(-1) === createdEntry && (establishingSessionBinding || !focusWithinBinding);
+    if (
+      shouldFocusBinding &&
+      (options.focusOnOpen ?? options.modal ?? options.trapFocus ?? false)
+    ) {
+      const preferredFocus = options.initialFocus?.();
+      if (
+        !isCurrentOpen() ||
+        binding !== currentBinding ||
+        activeEntry !== createdEntry ||
+        overlayStacks.get(content.ownerDocument)?.at(-1) !== createdEntry
+      )
+        return;
+      focusInitial(content, preferredFocus, (cleanup) => localResources.add(cleanup));
+      if (!isCurrentOpen() || activeEntry !== createdEntry) return;
     }
   };
 
   const commit = (open: boolean, changeDetails?: ChangeDetails<OpenChangeReason>): void => {
-    refreshSnapshot(open ? host.getSnapshot().position : null);
+    transitionGeneration += 1;
+    const generation = transitionGeneration;
+    const closingDocument = activeEntry?.content.ownerDocument ?? sessionDocument;
+    const closingOrder = activeEntry?.order ?? sessionOrder;
+    const stackBeforeClose =
+      !open && closingDocument ? overlayStacks.get(closingDocument) : undefined;
+    const hasHigherOverlay =
+      closingOrder !== undefined &&
+      (stackBeforeClose?.some(
+        (candidate) => candidate !== activeEntry && candidate.order > closingOrder,
+      ) ??
+        false);
+    const closingRestoreTarget = restoreTarget;
+    const closingCurrentTrigger = binding?.elements.trigger;
+    if (open) {
+      restoreTarget = null;
+      restoreTargetCaptured = false;
+      sessionDocument = undefined;
+      sessionOrder = undefined;
+    }
     syncResources();
-    if (!changeDetails) return;
-    const payload = { open, details: changeDetails };
-    host.emit(open ? 'open' : 'close', payload);
-    host.emit('stateChange', payload);
+    const transitionIsCurrent = (): boolean =>
+      host.alive() && transitionGeneration === generation && state.get() === open;
+    if (!transitionIsCurrent()) return;
+    const payload = changeDetails ? { open, details: changeDetails } : undefined;
+    if (payload) {
+      host.emit(open ? 'open' : 'close', payload);
+      if (!transitionIsCurrent()) return;
+      host.emit('stateChange', payload);
+      if (!transitionIsCurrent()) return;
+    }
     const dismissedOutside =
-      changeDetails.reason === 'outside-pointer' || changeDetails.reason === 'focus-out';
+      changeDetails?.reason === 'outside-pointer' || changeDetails?.reason === 'focus-out';
     if (
       !open &&
+      !hasHigherOverlay &&
       (options.restoreFocus ?? true) &&
       (!dismissedOutside || (options.restoreFocusOnOutside ?? options.modal ?? false))
     ) {
-      restoreFocus(restoreTarget);
+      const restoredOriginal = restoreFocus(closingRestoreTarget);
+      if (!transitionIsCurrent()) return;
+      if (!restoredOriginal && closingCurrentTrigger !== closingRestoreTarget) {
+        restoreFocus(closingCurrentTrigger);
+        if (!transitionIsCurrent()) return;
+      }
     }
-    host.emit(open ? 'afterOpen' : 'afterClose', payload);
+    if (payload) {
+      host.emit(open ? 'afterOpen' : 'afterClose', payload);
+      if (!transitionIsCurrent()) return;
+    }
+    if (!open) {
+      restoreTarget = null;
+      restoreTargetCaptured = false;
+      sessionDocument = undefined;
+      sessionOrder = undefined;
+    }
   };
 
   const change = (open: boolean, changeDetails: ChangeDetails<OpenChangeReason>): void => {
-    if (!host.alive() || state.get() === open) return;
+    if (!host.alive() || state.get() === open || lifecycleRequestInFlight === open) return;
     const payload = { open, details: changeDetails };
-    if (!host.emit(open ? 'beforeOpen' : 'beforeClose', payload)) return;
-    if (state.set(open, changeDetails)) commit(open, changeDetails);
+    const generation = transitionGeneration;
+    lifecycleRequestInFlight = open;
+    try {
+      if (!host.emit(open ? 'beforeOpen' : 'beforeClose', payload)) return;
+      if (!host.alive() || transitionGeneration !== generation || state.get() === open) return;
+      if (state.set(open, changeDetails)) commit(open, changeDetails);
+    } finally {
+      if (lifecycleRequestInFlight === open) lifecycleRequestInFlight = undefined;
+    }
   };
 
   host.resources.add(() => state.destroy());
@@ -332,23 +713,39 @@ export function createOpenController(options: OpenControllerOptions): OpenContro
     toggle: (changeDetails) => change(!state.get(), changeDetails),
     bind(elements) {
       if (!host.alive()) return () => undefined;
-      bound = elements;
+      const registration: BindingRegistration = {
+        elements,
+        token: Symbol('overlay-binding'),
+      };
+      binding = registration;
       syncResources();
       let active = true;
       return () => {
         if (!active) return;
         active = false;
-        if (bound !== elements) return;
-        openResources.dispose();
-        removeFromStack();
-        bound = undefined;
-        refreshSnapshot(null);
+        if (binding !== registration) return;
+        binding = undefined;
+        syncResources();
       };
     },
     updatePosition,
     destroy() {
-      host.destroy();
-      bound = undefined;
+      if (!host.alive()) return;
+      transitionGeneration += 1;
+      resourceGeneration += 1;
+      binding = undefined;
+      beginOverlayMutation();
+      try {
+        host.destroy();
+      } finally {
+        endOverlayMutation();
+      }
+      activeEntry = undefined;
+      currentPosition = null;
+      restoreTarget = null;
+      restoreTargetCaptured = false;
+      sessionDocument = undefined;
+      sessionOrder = undefined;
     },
   };
 }

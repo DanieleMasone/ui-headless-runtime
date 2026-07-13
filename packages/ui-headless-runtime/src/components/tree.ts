@@ -1,7 +1,7 @@
 import { findTypeaheadMatch, type CollectionItem } from '../collections/collection';
 import { createControllerHost } from '../core/host';
 import { createTimeoutManager } from '../core/timers';
-import type { ChangeDetails, EventSource, RuntimeController } from '../core/types';
+import type { ChangeDetails, RuntimeController, RuntimeEventSource } from '../core/types';
 import { createControllableValue } from '../state/controllable';
 
 /** Causes of tree expansion, focus, and selection mutations. @public */
@@ -114,7 +114,8 @@ export interface TreeOptions {
 }
 
 /** Headless hierarchical Tree View controller. @public */
-export interface TreeController extends RuntimeController<TreeSnapshot>, EventSource<TreeEvents> {
+export interface TreeController
+  extends RuntimeController<TreeSnapshot>, RuntimeEventSource<TreeEvents> {
   /** Registers or replaces a dynamic node and returns scoped cleanup. */
   registerNode(node: TreeNode): () => void;
   /** Expands or collapses a branch. */
@@ -158,12 +159,30 @@ export function createTreeView(options: TreeOptions = {}): TreeController {
     visit(null, 1, new Set());
     return result;
   };
+  const reconcileActive = (expandedIds: readonly string[]): void => {
+    const visible = flatten(expandedIds)
+      .map(({ node }) => node)
+      .filter((node) => !node.disabled);
+    if (activeId && visible.some((node) => node.id === activeId)) return;
+    let ancestorId = activeId ? (entries.get(activeId)?.node.parentId ?? null) : null;
+    while (ancestorId) {
+      const ancestor = entries.get(ancestorId)?.node;
+      if (!ancestor) break;
+      if (!ancestor.disabled && visible.some((node) => node.id === ancestor.id)) {
+        activeId = ancestor.id;
+        return;
+      }
+      ancestorId = ancestor.parentId ?? null;
+    }
+    activeId = visible[0]?.id ?? null;
+  };
   const build = (
     expandedIds: readonly string[],
     selectedIds: readonly string[],
     expansionControlled: boolean,
     selectionControlled: boolean,
   ): TreeSnapshot => {
+    reconcileActive(expandedIds);
     const visible = flatten(expandedIds);
     return {
       activeId,
@@ -252,7 +271,7 @@ export function createTreeView(options: TreeOptions = {}): TreeController {
   );
   const setActive = (id: string | null): void => {
     if (!host.alive()) return;
-    if (id && entries.get(id)?.node.disabled) return;
+    if (id && !visibleEnabled().some((node) => node.id === id)) return;
     activeId = id;
     sync();
   };
@@ -306,10 +325,13 @@ export function createTreeView(options: TreeOptions = {}): TreeController {
     once: host.once,
     registerNode(node) {
       if (!host.alive()) return () => undefined;
-      sequence += 1;
+      const registeredSequence = entries.get(node.id)?.sequence ?? ++sequence;
       const token = Symbol(node.id);
-      entries.set(node.id, { node: Object.freeze({ ...node }), token, sequence });
-      if (!activeId && !node.disabled) activeId = node.id;
+      entries.set(node.id, {
+        node: Object.freeze({ ...node }),
+        token,
+        sequence: registeredSequence,
+      });
       sync();
       return () => {
         if (entries.get(node.id)?.token !== token) return;

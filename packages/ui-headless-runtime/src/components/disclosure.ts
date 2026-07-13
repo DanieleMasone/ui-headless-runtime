@@ -3,8 +3,8 @@ import { createControllerHost } from '../core/host';
 import type {
   ChangeDetails,
   ControllableValueOptions,
-  EventSource,
   RuntimeController,
+  RuntimeEventSource,
 } from '../core/types';
 import { createControllableValue } from '../state/controllable';
 
@@ -87,7 +87,7 @@ export interface DisclosureOptions extends Partial<
 
 /** Headless Disclosure command and event surface. @public */
 export interface DisclosureController
-  extends RuntimeController<DisclosureSnapshot>, EventSource<DisclosureEvents> {
+  extends RuntimeController<DisclosureSnapshot>, RuntimeEventSource<DisclosureEvents> {
   /** Expands unless disabled, already expanded, destroyed, or cancelled. */
   expand(details?: ChangeDetails<DisclosureChangeReason>): void;
   /** Collapses unless disabled, already collapsed, destroyed, or cancelled. */
@@ -193,6 +193,7 @@ export function createDisclosure(options: DisclosureOptions = {}): DisclosureCon
       change(!state.get(), { reason: 'trigger', event });
     },
     handleTriggerKeyDown(event) {
+      if (!host.alive()) return;
       if (event.key !== 'Enter' && event.key !== ' ') return;
       event.preventDefault();
       change(!state.get(), { reason: 'keyboard', event });

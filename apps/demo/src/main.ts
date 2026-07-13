@@ -260,7 +260,7 @@ const renderCommands = (): void => {
 };
 const releaseCommandRender = commandPalette.subscribe(renderCommands);
 searchTrigger.addEventListener('click', () => {
-  commandPalette.open({ reason: 'pointer' });
+  commandPalette.open({ reason: 'trigger' });
   commandInput.focus();
 });
 let commandComposing = false;
@@ -301,7 +301,7 @@ const renderHome = (): void => {
         <p class="lede">Accessible, framework-agnostic TypeScript controllers for overlays, collections, selection, disclosure, and feedback—without CSS, JSX, or renderer lock-in.</p>
         <div class="actions"><a class="button primary" href="#/components">Explore components</a><a class="button" href="${siteLink('docs/guide/')}">Read the User Guide</a></div>
       </div>
-      <div class="install"><span>Package status</span><code>npm release pending</code><p>The tarball is verified locally; npm publication is intentionally release-driven.</p></div>
+      <div class="install"><span>Install from npm</span><code>npm install ui-headless-runtime</code><p>Version 0.1.1 validated release-driven publishing through npm Trusted Publishing OIDC. <a href="https://www.npmjs.com/package/ui-headless-runtime">View the package on npm</a>.</p></div>
     </section>
     <section aria-labelledby="quality-heading"><h2 id="quality-heading">Engineered as infrastructure</h2>
       <div class="metric-grid"><article><strong>${componentRegistry.length}</strong><span>headless controllers</span></article><article><strong>0</strong><span>runtime dependencies</span></article><article><strong>95%+</strong><span>coverage gates</span></article><article><strong>3</strong><span>tested browser engines</span></article></div>
@@ -345,7 +345,7 @@ const renderComponent = (definition: DemoComponentDefinition): void => {
       <section class="lab-example lab-panel" id="lab-panel-example" data-panel="example" aria-labelledby="live-heading"><h2 id="live-heading">Live example</h2><p class="scenario-description"></p><div class="example-mount"></div></section>
       <aside class="lab-inspector lab-panel" id="lab-panel-state" data-panel="state" aria-label="Runtime inspector"><div class="panel-heading"><h2>State inspector</h2><span>Live</span></div><pre class="state-output" tabindex="0"></pre></aside>
       <section class="lab-events lab-panel" id="lab-panel-events" data-panel="events" aria-labelledby="events-heading"><div class="panel-heading"><h2 id="events-heading">Event log</h2><button class="clear-events" type="button">Clear</button></div><div class="event-output" aria-label="Event log entries" tabindex="0"></div></section>
-      <section class="lab-source lab-panel" id="lab-panel-source" data-panel="source" aria-labelledby="source-heading"><div class="panel-heading"><h2 id="source-heading">Executed source</h2><button class="copy-source" type="button">Copy</button></div><p>This is the module used by the live laboratory; it imports only the package public API.</p><pre tabindex="0"><code></code></pre><p class="copy-status"></p></section>
+      <section class="lab-source lab-panel" id="lab-panel-source" data-panel="source" aria-labelledby="source-heading"><div class="panel-heading"><h2 id="source-heading">Executed source</h2><button class="copy-source" type="button">Copy</button></div><p>This is the executable component module used by the live laboratory. Runtime symbols come only from the package public entrypoint; supporting helpers are demo-owned.</p><pre tabindex="0"><code></code></pre><p class="copy-status"></p></section>
     </div>
     <section class="contract-grid lab-panel" id="lab-panel-a11y" data-panel="a11y"><article><h2>Keyboard</h2><table><thead><tr><th>Keys</th><th>Behavior</th></tr></thead><tbody>${definition.keyboardInteractions.map((item) => `<tr><th><kbd>${item.keys}</kbd></th><td>${item.action}</td></tr>`).join('')}</tbody></table></article><article class="accessibility-panel"><h2>Accessibility contract</h2><dl><dt>Pattern and roles</dt><dd>${definition.accessibility.roles}</dd><dt>Accessible name</dt><dd>${definition.accessibility.accessibleName}</dd><dt>ARIA state</dt><dd>${definition.accessibility.ariaState}</dd><dt>Relationships</dt><dd>${definition.accessibility.relationships}</dd><dt>Focus entry</dt><dd>${definition.accessibility.focusEntry}</dd><dt>Focus movement</dt><dd>${definition.accessibility.focusMovement}</dd><dt>Focus exit</dt><dd>${definition.accessibility.focusExit}</dd><dt>Screen reader notes</dt><dd>${definition.accessibility.screenReader}</dd><dt>Consumer responsibilities</dt><dd>${definition.accessibility.consumerResponsibilities}</dd><dt>Limitations</dt><dd>${definition.accessibility.limitations}</dd></dl><ul>${definition.accessibilityNotes.map((note) => `<li>${note}</li>`).join('')}</ul></article></section>
     <section><h2>Integration and cleanup</h2><p>Create the controller during mount, subscribe once, bind consumer DOM after rendering, and call both returned cleanup functions and <code>destroy()</code> during unmount. A second destroy is always safe; commands after destroy are no-ops.</p></section>

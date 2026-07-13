@@ -71,9 +71,10 @@ Uncontrolled tabs own selected and focused tab IDs and update snapshots immediat
 
 ## Keyboard interaction
 
-- Arrow keys: Move the active item, skipping disabled items.
-- Home / End: Move to the first or last enabled item.
-- Type characters: Move by normalized typeahead.
+- ArrowRight / ArrowLeft: Move focus between horizontal tabs, respecting text direction.
+- ArrowDown / ArrowUp: Move focus between vertical tabs.
+- Home / End: Move focus to the first or last enabled tab.
+- Enter / Space: Activate the focused tab in manual mode.
 
 ## Focus behavior
 

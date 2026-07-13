@@ -283,6 +283,18 @@ export const articleRegistry: readonly DemoArticleDefinition[] = [
     'guide/positioning.html',
   ),
   article(
+    'Guides',
+    'migrating-to-1.0',
+    'Migrating to 1.0',
+    'Update renamed event and positioning types, remove internal primitive imports, and adopt the stable component contracts.',
+    [
+      'Review every renamed or removed package-root symbol.',
+      'Update exhaustive reason handling.',
+      'Re-run product keyboard, focus, and accessibility tests.',
+    ],
+    'guide/migrating-to-1.0.html',
+  ),
+  article(
     'Quality',
     '',
     'Quality gates',

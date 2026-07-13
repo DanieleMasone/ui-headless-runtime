@@ -7,7 +7,9 @@ describe('SSR-safe module evaluation', () => {
     expect(globalThis.window).toBeUndefined();
     const runtime = await import('../../packages/ui-headless-runtime/src/index');
     expect(runtime.hasDOM()).toBe(false);
-    expect(runtime.getOwnerDocument()).toBeUndefined();
+    expect('getOwnerDocument' in runtime).toBe(false);
+    expect('createDisposableScope' in runtime).toBe(false);
+    expect('trapFocus' in runtime).toBe(false);
     const disclosure = runtime.createDisclosure();
     disclosure.expand();
     expect(disclosure.getSnapshot().expanded).toBe(true);

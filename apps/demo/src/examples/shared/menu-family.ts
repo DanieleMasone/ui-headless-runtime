@@ -129,7 +129,11 @@ export function createMenuFamilyExample(
   return adaptController(
     menu,
     (snapshot) => {
+      content.id = snapshot.contentId;
       content.hidden = !snapshot.open;
+      trigger.setAttribute('aria-haspopup', 'menu');
+      trigger.setAttribute('aria-controls', snapshot.contentId);
+      trigger.setAttribute('aria-expanded', String(snapshot.open));
       submenuStatus.hidden = scenario !== 'submenu';
       submenuStatus.textContent = snapshot.openSubmenuId
         ? `Open submenu: ${snapshot.openSubmenuId}`
