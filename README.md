@@ -1,6 +1,7 @@
 # UI Headless Runtime
 
 [![CI](https://github.com/DanieleMasone/ui-headless-runtime/actions/workflows/ci.yml/badge.svg)](https://github.com/DanieleMasone/ui-headless-runtime/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/ui-headless-runtime)](https://www.npmjs.com/package/ui-headless-runtime)
 [![License](https://img.shields.io/github/license/DanieleMasone/ui-headless-runtime)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)](https://www.typescriptlang.org/)
 [![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-brightgreen)](packages/ui-headless-runtime/package.json)
@@ -17,12 +18,11 @@ Framework-agnostic TypeScript controllers for accessible, customizable UI behavi
 - [Coverage report](https://danielemasone.github.io/ui-headless-runtime/coverage/)
 - [Architecture documentation](https://danielemasone.github.io/ui-headless-runtime/docs/architecture/overview.html)
 - [GitHub repository](https://github.com/DanieleMasone/ui-headless-runtime)
+- [npm package](https://www.npmjs.com/package/ui-headless-runtime)
 
 ## Install
 
-The package is not yet present on npm, so this repository intentionally does not show an npm version badge or use npm as the primary call to action. Public npm publication remains pending: an unregistered package needs an owner-authorized bootstrap before npm Trusted Publishing can be configured, after which the verified stable tarball is released through OIDC.
-
-After the first release:
+Install the published package from npm:
 
 ```sh
 npm install ui-headless-runtime
@@ -106,7 +106,7 @@ Useful commands are documented in [CONTRIBUTING.md](CONTRIBUTING.md). Generated 
 
 ## Release
 
-Publishing is configured to occur only from a published GitHub Release with a matching `vX.Y.Z` tag. The dedicated workflow uses npm Trusted Publishing OIDC on a GitHub-hosted runner; no persistent npm publish token or npm GitHub environment is used. npm Trusted Publisher setup remains an external prerequisite. See [release operations](https://danielemasone.github.io/ui-headless-runtime/docs/releasing.html).
+Version `0.1.0` was published manually as the one-time package creation release. Future versions publish only from a GitHub Release with a matching `vX.Y.Z` tag through npm Trusted Publishing OIDC; no persistent npm publish token or npm GitHub environment is used. See [release operations](https://danielemasone.github.io/ui-headless-runtime/docs/releasing.html).
 
 ## Contributing
 

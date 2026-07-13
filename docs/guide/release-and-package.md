@@ -13,7 +13,7 @@ The package is configured for npm Trusted Publishing through GitHub Releases.
 
 ## Release status
 
-The repository verifies the package locally, but `ui-headless-runtime` is not published on npm yet. npm Trusted Publisher settings are available only after the package exists, so an unregistered name requires a separately authorized bootstrap publication under a distinct prerelease version and non-default dist-tag. After that bootstrap, the owner configures OIDC and the verified `v0.1.0` GitHub Release drives the first stable publication. The repository does not automate or authorize the bootstrap operation.
+`ui-headless-runtime@0.1.0` is published on npm under the `latest` dist-tag. It was published manually as the one-time package creation release. Do not rerun `v0.1.0` to publish it again; npm versions are immutable. Future versions publish from the verified GitHub Release workflow through npm Trusted Publishing OIDC.
 
 ## Verification
 

@@ -1,12 +1,10 @@
 # Getting started
 
-The npm package name is `ui-headless-runtime`. The public npm package is not published yet; its owner must complete the documented registry bootstrap and Trusted Publishing setup before the first stable OIDC release. After that release, install it with:
+Install the published `ui-headless-runtime` package from npm:
 
 ```sh
 npm install ui-headless-runtime
 ```
-
-Until then, use the repository workspace or the verified tarball produced by `npm run package:check` for local evaluation.
 
 ## Minimal controller
 
