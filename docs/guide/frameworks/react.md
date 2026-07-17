@@ -4,7 +4,12 @@
 
 This page is a consumer-side React recipe, not an official adapter or package. It uses TypeScript and APIs available in React 18 and React 19. UI Headless Runtime remains a framework-agnostic dependency with no React runtime dependency and no CSS import.
 
-The repository does not declare React as a direct dependency or compile these TSX snippets. The examples are complete at component level unless a section is explicitly marked as abbreviated; validate them with the consumer application's JSX, lint, SSR, and test configuration.
+React dependencies remain isolated from the runtime and root workspaces. These documentation
+snippets are reviewed recipes rather than standalone compile targets; sections are complete at
+component level unless explicitly marked as abbreviated. The separately compiled
+[React npm consumer source](https://github.com/DanieleMasone/ui-headless-runtime/tree/main/examples/consumers/react-vite)
+uses Dialog and controlled/dynamic Tabs against the published package; validate product-specific
+SSR and tests in the consuming application.
 
 ## Lifecycle model
 

@@ -4,6 +4,10 @@
 
 Install Node 24 and npm 11, clone the repository, and run `npm ci`. Run `npm run setup:browsers` before local Playwright checks. Use `npm run dev` for the demo and `npm run build:lib` when changing package exports.
 
+The standalone framework consumers are intentionally outside the root workspaces. When changing
+`examples/consumers/**`, run `npm run examples:verify`; it performs an independent `npm ci`,
+typecheck, and production build for each committed consumer lockfile.
+
 ## Development checks
 
 Run `npm run format`, `npm run lint`, `npm run unused:check`, and `npm run typecheck`. Unit tests use `npm run test:unit`; coverage uses `npm run test:coverage`; real-browser integration uses `npm run test:browser`. Playwright uses the production `site-dist` artifact, so run coverage, `npm run build`, `npm run docs:check`, `npm run build:site`, and `npm run site:check` before `npm run test:acceptance`.
@@ -16,7 +20,11 @@ Add TSDoc before exporting a symbol. Run `npm run api:check`; when the intended 
 
 Keep documentation in English. Use `README.md` as a short landing page and put product-facing usage material in `docs/guide/`. Update component pages only with component-specific behavior; move shared lifecycle, state, DOM binding, accessibility, SSR, testing, and troubleshooting material to the User Guide. Demo links must target generated HTML routes, not local Markdown files.
 
-Framework integration pages are consumer-side recipes under `docs/guide/frameworks/`, not compiled applications or official adapters. Import runtime symbols only from `ui-headless-runtime`, show release/unsubscribe/destroy cleanup, keep CSS consumer-owned, state any uncompiled assumptions, and do not add framework dependencies solely for documentation snippets.
+Framework integration pages are consumer-side recipes under `docs/guide/frameworks/`. Executable
+React, Vue, and Angular consumers live separately under `examples/consumers/`; their framework
+dependencies must remain private to those projects and outside the root workspaces and core CI.
+Neither recipes nor examples are official adapters. Import runtime symbols only from
+`ui-headless-runtime`, show release/unsubscribe/destroy cleanup, and keep CSS consumer-owned.
 
 ## Accessibility
 
@@ -30,6 +38,7 @@ Test keyboard-only interaction, focus entry/containment/restoration, Arrow/Home/
 - README, User Guide, component docs, TypeDoc, and demo documentation links are coherent.
 - No public demo or generated site link points to a raw `.md` file.
 - Unit, browser, production E2E, accessibility, package smoke, and coverage gates pass.
+- Changed framework consumers pass `npm run examples:verify` without workspace/file dependencies or internal imports.
 - README/architecture/component/operations docs match actual behavior.
 
 ## Release

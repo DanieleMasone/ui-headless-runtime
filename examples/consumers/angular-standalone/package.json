@@ -1,0 +1,27 @@
+{
+  "name": "@ui-headless-runtime/angular-standalone-consumer",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "ng build",
+    "typecheck": "ngc -p tsconfig.app.json --noEmit"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.5.1"
+  },
+  "dependencies": {
+    "@angular/common": "21.2.18",
+    "@angular/compiler": "21.2.18",
+    "@angular/core": "21.2.18",
+    "@angular/platform-browser": "21.2.18",
+    "rxjs": "7.8.2",
+    "ui-headless-runtime": "^1.0.0"
+  },
+  "devDependencies": {
+    "@angular/build": "21.2.18",
+    "@angular/cli": "21.2.18",
+    "@angular/compiler-cli": "21.2.18",
+    "typescript": "5.9.3"
+  }
+}

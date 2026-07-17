@@ -16,6 +16,10 @@ const outputs = [
   'tests/browser/__screenshots__',
   '.tmp',
   'apps/demo/dist',
+  'examples/consumers/angular-standalone/.angular',
+  'examples/consumers/angular-standalone/dist',
+  'examples/consumers/react-vite/dist',
+  'examples/consumers/vue-vite/dist',
   'packages/ui-headless-runtime/dist',
   'packages/ui-headless-runtime/temp',
 ];

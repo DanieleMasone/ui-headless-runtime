@@ -34,6 +34,7 @@ const frameworkGuides = [
   {
     id: 'react',
     title: 'React integration',
+    consumerDirectory: 'react-vite',
     markers: [
       'createDisclosure',
       'createDialog',
@@ -50,6 +51,7 @@ const frameworkGuides = [
   {
     id: 'vue',
     title: 'Vue integration',
+    consumerDirectory: 'vue-vite',
     markers: [
       'createDisclosure',
       'createDialog',
@@ -67,6 +69,7 @@ const frameworkGuides = [
   {
     id: 'angular',
     title: 'Angular integration',
+    consumerDirectory: 'angular-standalone',
     markers: [
       'createDisclosure',
       'createDialog',
@@ -421,14 +424,13 @@ for (const guide of frameworkGuides) {
   if (!/(?:not an official adapter|does not ship an? official adapter)/iu.test(source)) {
     throw new Error(`Framework documentation does not clarify adapter status: ${guide.id}`);
   }
-  if (
-    !source.includes(
-      `does not declare ${guide.title.split(' ')[0]} as a direct dependency or compile`,
-    )
-  ) {
+  if (!source.includes('rather than standalone compile targets')) {
     throw new Error(
       `Framework documentation does not state its compile-check limitation: ${guide.id}`,
     );
+  }
+  if (!source.includes(`/examples/consumers/${guide.consumerDirectory}`)) {
+    throw new Error(`Framework documentation does not link its compiled consumer: ${guide.id}`);
   }
   if (/@ui-headless-runtime\/(?:react|vue|angular)/iu.test(source)) {
     throw new Error(

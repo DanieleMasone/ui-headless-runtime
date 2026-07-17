@@ -301,7 +301,7 @@ const renderHome = (): void => {
         <p class="lede">Accessible, framework-agnostic TypeScript controllers for overlays, collections, selection, disclosure, and feedback—without CSS, JSX, or renderer lock-in.</p>
         <div class="actions"><a class="button primary" href="#/components">Explore components</a><a class="button" href="${siteLink('docs/guide/')}">Read the User Guide</a></div>
       </div>
-      <div class="install"><span>Install from npm</span><code>npm install ui-headless-runtime</code><p>Version 0.1.1 validated release-driven publishing through npm Trusted Publishing OIDC. <a href="https://www.npmjs.com/package/ui-headless-runtime">View the package on npm</a>.</p></div>
+      <div class="install"><span>Install from npm</span><code>npm install ui-headless-runtime</code><p>Version 1.0.0 is the stable release published through npm Trusted Publishing OIDC. <a href="https://www.npmjs.com/package/ui-headless-runtime">View the package on npm</a>.</p></div>
     </section>
     <section aria-labelledby="quality-heading"><h2 id="quality-heading">Engineered as infrastructure</h2>
       <div class="metric-grid"><article><strong>${componentRegistry.length}</strong><span>headless controllers</span></article><article><strong>0</strong><span>runtime dependencies</span></article><article><strong>95%+</strong><span>coverage gates</span></article><article><strong>3</strong><span>tested browser engines</span></article></div>

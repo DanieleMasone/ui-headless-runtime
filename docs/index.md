@@ -11,6 +11,7 @@ UI Headless Runtime exposes typed controllers with immutable state and DOM bindi
 - [Architecture overview](./architecture/overview) for shared state, lifecycle, focus, collections, overlays, positioning, and cleanup.
 - [Framework integration](./guide/framework-integration) for the shared lifecycle and CSS/accessibility ownership boundary.
 - Consumer-side recipes for [React](./guide/frameworks/react), [Vue](./guide/frameworks/vue), and [Angular](./guide/frameworks/angular), without official adapters or framework dependencies in the runtime package.
+- [Standalone npm consumer source](https://github.com/DanieleMasone/ui-headless-runtime/tree/main/examples/consumers) that independently builds React, Vue, and Angular integrations without turning them into adapters.
 - [Demo and documentation accessibility conformance](./accessibility/demo-conformance) for scope, checks, limitations, and the WCAG 2.2 AA applicable-criteria target.
 
 ## Public surfaces

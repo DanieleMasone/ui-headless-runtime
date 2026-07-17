@@ -1,6 +1,6 @@
 # Framework integration
 
-UI Headless Runtime exposes renderer-neutral TypeScript controllers. The package does not ship official React, Vue, Angular, Svelte, or Web Component adapters. It declares no framework dependencies, and these recipes add no direct framework dependency to the workspace.
+UI Headless Runtime exposes renderer-neutral TypeScript controllers. The package does not ship official React, Vue, Angular, Svelte, or Web Component adapters and declares no framework dependencies. Recipe documentation stays dependency-free; separately verified consumer projects keep their framework dependencies outside the root workspaces and runtime package.
 
 The pages in this section are consumer-side recipes. They demonstrate how an application can connect the public controller API to its own framework lifecycle without creating a second source of interaction state.
 
@@ -24,7 +24,18 @@ Controller commands after `destroy()` are no-ops, and release functions are idem
 - [Vue integration](./frameworks/vue) uses the Vue 3 Composition API, shallow snapshot state, lifecycle hooks, and template refs.
 - [Angular integration](./frameworks/angular) uses standalone components, Signals, `DestroyRef`, `AfterViewInit`, and view queries.
 
-These recipes are maintained as documentation, not compiled framework applications. The repository intentionally does not add React, Vue, or Angular dependencies merely to render code samples. Each page states its assumptions; validate the final snippet in the consumer application's own framework, compiler, SSR, and test configuration.
+The recipes explain the integration pattern in depth. They are complemented by standalone
+[React](https://github.com/DanieleMasone/ui-headless-runtime/tree/main/examples/consumers/react-vite),
+[Vue](https://github.com/DanieleMasone/ui-headless-runtime/tree/main/examples/consumers/vue-vite), and
+[Angular](https://github.com/DanieleMasone/ui-headless-runtime/tree/main/examples/consumers/angular-standalone)
+consumer source projects that install `ui-headless-runtime` from npm and are independently
+typechecked and built. Those projects verify framework compiler integration; they do not provide
+components, adapters, or a second official demo.
+
+Collectively, the executable consumers exercise Dialog, Tabs, Combobox, Toast, Accordion, and
+Tree View behavior, including controlled rejection, DOM binding, overlay cleanup, collections,
+explicit keyboard forwarding, accessibility metadata, async stale-result protection, timers, and
+dynamic registration.
 
 Svelte, Lit, Web Components, and other DOM-capable renderers can apply the same controller contract, but the package does not publish dedicated recipes or adapters for them.
 

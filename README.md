@@ -91,6 +91,14 @@ The published demo and generated documentation are designed and tested against a
 
 The package publishes ESM, CommonJS, IIFE (`UIHeadlessRuntime`), source maps, and a rolled-up declaration file. Import is SSR-safe. The tested browser engines are current Playwright Chromium, Firefox, and WebKit; build target is ES2022.
 
+## Framework consumer examples
+
+Minimal but meaningful standalone consumers for [React, Vue, and Angular](examples/consumers/README.md)
+install the published npm package and compile real lifecycle, controlled-state, overlay,
+collection, keyboard, accessibility, and dynamic behavior integrations. They are not official
+adapters or alternate demos: the primary laboratory remains Vanilla TypeScript, and each consumer
+continues to own its markup, rendering, styling, and cleanup.
+
 ## Development and testing
 
 Requires Node 24 and npm 11.
@@ -107,11 +115,12 @@ Useful commands are documented in [CONTRIBUTING.md](CONTRIBUTING.md). Generated 
 
 ## Release
 
-Version `0.1.0` was the one-time manual package creation release. Version `0.1.1` then
-validated the GitHub Release and npm Trusted Publishing OIDC pipeline. Neither immutable npm
-version should be rerun; future releases, including `1.0.0`, publish only from a GitHub Release
-with a matching `vX.Y.Z` tag through OIDC. No persistent npm publish token or npm GitHub
-environment is used. See [release operations](https://danielemasone.github.io/ui-headless-runtime/docs/releasing.html).
+Version `0.1.0` was the one-time manual package creation release. Version `0.1.1` validated the
+GitHub Release and npm Trusted Publishing OIDC pipeline, and `1.0.0` was published through that
+verified path as the first stable release. These immutable versions must not be rerun. Future
+releases publish only from a GitHub Release with a matching `vX.Y.Z` tag through OIDC. No
+persistent npm publish token or npm GitHub environment is used. See
+[release operations](https://danielemasone.github.io/ui-headless-runtime/docs/releasing.html).
 
 ## Contributing
 

@@ -4,7 +4,12 @@
 
 This page is a consumer-side Vue 3 Composition API recipe, not an official adapter or package. UI Headless Runtime remains a plain TypeScript dependency with no Vue runtime dependency and no bundled CSS.
 
-The repository does not declare Vue as a direct dependency or compile these Single-File Component snippets. The examples are complete at component level unless explicitly marked as abbreviated; validate them with the consumer application's Vue compiler, SSR framework, lint rules, and tests.
+Vue dependencies remain isolated from the runtime and root workspaces. These documentation snippets
+are reviewed recipes rather than standalone compile targets; sections are complete at component
+level unless explicitly marked as abbreviated. The separately compiled
+[Vue npm consumer source](https://github.com/DanieleMasone/ui-headless-runtime/tree/main/examples/consumers/vue-vite)
+uses an async Combobox and Toast lifecycle against the published package; validate product-specific
+SSR and tests in the consuming application.
 
 ## Lifecycle model
 

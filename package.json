@@ -46,6 +46,7 @@
     "docs:site": "vitepress build docs",
     "docs:dev": "vitepress dev docs",
     "docs:check": "node scripts/check-docs.mjs",
+    "examples:verify": "node scripts/verify-consumer-examples.mjs",
     "api:check": "npm run build:types",
     "api:update": "npm run emit:types --workspace ui-headless-runtime && api-extractor run --local --config packages/ui-headless-runtime/api-extractor.json",
     "package:check": "node scripts/package-check.mjs",

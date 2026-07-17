@@ -4,13 +4,14 @@
 
 - `packages/ui-headless-runtime`: the only publishable package and only public API entry point.
 - `apps/demo`: private Vanilla TypeScript component laboratory; it imports only the package name.
+- `examples/consumers`: isolated React, Vue, and Angular applications that install the published npm package; they are not root workspaces or official adapters.
 - `tests`: unit, real-browser, E2E, accessibility, and package-consumer verification.
 - `docs`: User Guide, architecture, accessibility, component contracts, framework guides, ADRs, and release operations.
 - `scripts`: portable build/site/package checks with verified workspace boundaries.
 
 ## Commands
 
-Use `npm ci` for reproducible installs. `npm run setup:browsers`, `typecheck`, `lint`, `unused:check`, `test:coverage`, `test:browser`, `build`, `api:check`, `docs:check`, `package:check`, `build:site`, `site:check`, and `test:acceptance` are individual gates. `npm run ci` runs the local CI sequence. `npm run release:metadata` checks synchronized versions, the finalized changelog entry, and npm registry availability. `npm run release:verify` covers all publish gates without publishing.
+Use `npm ci` for reproducible installs. `npm run setup:browsers`, `typecheck`, `lint`, `unused:check`, `test:coverage`, `test:browser`, `build`, `api:check`, `docs:check`, `package:check`, `build:site`, `site:check`, and `test:acceptance` are individual gates. `npm run ci` runs the local CI sequence. `npm run examples:verify` independently installs, typechecks, and builds the framework consumers and is intentionally outside core CI. `npm run release:metadata` checks synchronized versions, the finalized changelog entry, and npm registry availability. `npm run release:verify` covers all publish gates without publishing.
 
 ## Invariants
 
@@ -25,11 +26,11 @@ Use `npm ci` for reproducible installs. `npm run setup:browsers`, `typecheck`, `
 - Demo examples are lazily loaded component modules under `apps/demo/src/examples`; source panels must load the exact module used by the current component.
 - Demo documentation links must point to generated HTML routes under `/docs/`, `/api/`, or `/coverage/`; never link local `.md` files from the public demo. GitHub source links are allowed only when labelled as source.
 - Storybook is intentionally not part of the repository; keep the Vanilla TypeScript laboratory as the single behavior demo surface unless an ADR supersedes `docs/adr/no-storybook-for-runtime-demo.md`.
-- Canonical React, Vue, and Angular consumer recipes live under `docs/guide/frameworks/`. They are documentation, not compiled example apps or official adapters; do not add framework packages or runtime dependencies for them.
+- Canonical React, Vue, and Angular recipes live under `docs/guide/frameworks/`; separately compiled npm consumers live under `examples/consumers/`. Keep consumer framework packages inside those private standalone projects, outside root workspaces and core CI. They demonstrate application-owned integration and must never become official adapters or runtime dependencies.
 - Dependency version updates are manual: run `npm outdated` quarterly, before release, and immediately when a security alert requires action.
 - `vitepress@2.0.0-alpha.17` is an exact, documentation-only exception: the latest stable VitePress line resolves to Vite/esbuild versions with unresolved npm advisories. Replace it only with a stable audit-clean release that passes docs, site, and acceptance gates.
-- Version `0.1.0` was the one-time manual package creation release; `0.1.1` validated the GitHub Release and npm Trusted Publishing OIDC pipeline. Do not rerun either release; npm versions are immutable.
-- Future releases, including `1.0.0`, publish through `.github/workflows/release.yml` and npm Trusted Publishing OIDC. Never add long-lived npm tokens or a GitHub environment named `npm` to the normal release workflow.
+- Version `0.1.0` was the one-time manual package creation release; `0.1.1` validated the GitHub Release and npm Trusted Publishing OIDC pipeline; `1.0.0` was the first stable OIDC-published release. Do not rerun these immutable releases.
+- Future releases publish through `.github/workflows/release.yml` and npm Trusted Publishing OIDC. Never add long-lived npm tokens or a GitHub environment named `npm` to the normal release workflow.
 
 ## Public API and TSDoc
 
@@ -48,3 +49,5 @@ The published demo and generated documentation target applicable WCAG 2.2 AA cri
 ## Definition of Done
 
 Add component/unit and real-browser coverage, update docs/demo metadata, maintain 95% global coverage, build all formats, check API and tarball, build the production Pages site, run E2E/a11y, and record any unexecutable environment-dependent check honestly. Releases remain GitHub-Release-driven through OIDC.
+
+When framework consumers change, run `npm run examples:verify`, keep their independent lockfiles current, and confirm they still use only `ui-headless-runtime` from npm through the package root.

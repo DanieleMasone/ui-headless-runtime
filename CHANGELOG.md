@@ -4,6 +4,15 @@ All notable changes follow Keep a Changelog structure and semantic versioning.
 
 ## Unreleased
 
+### Added
+
+- Added isolated, build-verified React, Vue, and Angular consumers that install the published package from npm.
+- Added an independent consumer-example verification command and path-scoped GitHub Actions workflow.
+
+### Changed
+
+- Updated framework integration and release documentation for the published `1.0.0` baseline.
+
 ## [1.0.0] - 2026-07-13
 
 ### Breaking Changes

@@ -5,6 +5,7 @@
     "coverage/**",
     "docs-dist/**",
     "docs/.vitepress/**",
+    "examples/consumers/**",
     "site-dist/**",
     ".tmp/**"
   ],

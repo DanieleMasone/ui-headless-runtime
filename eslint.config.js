@@ -15,6 +15,7 @@ export default tseslint.config(
       'docs-dist/**',
       'playwright-report/**',
       'test-results/**',
+      'examples/consumers/**',
       '.tmp/**',
     ],
   },

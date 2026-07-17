@@ -4,7 +4,12 @@
 
 This page is a consumer-side Angular recipe, not an official adapter or package. It uses standalone components, TypeScript, Signals, `DestroyRef`, `AfterViewInit`, and `ViewChild`. UI Headless Runtime remains a framework-agnostic dependency with no Angular runtime dependency and no bundled CSS.
 
-The repository does not declare Angular as a direct dependency or compile these snippets. The examples are complete at component level unless explicitly marked as abbreviated; validate them with the consumer application's Angular compiler, change-detection mode, SSR/hydration setup, lint rules, and tests.
+Angular dependencies remain isolated from the runtime and root workspaces. These documentation
+snippets are reviewed recipes rather than standalone compile targets; sections are complete at
+component level unless explicitly marked as abbreviated. The separately compiled
+[Angular npm consumer source](https://github.com/DanieleMasone/ui-headless-runtime/tree/main/examples/consumers/angular-standalone)
+uses standalone Accordion and dynamic Tree View integration against the published package; validate
+product-specific SSR/hydration and tests in the consuming application.
 
 ## Lifecycle model
 
