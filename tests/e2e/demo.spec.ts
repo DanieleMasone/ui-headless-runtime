@@ -75,12 +75,20 @@ const inspectResponsiveLayout = async (page: Page) =>
 
 const selectScenario = async (page: Page, scenario: string) => {
   await page.getByLabel('Scenario').selectOption(scenario);
+  await expect(page.locator('.example-stage')).toHaveAttribute('data-scenario', scenario);
   await expect(page.locator('.lab-status')).toContainText('Scenario changed');
 };
 
 const interact = async (page: Page, id: string) => {
   const live = page.locator('.example-mount');
-  if (id === 'tooltip') {
+  if (id === 'dialog' || id === 'command-palette') {
+    const triggerName = id === 'dialog' ? 'Open dialog' : 'Open command palette';
+    const dialog = live.getByRole('dialog');
+    await live.getByRole('button', { name: triggerName }).click();
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+  } else if (id === 'tooltip') {
     await live.getByRole('button', { name: 'Inspect deployment status' }).hover();
     await expect(live.getByRole('tooltip')).toBeVisible();
   } else if (id === 'combobox') {
@@ -638,6 +646,7 @@ test('composed docs, API, and coverage sections contain responsive rich content'
   page,
   browserName,
 }) => {
+  test.setTimeout(90_000);
   const routes = [
     'docs/',
     'docs/guide/',

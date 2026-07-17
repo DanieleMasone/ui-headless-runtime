@@ -4,6 +4,21 @@ All notable changes follow Keep a Changelog structure and semantic versioning.
 
 ## Unreleased
 
+## [1.0.0] - 2026-07-13
+
+### Breaking Changes
+
+- Removed implementation primitives from the package root public API.
+- Renamed event and positioning public types.
+- Stabilized menu/navigation content IDs and narrowed public item contracts.
+- Aligned command palette and combobox reason contracts.
+
+### Changed
+
+- Finalized the stable v1 public API for the published headless runtime controllers.
+- Hardened overlay, focus, menu, controlled-state, cleanup and package-boundary behavior.
+- Updated migration, API, component and release documentation for stable consumption.
+
 ## [0.1.1] - 2026-07-13
 
 ### Changed

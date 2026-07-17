@@ -29,8 +29,10 @@ export default function createNavigationMenuExample({
       else controller.openItem(itemId, { reason: 'pointer' });
     });
     item.setAttribute('aria-controls', panel.id);
-    item.addEventListener('pointerenter', (event) => controller.scheduleOpen(itemId, event));
-    item.addEventListener('pointerleave', (event) => controller.scheduleClose(event));
+    if (scenario !== 'compact') {
+      item.addEventListener('pointerenter', (event) => controller.scheduleOpen(itemId, event));
+      item.addEventListener('pointerleave', (event) => controller.scheduleClose(event));
+    }
     item.addEventListener('keydown', (event) => controller.handleKeyDown(event));
     nav.append(item);
     triggers.push(item);

@@ -842,3 +842,394 @@ describe('Command Palette, Tree, and Navigation branches', () => {
     navigation.destroy();
   });
 });
+
+describe('collection replacement and controlled rejection policies', () => {
+  it('reconciles Accordion focus when the focused registration becomes disabled', () => {
+    const accordion = createAccordion();
+    accordion.registerItem({ id: 'primary', text: 'Primary' });
+    accordion.registerItem({ id: 'fallback', text: 'Fallback' });
+    accordion.focus('primary');
+
+    accordion.registerItem({ id: 'primary', text: 'Primary unavailable', disabled: true });
+
+    expect(accordion.getSnapshot()).toMatchObject({
+      focusedId: 'fallback',
+      items: [
+        { id: 'primary', disabled: true, tabIndex: -1 },
+        { id: 'fallback', disabled: false, tabIndex: 0 },
+      ],
+    });
+    accordion.destroy();
+  });
+
+  it('keeps rejected controlled Accordion requests external and accepts unrelated notifications', () => {
+    let expanded: readonly string[] = ['first'];
+    let notify: () => void = () => undefined;
+    const request = vi.fn();
+    const stateChange = vi.fn();
+    const accordion = createAccordion({
+      getValue: () => expanded,
+      onValueChange: request,
+      subscribeValue(listener) {
+        notify = listener;
+        return () => undefined;
+      },
+    });
+    accordion.registerItem({ id: 'first', text: 'First' });
+    accordion.registerItem({ id: 'second', text: 'Second' });
+    accordion.on('stateChange', stateChange);
+
+    accordion.toggle('second');
+    expect(request).toHaveBeenCalledWith(['second'], { reason: 'programmatic' });
+    expect(accordion.getSnapshot().expandedIds).toEqual(['first']);
+    expect(stateChange).not.toHaveBeenCalled();
+
+    expanded = [];
+    notify();
+    expect(accordion.getSnapshot().expandedIds).toEqual([]);
+    expect(stateChange).not.toHaveBeenCalled();
+    accordion.destroy();
+  });
+
+  it('reconciles Tabs replacement, removal, controlled rejection, and manual keyboard activation', () => {
+    const replacements = createTabs();
+    replacements.registerTab({ id: 'primary', text: 'Primary' });
+    replacements.registerTab({ id: 'fallback', text: 'Fallback' });
+    replacements.focus('primary');
+    replacements.registerTab({ id: 'primary', text: 'Primary unavailable', disabled: true });
+    expect(replacements.getSnapshot()).toMatchObject({
+      selectedId: 'fallback',
+      focusedId: 'fallback',
+    });
+    replacements.destroy();
+
+    const single = createTabs();
+    const removeOnly = single.registerTab({ id: 'only', text: 'Only' });
+    removeOnly();
+    expect(single.getSnapshot()).toMatchObject({ selectedId: null, focusedId: null, items: [] });
+    single.destroy();
+
+    let selected: string | null = 'a';
+    let notify: () => void = () => undefined;
+    const request = vi.fn();
+    const selectedEvent = vi.fn();
+    const controlled = createTabs({
+      getValue: () => selected,
+      onValueChange: request,
+      subscribeValue(listener) {
+        notify = listener;
+        return () => undefined;
+      },
+    });
+    controlled.registerTab({ id: 'a', text: 'A' });
+    controlled.registerTab({ id: 'b', text: 'B' });
+    controlled.on('select', selectedEvent);
+    controlled.select('b');
+    expect(request).toHaveBeenCalledWith('b', { reason: 'programmatic' });
+    expect(controlled.getSnapshot().selectedId).toBe('a');
+    expect(selectedEvent).not.toHaveBeenCalled();
+    selected = null;
+    notify();
+    expect(controlled.getSnapshot().selectedId).toBeNull();
+    selected = 'missing';
+    notify();
+    expect(controlled.getSnapshot().selectedId).toBe('missing');
+    controlled.destroy();
+
+    const manual = createTabs({ activation: 'manual' });
+    manual.registerTab({ id: 'one', text: 'One' });
+    manual.registerTab({ id: 'two', text: 'Two' });
+    const backward = key('ArrowLeft');
+    manual.handleKeyDown('one', backward);
+    expect(backward.defaultPrevented).toBe(true);
+    expect(manual.getSnapshot()).toMatchObject({ focusedId: 'two', selectedId: 'one' });
+    const activate = key(' ');
+    manual.handleKeyDown('two', activate);
+    expect(activate.defaultPrevented).toBe(true);
+    expect(manual.getSnapshot().selectedId).toBe('two');
+    manual.handleKeyDown('two', key('Home'));
+    expect(manual.getSnapshot().focusedId).toBe('one');
+    manual.destroy();
+
+    const empty = createTabs();
+    const home = key('Home');
+    empty.handleKeyDown('missing', home);
+    expect(home.defaultPrevented).toBe(true);
+    expect(empty.getSnapshot().focusedId).toBeNull();
+    empty.destroy();
+  });
+
+  it('keeps Listbox active-descendant state valid for disabled replacements and empty input', () => {
+    const listbox = createListbox();
+    listbox.registerOption({ id: 'only', text: 'Only' });
+    listbox.registerOption({ id: 'only', text: 'Only unavailable', disabled: true });
+    expect(listbox.getSnapshot()).toMatchObject({ activeId: null });
+
+    const previous = key('ArrowUp');
+    listbox.handleKeyDown(previous);
+    expect(previous.defaultPrevented).toBe(true);
+    expect(listbox.getSnapshot().activeId).toBeNull();
+    const typeahead = key('o');
+    listbox.handleKeyDown(typeahead);
+    expect(typeahead.defaultPrevented).toBe(true);
+    expect(listbox.getSnapshot().activeId).toBeNull();
+    listbox.destroy();
+  });
+});
+
+describe('Tree View reconciliation and controlled transactions', () => {
+  it('does not publish rejected controlled expansion or selection requests', () => {
+    let expanded: readonly string[] = [];
+    let selected: readonly string[] = [];
+    let notifyExpanded: () => void = () => undefined;
+    let notifySelected: () => void = () => undefined;
+    const requestExpanded = vi.fn();
+    const requestSelected = vi.fn();
+    const expandedEvent = vi.fn();
+    const selectedEvent = vi.fn();
+    const tree = createTreeView({
+      getExpandedIds: () => expanded,
+      onExpandedIdsChange: requestExpanded,
+      subscribeExpandedIds(listener) {
+        notifyExpanded = listener;
+        return () => undefined;
+      },
+      getSelectedIds: () => selected,
+      onSelectedIdsChange: requestSelected,
+      subscribeSelectedIds(listener) {
+        notifySelected = listener;
+        return () => undefined;
+      },
+    });
+    tree.registerNode({ id: 'root', text: 'Root', hasChildren: true });
+    tree.registerNode({ id: 'child', text: 'Child', parentId: 'root' });
+    tree.on('expand', expandedEvent);
+    tree.on('select', selectedEvent);
+
+    tree.toggle('root', { reason: 'keyboard' });
+    tree.select('root', { reason: 'pointer' });
+    expect(requestExpanded).toHaveBeenCalledWith(['root'], { reason: 'keyboard' });
+    expect(requestSelected).toHaveBeenCalledWith(['root'], { reason: 'pointer' });
+    expect(tree.getSnapshot()).toMatchObject({ expandedIds: [], selectedIds: [] });
+    expect(expandedEvent).not.toHaveBeenCalled();
+    expect(selectedEvent).not.toHaveBeenCalled();
+
+    expanded = ['root'];
+    selected = ['child'];
+    notifyExpanded();
+    notifySelected();
+    expect(tree.getSnapshot()).toMatchObject({ expandedIds: ['root'], selectedIds: ['child'] });
+    expect(expandedEvent).not.toHaveBeenCalled();
+    expect(selectedEvent).not.toHaveBeenCalled();
+    tree.destroy();
+  });
+
+  it('reconciles hidden active descendants through missing and disabled ancestors', () => {
+    const missingAncestor = createTreeView({ defaultExpandedIds: ['root'] });
+    const removeRoot = missingAncestor.registerNode({
+      id: 'root',
+      text: 'Root',
+      hasChildren: true,
+    });
+    missingAncestor.registerNode({ id: 'child', text: 'Child', parentId: 'root' });
+    missingAncestor.setActive('child');
+    removeRoot();
+    expect(missingAncestor.getSnapshot()).toMatchObject({ activeId: null, visibleNodes: [] });
+    missingAncestor.destroy();
+
+    const disabledAncestor = createTreeView({ defaultExpandedIds: ['root', 'group'] });
+    disabledAncestor.registerNode({ id: 'root', text: 'Root', hasChildren: true });
+    disabledAncestor.registerNode({
+      id: 'group',
+      text: 'Unavailable group',
+      parentId: 'root',
+      hasChildren: true,
+      disabled: true,
+    });
+    disabledAncestor.registerNode({ id: 'leaf', text: 'Leaf', parentId: 'group' });
+    disabledAncestor.setActive('leaf');
+    disabledAncestor.toggle('root');
+    expect(disabledAncestor.getSnapshot()).toMatchObject({
+      activeId: 'root',
+      expandedIds: ['group'],
+    });
+    disabledAncestor.destroy();
+  });
+
+  it('uses registered children for keyboard expansion and toggles multiple selection', () => {
+    vi.useFakeTimers();
+    const tree = createTreeView({ multiple: true });
+    tree.registerNode({ id: 'root', text: 'Root' });
+    tree.registerNode({ id: 'child', text: 'Child', parentId: 'root' });
+    const expand = key('ArrowRight');
+    tree.handleKeyDown(expand);
+    expect(expand.defaultPrevented).toBe(true);
+    expect(tree.getSnapshot().expandedIds).toEqual(['root']);
+    tree.handleKeyDown(key('ArrowRight'));
+    expect(tree.getSnapshot().activeId).toBe('child');
+    tree.select('child');
+    tree.select('child');
+    expect(tree.getSnapshot().selectedIds).toEqual([]);
+    tree.setActive('root');
+    const collapseParent = key('ArrowLeft');
+    tree.handleKeyDown(collapseParent);
+    expect(collapseParent.defaultPrevented).toBe(true);
+
+    tree.setActive(null);
+    const typeahead = key('r');
+    tree.handleKeyDown(typeahead);
+    expect(typeahead.defaultPrevented).toBe(true);
+    expect(tree.getSnapshot().activeId).toBe('root');
+    vi.advanceTimersByTime(500);
+    tree.destroy();
+
+    const empty = createTreeView();
+    const emptyTypeahead = key('x');
+    empty.handleKeyDown(emptyTypeahead);
+    expect(emptyTypeahead.defaultPrevented).toBe(true);
+    expect(empty.getSnapshot().activeId).toBeNull();
+    empty.destroy();
+  });
+});
+
+describe('Toast timer and promise edge behavior', () => {
+  it('reconciles externally paused and removed controlled records', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const initial: ToastRecord = Object.freeze({
+      id: 'controlled',
+      message: 'Controlled',
+      status: 'info',
+      priority: 0,
+      politeness: 'polite',
+      duration: 100,
+      sequence: 1,
+      paused: false,
+    });
+    let records: readonly ToastRecord[] = [initial];
+    let notify: () => void = () => undefined;
+    const toast = createToast({
+      getToasts: () => records,
+      subscribeToasts(listener) {
+        notify = listener;
+        return () => undefined;
+      },
+    });
+    expect(vi.getTimerCount()).toBe(1);
+
+    records = [Object.freeze({ ...initial, paused: true })];
+    notify();
+    expect(toast.getSnapshot().all[0]?.paused).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+
+    records = [];
+    notify();
+    expect(toast.getSnapshot().all).toEqual([]);
+    toast.destroy();
+  });
+
+  it('resumes on focus exit and maps string rejection messages with explicit duration', async () => {
+    vi.useFakeTimers();
+    const toast = createToast();
+    toast.show({ id: 'interactive', message: 'Interactive', duration: 100 });
+    const element = document.createElement('div');
+    document.body.append(element);
+    toast.bindPause('interactive', element);
+    element.dispatchEvent(new FocusEvent('focusin'));
+    expect(toast.getSnapshot().all[0]?.paused).toBe(true);
+    element.dispatchEvent(new FocusEvent('focusout', { relatedTarget: null }));
+    expect(toast.getSnapshot().all[0]?.paused).toBe(false);
+
+    const failure = new Error('offline');
+    const tracked = toast.promise(
+      Promise.reject(failure),
+      { loading: 'Loading', success: 'Done', error: 'Could not complete' },
+      { id: 'failure', duration: 25 },
+    );
+    await expect(tracked).rejects.toBe(failure);
+    expect(toast.getSnapshot().all.find(({ id }) => id === 'failure')).toMatchObject({
+      message: 'Could not complete',
+      status: 'error',
+      duration: 25,
+    });
+    toast.destroy();
+  });
+});
+
+describe('Navigation Menu default timing and cross-item keyboard behavior', () => {
+  it('uses default desktop delays and traverses content and native-link items', () => {
+    vi.useFakeTimers();
+    const navigation = createNavigationMenu();
+    navigation.registerItem({ id: 'products', text: 'Products', hasContent: true });
+    navigation.registerItem({ id: 'services', text: 'Services', hasContent: true });
+    navigation.registerItem({ id: 'about', text: 'About' });
+
+    navigation.scheduleOpen('products');
+    expect(navigation.getSnapshot().openId).toBeNull();
+    vi.advanceTimersByTime(150);
+    expect(navigation.getSnapshot().openId).toBe('products');
+
+    const forward = key('ArrowRight');
+    navigation.handleKeyDown('products', forward);
+    expect(forward.defaultPrevented).toBe(true);
+    expect(navigation.getSnapshot().openId).toBe('services');
+
+    const backward = key('ArrowLeft');
+    navigation.handleKeyDown('services', backward);
+    expect(backward.defaultPrevented).toBe(true);
+    expect(navigation.getSnapshot().openId).toBe('products');
+
+    navigation.handleKeyDown('products', key('ArrowRight'));
+    const toLink = key('ArrowRight');
+    navigation.handleKeyDown('services', toLink);
+    expect(toLink.defaultPrevented).toBe(true);
+    expect(navigation.getSnapshot()).toMatchObject({ openId: null, activeId: 'about' });
+
+    const nativeSpace = key(' ');
+    navigation.handleKeyDown('about', nativeSpace);
+    expect(nativeSpace.defaultPrevented).toBe(false);
+
+    navigation.openItem('products');
+    navigation.scheduleClose();
+    expect(navigation.getSnapshot().openId).toBe('products');
+    vi.advanceTimersByTime(200);
+    expect(navigation.getSnapshot().openId).toBeNull();
+
+    expect(() => {
+      Reflect.apply(navigation.handleKeyDown, navigation, ['products']);
+    }).not.toThrow();
+    navigation.destroy();
+    expect(navigation.bind({ content: document.createElement('div') })()).toBeUndefined();
+  });
+
+  it('commits controlled invalidation and unregister cleanup synchronously when accepted', () => {
+    let invalidatedOpenId: string | null = 'products';
+    const invalidated = createNavigationMenu({
+      getValue: () => invalidatedOpenId,
+      onValueChange(value) {
+        invalidatedOpenId = value;
+      },
+    });
+    invalidated.registerItem({ id: 'products', text: 'Products', hasContent: true });
+    invalidated.registerItem({ id: 'products', text: 'Products link' });
+    expect(invalidated.getSnapshot().openId).toBeNull();
+    invalidated.destroy();
+
+    let removedOpenId: string | null = 'services';
+    const removed = createNavigationMenu({
+      getValue: () => removedOpenId,
+      onValueChange(value) {
+        removedOpenId = value;
+      },
+    });
+    const unregister = removed.registerItem({
+      id: 'services',
+      text: 'Services',
+      hasContent: true,
+    });
+    expect(removed.getSnapshot().openId).toBe('services');
+    unregister();
+    expect(removed.getSnapshot().openId).toBeNull();
+    removed.destroy();
+  });
+});

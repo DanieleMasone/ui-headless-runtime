@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 site-dist/
+release-tarball/
 playwright-report/
 test-results/
 .vitest-attachments/

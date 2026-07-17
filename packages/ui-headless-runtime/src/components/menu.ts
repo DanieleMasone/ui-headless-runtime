@@ -729,9 +729,9 @@ export function createMenu(options: MenuOptions = {}): MenuController {
           const pending = pendingSubmenuOpen;
           const matchesPending =
             pending?.registrationToken === token && pending.details === event.detail.details;
-          const rejected = rejectedSubmenuOpens.has(token);
           const current = submenuRegistrations.get(submenuId);
           if (current?.token === token) completePendingSubmenuOpen(current, event.detail.details);
+          const rejected = rejectedSubmenuOpens.has(token);
           if (matchesPending) rejectedSubmenuOpens.delete(token);
           else if (rejected && host.getSnapshot().openSubmenuId !== submenuId) {
             rejectedSubmenuOpens.delete(token);
@@ -838,9 +838,8 @@ export function createMenu(options: MenuOptions = {}): MenuController {
         if (parentContext) parentContext.closeAndRestore(event);
         else closeSubmenu(event);
       } else if (event.key === 'Escape') {
-        const wasOpen = overlay.getSnapshot().open;
         overlay.close({ reason: 'escape-key', event });
-        if (wasOpen) event.preventDefault();
+        event.preventDefault();
         return;
       } else if (event.key === 'Tab') {
         overlay.close({ reason: 'focus-out', event });

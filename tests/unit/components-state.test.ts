@@ -1403,6 +1403,333 @@ describe('Listbox and Menu engines', () => {
     child.destroy();
   });
 
+  it('rejects stale controlled submenu commits and detaches pending registrations', () => {
+    let open = false;
+    let notify: () => void = () => undefined;
+    const requests = vi.fn();
+    const parent = createMenu({ closeOnSelect: false });
+    parent.registerItem({ id: 'nested', text: 'Nested', submenuId: 'child' });
+    const child = createMenu({
+      getValue: () => open,
+      onValueChange: requests,
+      subscribeValue(listener) {
+        notify = listener;
+        return () => undefined;
+      },
+    });
+    child.registerItem({ id: 'action', text: 'Action' });
+    parent.registerSubmenu('nested', child);
+    parent.open();
+
+    parent.select('nested', { reason: 'pointer' });
+    child.open({ reason: 'keyboard' });
+    open = true;
+    notify();
+
+    expect(parent.getSnapshot().openSubmenuId).toBeNull();
+    expect(requests).toHaveBeenLastCalledWith(false, { reason: 'programmatic' });
+    open = false;
+    notify();
+    parent.destroy();
+    child.destroy();
+
+    let invalidOpen = false;
+    let notifyInvalid: () => void = () => undefined;
+    const invalidRequests = vi.fn();
+    const invalidParent = createMenu({ closeOnSelect: false });
+    invalidParent.registerItem({ id: 'nested', text: 'Nested', submenuId: 'child' });
+    const invalidChild = createMenu({
+      getValue: () => invalidOpen,
+      onValueChange: invalidRequests,
+      subscribeValue(listener) {
+        notifyInvalid = listener;
+        return () => undefined;
+      },
+    });
+    invalidChild.registerItem({ id: 'action', text: 'Action' });
+    invalidParent.registerSubmenu('nested', invalidChild);
+    invalidParent.open();
+    invalidParent.select('nested');
+    invalidParent.registerItem({ id: 'nested', text: 'Replacement', submenuId: 'child' });
+    invalidOpen = true;
+    notifyInvalid();
+
+    expect(invalidParent.getSnapshot().openSubmenuId).toBeNull();
+    expect(invalidRequests).toHaveBeenLastCalledWith(false, { reason: 'programmatic' });
+    invalidOpen = false;
+    notifyInvalid();
+    invalidParent.destroy();
+    invalidChild.destroy();
+
+    let releasedOpen = false;
+    let notifyReleased: () => void = () => undefined;
+    const releasedParent = createMenu({ closeOnSelect: false });
+    releasedParent.registerItem({ id: 'nested', text: 'Nested', submenuId: 'child' });
+    const releasedChild = createMenu({
+      getValue: () => releasedOpen,
+      onValueChange: vi.fn(),
+      subscribeValue(listener) {
+        notifyReleased = listener;
+        return () => undefined;
+      },
+    });
+    const release = releasedParent.registerSubmenu('nested', releasedChild);
+    releasedParent.open();
+    releasedParent.select('nested');
+    release();
+    releasedOpen = true;
+    notifyReleased();
+
+    expect(releasedParent.getSnapshot().openSubmenuId).toBeNull();
+    expect(releasedChild.getSnapshot().open).toBe(true);
+    releasedParent.destroy();
+    releasedChild.destroy();
+  });
+
+  it('propagates a three-level controlled close only after the leaf commits', async () => {
+    let middleOpen = true;
+    let notifyMiddle: () => void = () => undefined;
+    const requestMiddle = vi.fn();
+    let leafOpen = true;
+    let notifyLeaf: () => void = () => undefined;
+    const requestLeaf = vi.fn();
+    const root = createMenu({ closeOnSelect: false });
+    const middle = createMenu({
+      getValue: () => middleOpen,
+      onValueChange: requestMiddle,
+      subscribeValue(listener) {
+        notifyMiddle = listener;
+        return () => undefined;
+      },
+      closeOnSelect: false,
+    });
+    const leaf = createMenu({
+      getValue: () => leafOpen,
+      onValueChange: requestLeaf,
+      subscribeValue(listener) {
+        notifyLeaf = listener;
+        return () => undefined;
+      },
+      closeOnSelect: false,
+    });
+    root.registerItem({ id: 'middle', text: 'Middle', submenuId: 'middle-menu' });
+    middle.registerItem({ id: 'leaf', text: 'Leaf', submenuId: 'leaf-menu' });
+    leaf.registerItem({ id: 'action', text: 'Action' });
+    root.registerSubmenu('middle', middle);
+    middle.registerSubmenu('leaf', leaf);
+    root.open();
+    root.select('middle');
+    middle.select('leaf');
+
+    const left = keyboard('ArrowLeft');
+    root.handleKeyDown(left);
+    expect(left.defaultPrevented).toBe(true);
+    expect(requestLeaf).toHaveBeenCalledWith(false, { reason: 'keyboard', event: left });
+    expect(requestMiddle).not.toHaveBeenCalled();
+
+    leafOpen = false;
+    notifyLeaf();
+    await Promise.resolve();
+    expect(requestMiddle).toHaveBeenCalledWith(false, { reason: 'keyboard', event: left });
+    expect(root.getSnapshot().openSubmenuId).toBe('middle-menu');
+
+    middleOpen = false;
+    notifyMiddle();
+    expect(root.getSnapshot().openSubmenuId).toBeNull();
+    root.destroy();
+    middle.destroy();
+    leaf.destroy();
+  });
+
+  it('invalidates deferred submenu reopen and replacement intents after structural changes', async () => {
+    let childOpen = true;
+    let notifyChild: () => void = () => undefined;
+    const requests = vi.fn();
+    const parent = createMenu({ closeOnSelect: false });
+    parent.registerItem({ id: 'nested', text: 'Nested', submenuId: 'child' });
+    const child = createMenu({
+      getValue: () => childOpen,
+      onValueChange: requests,
+      subscribeValue(listener) {
+        notifyChild = listener;
+        return () => undefined;
+      },
+    });
+    child.registerItem({ id: 'action', text: 'Action' });
+    parent.registerSubmenu('nested', child);
+    parent.open();
+    parent.select('nested');
+    child.handleKeyDown(keyboard('ArrowLeft'));
+    parent.select('nested');
+    parent.registerItem({ id: 'nested', text: 'Current nested', submenuId: 'child' });
+    childOpen = false;
+    notifyChild();
+    await Promise.resolve();
+
+    expect(requests).toHaveBeenCalledOnce();
+    expect(requests).toHaveBeenCalledWith(false, expect.objectContaining({ reason: 'keyboard' }));
+    expect(parent.getSnapshot().openSubmenuId).toBeNull();
+    parent.destroy();
+    child.destroy();
+
+    const structuralParent = createMenu({ closeOnSelect: false });
+    structuralParent.registerItem({ id: 'nested', text: 'Nested', submenuId: 'child' });
+    const original = createMenu();
+    const replacement = createMenu();
+    original.registerItem({ id: 'action', text: 'Action' });
+    replacement.registerItem({ id: 'action', text: 'Action' });
+    structuralParent.registerSubmenu('nested', original);
+    structuralParent.open();
+    structuralParent.select('nested');
+    original.once('beforeClose', () => {
+      structuralParent.registerItem({
+        id: 'nested',
+        text: 'Unavailable',
+        submenuId: 'child',
+        disabled: true,
+      });
+    });
+
+    const releaseRejectedReplacement = structuralParent.registerSubmenu('nested', replacement);
+    structuralParent.select('nested');
+    expect(structuralParent.getSnapshot().items).toEqual([
+      expect.objectContaining({ id: 'nested', disabled: true }),
+    ]);
+    expect(structuralParent.getSnapshot().openSubmenuId).toBeNull();
+    expect(replacement.getSnapshot().open).toBe(false);
+    releaseRejectedReplacement();
+    structuralParent.destroy();
+    original.destroy();
+    replacement.destroy();
+  });
+
+  it('ignores stale submenu lifecycle listeners after reentrant ownership replacement', () => {
+    const openingParent = createMenu({ closeOnSelect: false });
+    openingParent.registerItem({ id: 'nested', text: 'Nested', submenuId: 'child' });
+    const openingChild = createMenu();
+    const openingReplacement = createMenu();
+    openingChild.registerItem({ id: 'action', text: 'Action' });
+    openingReplacement.registerItem({ id: 'replacement-action', text: 'Replacement action' });
+    let releaseOpeningReplacement: () => void = () => undefined;
+    openingChild.once('open', () => {
+      releaseOpeningReplacement = openingParent.registerSubmenu('nested', openingReplacement);
+    });
+    openingParent.registerSubmenu('nested', openingChild);
+    openingParent.open();
+    openingParent.select('nested');
+
+    expect(openingChild.getSnapshot().open).toBe(false);
+    expect(openingParent.getSnapshot().openSubmenuId).toBeNull();
+    openingParent.select('nested');
+    expect(openingReplacement.getSnapshot().open).toBe(true);
+    releaseOpeningReplacement();
+    openingParent.destroy();
+    openingChild.destroy();
+    openingReplacement.destroy();
+
+    const closingParent = createMenu({ closeOnSelect: false });
+    closingParent.registerItem({ id: 'nested', text: 'Nested', submenuId: 'child' });
+    const closingChild = createMenu();
+    const closingReplacement = createMenu();
+    closingChild.registerItem({ id: 'action', text: 'Action' });
+    closingReplacement.registerItem({ id: 'replacement-action', text: 'Replacement action' });
+    let releaseClosingReplacement: () => void = () => undefined;
+    closingChild.once('close', () => {
+      releaseClosingReplacement = closingParent.registerSubmenu('nested', closingReplacement);
+    });
+    closingParent.registerSubmenu('nested', closingChild);
+    closingParent.open();
+    closingParent.select('nested');
+    closingChild.handleKeyDown(keyboard('ArrowLeft'));
+
+    expect(closingParent.getSnapshot().openSubmenuId).toBeNull();
+    closingParent.select('nested');
+    expect(closingReplacement.getSnapshot().open).toBe(true);
+    releaseClosingReplacement();
+    closingParent.destroy();
+    closingChild.destroy();
+    closingReplacement.destroy();
+  });
+
+  it('drops a leaf selection invalidated during beforeSelect and preserves close details', () => {
+    const stale = createMenu({ closeOnSelect: false });
+    stale.registerItem({ id: 'leaf', text: 'Leaf' });
+    const selected = vi.fn();
+    stale.on('select', selected);
+    stale.once('beforeSelect', () => {
+      stale.registerItem({ id: 'leaf', text: 'Unavailable leaf', disabled: true });
+    });
+    stale.select('leaf');
+    expect(stale.getSnapshot()).toMatchObject({ selectedId: null, activeId: null });
+    expect(selected).not.toHaveBeenCalled();
+    stale.destroy();
+
+    const parent = createMenu({ closeOnSelect: false });
+    parent.registerItem({ id: 'nested', text: 'Nested', submenuId: 'child' });
+    parent.registerItem({ id: 'leaf', text: 'Leaf' });
+    const child = createMenu();
+    child.registerItem({ id: 'action', text: 'Action' });
+    parent.registerSubmenu('nested', child);
+    parent.open();
+    parent.select('nested');
+    let childCloseDetails: OpenChangeEvent['details'] | undefined;
+    const beforeChildClose = vi.fn((event: RuntimeEvent<OpenChangeEvent>) => {
+      childCloseDetails = event.detail.details;
+    });
+    child.on('beforeClose', beforeChildClose);
+    const click = new MouseEvent('click');
+    parent.select('leaf', { reason: 'pointer', event: click });
+
+    expect(parent.getSnapshot().selectedId).toBe('leaf');
+    expect(beforeChildClose).toHaveBeenCalledOnce();
+    expect(childCloseDetails).toEqual({
+      reason: 'selection',
+      event: click,
+    });
+    parent.destroy();
+    child.destroy();
+  });
+
+  it('handles destroyed submenu and keyboard wrapper edge cases without stale effects', () => {
+    const parent = createMenu({ closeOnSelect: false });
+    parent.registerItem({ id: 'nested', text: 'Nested', submenuId: 'child' });
+    const destroyedChild = createMenu();
+    destroyedChild.destroy();
+    parent.registerSubmenu('nested', destroyedChild);
+    parent.open();
+    parent.select('nested');
+    expect(parent.getSnapshot().openSubmenuId).toBeNull();
+    parent.destroy();
+
+    const empty = createMenu();
+    empty.open();
+    const right = keyboard('ArrowRight');
+    const typeahead = keyboard('z');
+    empty.handleKeyDown(right);
+    empty.handleKeyDown(typeahead);
+    expect(right.defaultPrevented).toBe(true);
+    expect(typeahead.defaultPrevented).toBe(true);
+    empty.destroy();
+
+    const dropdown = createDropdownMenu({ defaultValue: true });
+    dropdown.registerItem({ id: 'first', text: 'First' });
+    dropdown.registerItem({ id: 'last', text: 'Last' });
+    dropdown.handleTrigger(keyboard('ArrowUp'));
+    expect(dropdown.getSnapshot().activeId).toBe('last');
+    dropdown.destroy();
+    dropdown.destroy();
+
+    const context = createContextMenu();
+    const trigger = document.createElement('button');
+    const content = document.createElement('div');
+    context.on('beforeOpen', (event) => event.preventDefault());
+    const contextKey = keyboard('ContextMenu');
+    context.handleKeyboardOpen(contextKey, trigger, content)();
+    expect(contextKey.defaultPrevented).toBe(false);
+    expect(context.getSnapshot().open).toBe(false);
+    context.destroy();
+  });
+
   it('defers Dropdown ArrowUp last-item focus until a controlled open commits', () => {
     let open = false;
     let notify: () => void = () => undefined;

@@ -9,6 +9,7 @@ const outputs = [
   'docs/.vitepress/dist',
   'docs/.vitepress/.temp',
   'site-dist',
+  'release-tarball',
   'playwright-report',
   'test-results',
   '.vitest-attachments',
