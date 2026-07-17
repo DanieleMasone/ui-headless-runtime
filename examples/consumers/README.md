@@ -9,6 +9,10 @@ They are deliberately small, but they are not official adapters or alternate dem
 Each consumer owns its controller lifecycle, markup, rendering, styling, and accessibility
 decisions. The main project demo remains the Vanilla TypeScript component laboratory.
 
+The published [Consumer examples guide](https://danielemasone.github.io/ui-headless-runtime/docs/guide/consumer-examples.html)
+is the public documentation reference. This repository README remains the source-level runbook for
+maintainers and contributors working with the standalone projects.
+
 ## Verify all consumers
 
 From the repository root:

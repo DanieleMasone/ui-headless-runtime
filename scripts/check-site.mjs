@@ -14,6 +14,7 @@ const required = [
   'docs/guide/getting-started.html',
   'docs/guide/accessibility.html',
   'docs/guide/framework-integration.html',
+  'docs/guide/consumer-examples.html',
   'docs/guide/frameworks/react.html',
   'docs/guide/frameworks/vue.html',
   'docs/guide/frameworks/angular.html',

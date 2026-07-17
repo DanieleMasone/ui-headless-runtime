@@ -92,11 +92,11 @@ The package publishes ESM, CommonJS, IIFE (`UIHeadlessRuntime`), source maps, an
 
 ## Framework consumer examples
 
-Minimal but meaningful standalone consumers for [React, Vue, and Angular](examples/consumers/README.md)
-install the published npm package and compile real lifecycle, controlled-state, overlay,
-collection, keyboard, accessibility, and dynamic behavior integrations. They are not official
-adapters or alternate demos: the primary laboratory remains Vanilla TypeScript, and each consumer
-continues to own its markup, rendering, styling, and cleanup.
+Minimal but meaningful standalone consumers are documented in the
+[Consumer examples guide](https://danielemasone.github.io/ui-headless-runtime/docs/guide/consumer-examples.html),
+with source projects under [examples/consumers](examples/consumers/README.md). They install the
+published npm package and compile real framework integrations without becoming official adapters
+or alternate live demos.
 
 ## Development and testing
 

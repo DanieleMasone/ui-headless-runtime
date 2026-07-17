@@ -24,18 +24,10 @@ Controller commands after `destroy()` are no-ops, and release functions are idem
 - [Vue integration](./frameworks/vue) uses the Vue 3 Composition API, shallow snapshot state, lifecycle hooks, and template refs.
 - [Angular integration](./frameworks/angular) uses standalone components, Signals, `DestroyRef`, `AfterViewInit`, and view queries.
 
-The recipes explain the integration pattern in depth. They are complemented by standalone
-[React](https://github.com/DanieleMasone/ui-headless-runtime/tree/main/examples/consumers/react-vite),
-[Vue](https://github.com/DanieleMasone/ui-headless-runtime/tree/main/examples/consumers/vue-vite), and
-[Angular](https://github.com/DanieleMasone/ui-headless-runtime/tree/main/examples/consumers/angular-standalone)
-consumer source projects that install `ui-headless-runtime` from npm and are independently
-typechecked and built. Those projects verify framework compiler integration; they do not provide
-components, adapters, or a second official demo.
-
-Collectively, the executable consumers exercise Dialog, Tabs, Combobox, Toast, Accordion, and
-Tree View behavior, including controlled rejection, DOM binding, overlay cleanup, collections,
-explicit keyboard forwarding, accessibility metadata, async stale-result protection, timers, and
-dynamic registration.
+The recipes explain the integration pattern in depth. The [Consumer examples](./consumer-examples)
+page collects the executable React, Vue, and Angular consumers that install the published package.
+Their source remains under `examples/consumers/`; they are compile-verified applications, not
+official adapters or parallel live demos.
 
 Svelte, Lit, Web Components, and other DOM-capable renderers can apply the same controller contract, but the package does not publish dedicated recipes or adapters for them.
 

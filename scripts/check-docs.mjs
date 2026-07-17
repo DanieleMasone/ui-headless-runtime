@@ -25,6 +25,7 @@ const requiredGuidePages = [
   'positioning',
   'ssr',
   'framework-integration',
+  'consumer-examples',
   'testing',
   'troubleshooting',
   'migrating-to-1.0',

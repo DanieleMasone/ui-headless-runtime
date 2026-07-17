@@ -24,6 +24,7 @@ Use this guide when you want to integrate the runtime into a product. Use the ar
   - [React integration](./frameworks/react)
   - [Vue integration](./frameworks/vue)
   - [Angular integration](./frameworks/angular)
+- [Consumer examples](./consumer-examples)
 - [Testing](./testing)
 - [Troubleshooting](./troubleshooting)
 - [Migrating to 1.0](./migrating-to-1.0)
