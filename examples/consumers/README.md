@@ -21,28 +21,26 @@ The verifier checks dependency and import boundaries, installs each project from
 lockfile, typechecks it, and produces a release build. It rejects workspace/file dependencies,
 repository source imports, deep package imports, and a runtime dependency other than `^1.0.0`.
 
-To run one project independently:
+To run one project independently, change to its directory and execute the listed commands:
 
-```sh
-cd examples/consumers/react-vite
-npm ci
-npm run typecheck
-npm run build
-```
-
-Use the equivalent directory for `vue-vite` or `angular-standalone`.
+| Framework | Directory                               | Commands                                       |
+| --------- | --------------------------------------- | ---------------------------------------------- |
+| React     | `examples/consumers/react-vite`         | `npm ci`, `npm run typecheck`, `npm run build` |
+| Vue       | `examples/consumers/vue-vite`           | `npm ci`, `npm run typecheck`, `npm run build` |
+| Angular   | `examples/consumers/angular-standalone` | `npm ci`, `npm run typecheck`, `npm run build` |
 
 ## Functional coverage
 
-| Framework | Controllers          | Controlled state                                                  | Lifecycle cleanup                                                                     | Overlay                                               | Collection                                        | Keyboard                                                    | Accessibility metadata                                                      | Dynamic behavior                                                              |
-| --------- | -------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| React     | Dialog, Tabs         | Tabs requests can be accepted or rejected by external React state | Releases Dialog binding, registrations, subscriptions, and controllers                | Modal focus, Escape, outside dismissal, restore focus | Dynamic Tabs with a disabled item                 | Explicit Tabs handler                                       | Dialog IDs/role/modal state; tab/panel relationships and tabindex           | Metrics tab registration can be removed and restored                          |
-| Vue       | Combobox, Toast      | Combobox selection is Vue-owned and can reject runtime requests   | Releases binding, option registrations, subscriptions, timers, and controllers        | Bound Combobox popup positioning and dismissal        | Async Combobox options with disabled results      | Explicit input, composition, and Combobox keyboard handlers | Active descendant, controls, expanded/loading state, live-region politeness | Stale async responses are rejected; Toast promise and pause/resume lifecycles |
-| Angular   | Accordion, Tree View | Runtime-owned state rendered through Angular Signals              | Releases item/node registrations, subscriptions, and controllers through `DestroyRef` | Not applicable                                        | Accordion and hierarchical Tree View registration | Explicit Accordion and Tree handlers                        | Expanded/disabled relationships and tree level/set/position metadata        | A Tree child can be registered and unregistered at runtime                    |
+| Framework | Controllers          | Controlled state                                                     | Lifecycle cleanup                                                                     | Overlay                                               | Collection                                        | Keyboard                                                    | Accessibility metadata                                                      | Dynamic behavior                                                              |
+| --------- | -------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| React     | Dialog, Tabs         | Tabs requests can be accepted or rejected by external React state    | Releases Dialog binding, registrations, subscriptions, and controllers                | Modal focus, Escape, outside dismissal, restore focus | Dynamic Tabs with a disabled item                 | Explicit Tabs handler                                       | Dialog IDs/role/modal state; tab/panel relationships and tabindex           | Metrics tab registration can be removed and restored                          |
+| Vue       | Combobox, Toast      | Combobox selection is Vue-owned and can reject runtime requests      | Releases binding, option registrations, subscriptions, timers, and controllers        | Bound Combobox popup positioning and dismissal        | Async Combobox options with disabled results      | Explicit input, composition, and Combobox keyboard handlers | Active descendant, controls, expanded/loading state, live-region politeness | Stale async responses are rejected; Toast promise and pause/resume lifecycles |
+| Angular   | Accordion, Tree View | Not applicable; runtime-owned state rendered through Angular Signals | Releases item/node registrations, subscriptions, and controllers through `DestroyRef` | Not applicable                                        | Accordion and hierarchical Tree View registration | Explicit Accordion and Tree handlers                        | Expanded/disabled relationships and tree level/set/position metadata        | A Tree child can be registered and unregistered at runtime                    |
 
 ## Boundary policy
 
-- Every app depends on `ui-headless-runtime` from npm using `^1.0.0`.
+- Every app depends on `ui-headless-runtime` from npm using `^1.0.0`; manifests may not use
+  `workspace:` or `file:` dependency specifiers.
 - The apps are outside the root npm workspaces and outside the core `npm run ci` sequence.
 - No app imports repository source, package internals, runtime CSS, or framework adapters.
 - Framework dependencies stay inside these private consumer projects and never enter the runtime.

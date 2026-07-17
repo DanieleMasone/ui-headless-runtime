@@ -1,5 +1,5 @@
 {
-  "name": "@ui-headless-runtime/angular-standalone-consumer",
+  "name": "ui-headless-runtime-angular-standalone-consumer",
   "version": "1.0.0",
   "private": true,
   "scripts": {

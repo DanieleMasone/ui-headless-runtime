@@ -31,7 +31,7 @@ Do not add `NPM_TOKEN`, `NODE_AUTH_TOKEN`, or a GitHub environment named `npm` t
 The following procedure applies to versions after `1.0.0`:
 
 1. Update the root, demo, publishable package, and lockfile versions together; finalize the matching `CHANGELOG.md` entry.
-2. Run `npm ci`, `npm run release:verify`, and inspect `npm pack --dry-run`.
+2. Run `npm ci`, `npm run release:verify`, and inspect `npm pack --workspace ui-headless-runtime --dry-run`.
 3. Commit the API report if the public surface intentionally changed.
 4. Tag the verified commit `vX.Y.Z` and push it.
 5. Publish the GitHub Release for that exact tag.

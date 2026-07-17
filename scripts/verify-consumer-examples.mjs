@@ -10,7 +10,20 @@ const dependencySections = [
   'optionalDependencies',
   'peerDependencies',
 ];
-const sourceExtensions = new Set(['.js', '.mjs', '.ts', '.tsx', '.vue']);
+const sourceExtensions = new Set([
+  '.cjs',
+  '.css',
+  '.cts',
+  '.html',
+  '.js',
+  '.jsx',
+  '.json',
+  '.mjs',
+  '.mts',
+  '.ts',
+  '.tsx',
+  '.vue',
+]);
 const npmEnvironment = {
   ...process.env,
   npm_config_cache: resolve(root, '.tmp', 'consumer-examples-npm-cache'),
@@ -33,7 +46,12 @@ if (JSON.stringify(rootManifest.workspaces).includes('examples')) {
 async function collectSourceFiles(directory) {
   const files = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === '.angular')
+    if (
+      entry.name === 'node_modules' ||
+      entry.name === 'dist' ||
+      entry.name === '.angular' ||
+      entry.name === 'package-lock.json'
+    )
       continue;
     const path = resolve(directory, entry.name);
     if (entry.isDirectory()) files.push(...(await collectSourceFiles(path)));
@@ -44,6 +62,11 @@ async function collectSourceFiles(directory) {
 
 function verifyDependencySpecs(manifest, exampleName) {
   if (manifest.private !== true) throw new Error(`${exampleName} must be private.`);
+  if (typeof manifest.name !== 'string' || manifest.name.startsWith('@ui-headless-runtime/')) {
+    throw new Error(
+      `${exampleName} must use a private consumer name, not an official-looking scope.`,
+    );
+  }
   if (manifest.dependencies?.['ui-headless-runtime'] !== '^1.0.0') {
     throw new Error(`${exampleName} must depend on ui-headless-runtime using ^1.0.0.`);
   }
@@ -56,13 +79,30 @@ function verifyDependencySpecs(manifest, exampleName) {
   }
 }
 
-function verifyImportSpecifier(specifier, file) {
+function verifyPackageReference(specifier, file) {
   const normalized = specifier.replaceAll('\\', '/');
   if (normalized.startsWith('ui-headless-runtime/')) {
-    throw new Error(`Deep runtime import ${specifier} in ${file}.`);
+    throw new Error(`Deep runtime reference ${specifier} in ${file}.`);
   }
   if (/(?:^|\/)packages(?:\/|$)/u.test(normalized)) {
-    throw new Error(`Repository package import ${specifier} in ${file}.`);
+    throw new Error(`Repository package reference ${specifier} in ${file}.`);
+  }
+}
+
+function verifyJsonReferences(value, file) {
+  if (typeof value === 'string') {
+    verifyPackageReference(value, file);
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const entry of value) verifyJsonReferences(entry, file);
+    return;
+  }
+  if (value && typeof value === 'object') {
+    for (const [key, entry] of Object.entries(value)) {
+      verifyPackageReference(key, file);
+      verifyJsonReferences(entry, file);
+    }
   }
 }
 
@@ -86,8 +126,13 @@ for (const exampleName of exampleNames) {
 
   for (const file of await collectSourceFiles(directory)) {
     const source = await readFile(file, 'utf8');
-    const importPattern = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)['"]([^'"]+)['"]/gu;
-    for (const match of source.matchAll(importPattern)) verifyImportSpecifier(match[1], file);
+    if (extname(file) === '.json') {
+      verifyJsonReferences(JSON.parse(source), file);
+      continue;
+    }
+    const importPattern =
+      /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+|\brequire\s*\(\s*|@import\s+(?:url\(\s*)?|\bsrc\s*=\s*)['"]([^'"]+)['"]/gu;
+    for (const match of source.matchAll(importPattern)) verifyPackageReference(match[1], file);
   }
 
   console.log(`Verifying ${exampleName} against the published npm package...`);

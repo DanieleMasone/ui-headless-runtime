@@ -5,6 +5,8 @@ on:
   pull_request:
     paths:
       - examples/**
+      - package.json
+      - scripts/shared.mjs
       - scripts/verify-consumer-examples.mjs
       - .github/workflows/examples.yml
 
@@ -14,6 +16,9 @@ concurrency:
 
 permissions:
   contents: read
+
+env:
+  npm_config_cache: ${{ github.workspace }}/.tmp/consumer-examples-npm-cache
 
 jobs:
   verify:
