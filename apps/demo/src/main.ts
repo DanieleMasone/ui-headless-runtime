@@ -24,6 +24,7 @@ assertExampleRegistry();
 
 const base = import.meta.env.BASE_URL;
 const siteLink = (path: string): string => `${base}${path.replace(/^\//u, '')}`;
+const componentCategories = [...new Set(componentRegistry.map((component) => component.category))];
 const articleLinks = (section: ArticleSection): string =>
   articleRegistry
     .filter((article) => article.section === section)
@@ -34,7 +35,7 @@ app.innerHTML = `
   <header class="topbar">
     <button class="mobile-menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
     <a class="brand" href="#/" aria-label="UI Headless Runtime home"><span>UHR</span><strong>UI Headless Runtime</strong></a>
-    <button class="search-trigger" type="button" aria-label="Search documentation" aria-haspopup="dialog" aria-expanded="false" aria-controls="command-dialog"><span>Search documentation</span><svg aria-hidden="true" viewBox="0 0 20 20"><path d="m14.2 13.1 3.1 3.1-1.1 1.1-3.1-3.1a7 7 0 1 1 1.1-1.1Zm-5.2.4a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z"/></svg><kbd aria-hidden="true">Ctrl/⌘ K</kbd></button>
+    <button class="search-trigger" type="button" aria-label="Search site" aria-haspopup="dialog" aria-expanded="false" aria-controls="command-dialog"><span>Search site</span><svg aria-hidden="true" viewBox="0 0 20 20"><path d="m14.2 13.1 3.1 3.1-1.1 1.1-3.1-3.1a7 7 0 1 1 1.1-1.1Zm-5.2.4a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z"/></svg><kbd aria-hidden="true">Ctrl/⌘ K</kbd></button>
     <label class="theme-control"><span>Theme</span>
       <select aria-label="Theme">
         <option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option>
@@ -61,8 +62,8 @@ app.innerHTML = `
   </div>
   <main id="main" tabindex="-1"></main>
   <footer><span>Framework-agnostic. CSS-free. Accessibility engineered.</span><a href="https://github.com/DanieleMasone/ui-headless-runtime">GitHub</a></footer>
-  <section class="command-dialog" id="command-dialog" role="dialog" aria-modal="true" aria-label="Documentation search" hidden>
-    <label for="command-input">Search pages</label>
+  <section class="command-dialog" id="command-dialog" role="dialog" aria-modal="true" aria-label="Site search" hidden>
+    <div class="command-heading"><label for="command-input">Search components and docs</label><button class="command-close" type="button">Close search</button></div>
     <input class="command-input" id="command-input" type="search" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="command-results" autocomplete="off" />
     <div class="command-results" id="command-results" role="listbox" aria-label="Search results"></div>
     <p class="command-empty" role="status" aria-live="polite" hidden>No matching page.</p>
@@ -78,6 +79,7 @@ const navBackdrop = app.querySelector<HTMLElement>('.nav-backdrop');
 const navClose = app.querySelector<HTMLButtonElement>('.nav-close');
 const mobileMenu = app.querySelector<HTMLButtonElement>('.mobile-menu');
 const searchTrigger = app.querySelector<HTMLButtonElement>('.search-trigger');
+const commandClose = app.querySelector<HTMLButtonElement>('.command-close');
 const commandDialog = app.querySelector<HTMLElement>('.command-dialog');
 const commandInput = app.querySelector<HTMLInputElement>('.command-input');
 const commandResults = app.querySelector<HTMLElement>('.command-results');
@@ -93,6 +95,7 @@ if (
   !navClose ||
   !mobileMenu ||
   !searchTrigger ||
+  !commandClose ||
   !commandDialog ||
   !commandInput ||
   !commandResults ||
@@ -205,7 +208,9 @@ const pages = [
     route: article.route,
   })),
 ];
-const commandPalette = createCommandPalette();
+const commandPalette = createCommandPalette({
+  dialog: { initialFocus: () => commandInput },
+});
 const releaseOverlayExclusivity = [
   commandPalette.on('beforeOpen', () => mobileNavigation.close({ reason: 'programmatic' })),
   mobileNavigation.on('beforeOpen', () => commandPalette.close({ reason: 'programmatic' })),
@@ -261,8 +266,9 @@ const renderCommands = (): void => {
 const releaseCommandRender = commandPalette.subscribe(renderCommands);
 searchTrigger.addEventListener('click', () => {
   commandPalette.open({ reason: 'trigger' });
-  commandInput.focus();
 });
+const handleCommandClose = (): void => commandPalette.close({ reason: 'trigger' });
+commandClose.addEventListener('click', handleCommandClose);
 let commandComposing = false;
 commandInput.addEventListener('compositionstart', () => {
   commandComposing = true;
@@ -324,7 +330,13 @@ dialog.destroy();</code></pre></section>
 };
 
 const renderComponentIndex = (): void => {
-  main.innerHTML = `${heading('Components', 'Runtime catalogue')}<p class="lede">Every controller exposes immutable snapshots, typed reasons, subscriptions, lifecycle events, commands, and idempotent cleanup.</p><ul class="component-table">${componentRegistry.map((component) => `<li><a href="#${component.route}"><span class="status">${component.status}</span><strong>${component.name}</strong><span>${component.category}</span><p>${component.summary}</p></a></li>`).join('')}</ul>`;
+  main.innerHTML = `${heading('Components', 'Runtime catalogue')}<p class="lede">Every controller exposes immutable snapshots, typed reasons, subscriptions, lifecycle events, commands, and idempotent cleanup.</p><div class="component-groups">${componentCategories
+    .map((category) => {
+      const components = componentRegistry.filter((component) => component.category === category);
+      const categoryId = `component-category-${category.toLowerCase().replaceAll(/[^a-z0-9]+/gu, '-')}`;
+      return `<section class="component-group" aria-labelledby="${categoryId}"><div class="section-heading"><h2 id="${categoryId}">${category}</h2><span>${components.length} ${components.length === 1 ? 'controller' : 'controllers'}</span></div><ul class="component-table">${components.map((component) => `<li><a href="#${component.route}"><span class="status">${component.status}</span><strong>${component.name}</strong><p>${component.summary}</p></a></li>`).join('')}</ul></section>`;
+    })
+    .join('')}</div>`;
 };
 
 const renderComponent = (definition: DemoComponentDefinition): void => {
@@ -480,6 +492,7 @@ window.addEventListener(
     stopRouter();
     disposePage();
     releaseShortcut();
+    commandClose.removeEventListener('click', handleCommandClose);
     releaseCommandRender();
     releaseCommandDialog();
     releaseMobileNavigationRender();

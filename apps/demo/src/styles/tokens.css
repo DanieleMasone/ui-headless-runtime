@@ -21,6 +21,7 @@
   --code-text: #e4e7ec;
   --focus: #0b6bcb;
   --shadow: 0 12px 32px rgb(16 24 40 / 12%);
+  --scrim: rgb(16 24 40 / 38%);
   --radius-sm: 0.375rem;
   --radius-md: 0.625rem;
   --radius-lg: 0.875rem;
@@ -61,6 +62,7 @@
   --code-text: #e4e7ec;
   --focus: #9ec5ff;
   --shadow: 0 16px 40px rgb(0 0 0 / 32%);
+  --scrim: rgb(0 0 0 / 52%);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -82,5 +84,6 @@
     --code-text: #e4e7ec;
     --focus: #9ec5ff;
     --shadow: 0 16px 40px rgb(0 0 0 / 32%);
+    --scrim: rgb(0 0 0 / 52%);
   }
 }

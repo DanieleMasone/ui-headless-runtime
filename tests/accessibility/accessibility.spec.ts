@@ -94,7 +94,7 @@ test('home exposes landmarks, logical headings, keyboard focus, and a working sk
   await page.getByLabel('Theme').selectOption('dark');
   await analyze(page);
 
-  const search = page.getByRole('button', { name: 'Search documentation' });
+  const search = page.getByRole('button', { name: 'Search site' });
   await search.focus();
   await expect(search).toBeFocused();
   const overview = page
@@ -130,10 +130,14 @@ test('mobile navigation and command search active states pass axe', async ({ pag
 
   const searchTrigger = page.locator('.search-trigger');
   await searchTrigger.click();
-  await expect(page.getByRole('dialog', { name: 'Documentation search' })).toBeVisible();
-  await expect(page.getByLabel('Search pages')).toBeFocused();
+  const searchDialog = page.getByRole('dialog', { name: 'Site search' });
+  await expect(searchDialog).toBeVisible();
+  await expect(page.getByLabel('Search components and docs')).toBeFocused();
   await expect(page.getByRole('listbox', { name: 'Search results' })).toBeVisible();
+  await expect(searchDialog.getByRole('button', { name: 'Close search' })).toBeVisible();
   await analyze(page);
+  await searchDialog.getByRole('button', { name: 'Close search' }).click();
+  await expect(searchTrigger).toBeFocused();
 });
 
 test('generated documentation critical pages pass axe with coherent headings', async ({ page }) => {
@@ -209,7 +213,7 @@ test('demo and documentation withstand WCAG text spacing and user display prefer
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('./#/');
   const transitionMilliseconds = await page
-    .getByRole('button', { name: 'Search documentation' })
+    .getByRole('button', { name: 'Search site' })
     .evaluate((element) =>
       getComputedStyle(element)
         .transitionDuration.split(',')
@@ -221,7 +225,7 @@ test('demo and documentation withstand WCAG text spacing and user display prefer
   expect(Math.max(...transitionMilliseconds)).toBeLessThanOrEqual(1);
 
   await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' });
-  const search = page.getByRole('button', { name: 'Search documentation' });
+  const search = page.getByRole('button', { name: 'Search site' });
   await search.focus();
   const forcedColorsOutline = await search.evaluate((element) => {
     const style = getComputedStyle(element);

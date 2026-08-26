@@ -196,8 +196,22 @@
   list-style: none;
 }
 
+.component-groups {
+  display: grid;
+  gap: var(--space-10);
+}
+
+.component-group > .section-heading {
+  margin-block-end: var(--space-4);
+}
+
+.component-group > .section-heading span {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
 .component-table a {
-  grid-template-columns: 8rem 12rem 8rem 1fr;
+  grid-template-columns: 8rem 12rem minmax(0, 1fr);
   align-items: center;
 }
 
@@ -419,12 +433,28 @@ td {
   inset-inline-start: 50%;
   translate: -50% 0;
   inline-size: min(38rem, calc(100vw - 2rem));
+  max-block-size: calc(100dvh - 2rem);
+  overflow: auto;
+  box-shadow:
+    var(--shadow),
+    0 0 0 100vmax var(--scrim);
 }
 
-.command-dialog label {
-  display: grid;
-  gap: var(--space-2);
+.command-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-block-end: var(--space-3);
+}
+
+.command-heading label {
   font-weight: 650;
+}
+
+.command-close {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .command-input {
@@ -434,7 +464,11 @@ td {
 .command-results {
   display: grid;
   gap: var(--space-1);
+  max-block-size: min(55dvh, 28rem);
   margin-block-start: var(--space-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .prose {

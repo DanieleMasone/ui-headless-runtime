@@ -113,6 +113,15 @@ test('home, links, theme, search, history, and direct routes work', async ({ pag
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Behavior infrastructure');
   await expect(page.getByRole('link', { name: 'Explore components' })).toBeVisible();
   await expect(page.locator('.metric-grid')).toContainText('16');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    'href',
+    'https://danielemasone.github.io/ui-headless-runtime/',
+  );
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+    'content',
+    'UI Headless Runtime component laboratory',
+  );
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary');
   const install = page.locator('.install');
   await expect(install).toContainText('npm install ui-headless-runtime');
   await expect(install).not.toContainText('pending');
@@ -127,8 +136,8 @@ test('home, links, theme, search, history, and direct routes work', async ({ pag
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
-  await page.getByRole('button', { name: 'Search documentation' }).click();
-  const search = page.getByRole('combobox', { name: 'Search pages' });
+  await page.getByRole('button', { name: 'Search site' }).click();
+  const search = page.getByRole('combobox', { name: 'Search components and docs' });
   await search.fill('Combobox');
   await page.getByRole('option', { name: 'Components — Combobox' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Combobox' })).toBeVisible();
@@ -137,8 +146,8 @@ test('home, links, theme, search, history, and direct routes work', async ({ pag
   await page.goForward();
   await expect(page.getByRole('heading', { level: 1, name: 'Combobox' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Search documentation' }).click();
-  await page.getByRole('combobox', { name: 'Search pages' }).fill('User Guide');
+  await page.getByRole('button', { name: 'Search site' }).click();
+  await page.getByRole('combobox', { name: 'Search components and docs' }).fill('User Guide');
   await page.getByRole('option', { name: /Guides.*User Guide/u }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'User Guide' })).toBeVisible();
 
@@ -154,6 +163,22 @@ test('home, links, theme, search, history, and direct routes work', async ({ pag
   await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
 });
 
+test('component index groups every controller by behavior family', async ({ page }) => {
+  await visit(page, '/components');
+  const categories = [...new Set(componentCatalog.map((component) => component.category))];
+  await expect(page.locator('.component-table li')).toHaveCount(componentCatalog.length);
+  for (const category of categories) {
+    const group = page
+      .locator('.component-group')
+      .filter({ has: page.getByRole('heading', { level: 2, name: category, exact: true }) });
+    const expectedCount = componentCatalog.filter(
+      (component) => component.category === category,
+    ).length;
+    await expect(group).toHaveCount(1);
+    await expect(group.locator('li')).toHaveCount(expectedCount);
+  }
+});
+
 test('command search supports its keyboard, relationship, empty, selection, and restore contracts', async ({
   page,
 }) => {
@@ -164,8 +189,8 @@ test('command search supports its keyboard, relationship, empty, selection, and 
   );
   await page.keyboard.press(`${primaryModifier}+K`);
 
-  const dialog = page.getByRole('dialog', { name: 'Documentation search' });
-  const input = page.getByLabel('Search pages');
+  const dialog = page.getByRole('dialog', { name: 'Site search' });
+  const input = page.getByLabel('Search components and docs');
   const results = page.getByRole('listbox', { name: 'Search results' });
   await expect(dialog).toBeVisible();
   await expect(trigger).toHaveAttribute('aria-expanded', 'true');
@@ -554,7 +579,7 @@ test('responsive demo routes avoid horizontal overflow and keep controls reachab
     { width: 1024, height: 768 },
     { width: 768, height: 1024 },
     { width: 390, height: 844 },
-    { width: 360, height: 800 },
+    { width: 375, height: 667 },
     { width: 320, height: 568 },
     ...(browserName === 'chromium'
       ? [
@@ -588,9 +613,28 @@ test('mobile search and theme controls remain visible and functional', async ({ 
   const searchButton = page.locator('.search-trigger');
   await expect(searchButton).toBeVisible();
   await searchButton.click();
-  await page.getByRole('combobox', { name: 'Search pages' }).fill('Overview');
+  const searchDialog = page.getByRole('dialog', { name: 'Site search' });
+  const searchResults = page.getByRole('listbox', { name: 'Search results' });
+  const dialogBounds = await searchDialog.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    return { top: bounds.top, bottom: bounds.bottom, viewportHeight: window.innerHeight };
+  });
+  expect(dialogBounds.top).toBeGreaterThanOrEqual(0);
+  expect(dialogBounds.bottom).toBeLessThanOrEqual(dialogBounds.viewportHeight + 1);
+  const resultsOverflow = await searchResults.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
+    overflowY: getComputedStyle(element).overflowY,
+  }));
+  expect(resultsOverflow.scrollHeight).toBeGreaterThan(resultsOverflow.clientHeight);
+  expect(resultsOverflow.overflowY).toMatch(/auto|scroll/u);
+  await page.getByRole('combobox', { name: 'Search components and docs' }).fill('Overview');
   await expect(page.getByRole('option', { name: /Overview.*Overview/u })).toBeVisible();
   await page.keyboard.press('Escape');
+  await expect(searchButton).toBeFocused();
+  await searchButton.click();
+  await searchDialog.getByRole('button', { name: 'Close search' }).click();
+  await expect(searchDialog).toBeHidden();
   await expect(searchButton).toBeFocused();
 
   const theme = page.getByLabel('Theme');
@@ -652,6 +696,7 @@ test('composed docs, API, and coverage sections contain responsive rich content'
     'docs/guide/',
     'docs/guide/getting-started.html',
     'docs/guide/accessibility.html',
+    'docs/guide/consumer-examples.html',
     'docs/accessibility/demo-conformance.html',
     'docs/components/dialog.html',
     'docs/components/combobox.html',
@@ -665,9 +710,9 @@ test('composed docs, API, and coverage sections contain responsive rich content'
     { width: 320, height: 568 },
     ...(browserName === 'chromium'
       ? [
-          { width: 1280, height: 800 },
-          { width: 430, height: 932 },
-          { width: 360, height: 800 },
+          { width: 1440, height: 900 },
+          { width: 1024, height: 768 },
+          { width: 375, height: 667 },
         ]
       : []),
   ];

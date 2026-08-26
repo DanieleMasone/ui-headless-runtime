@@ -1,5 +1,6 @@
 import { access, cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { requiredPublicSitePaths } from './public-site-paths.mjs';
 import { assertInsideWorkspace, basePath, root } from './shared.mjs';
 
 const site = await assertInsideWorkspace(resolve(root, 'site-dist'));
@@ -45,23 +46,7 @@ await injectStyle(
 await cp(resolve(site, 'index.html'), resolve(site, '404.html'));
 await writeFile(resolve(site, '.nojekyll'), '');
 
-for (const required of [
-  'index.html',
-  '404.html',
-  '.nojekyll',
-  'api/index.html',
-  'coverage/index.html',
-  'docs/index.html',
-  'docs/guide/accessibility.html',
-  'docs/guide/framework-integration.html',
-  'docs/guide/frameworks/react.html',
-  'docs/guide/frameworks/vue.html',
-  'docs/guide/frameworks/angular.html',
-  'docs/accessibility/demo-conformance.html',
-  'docs/components/dialog.html',
-  'docs/components/combobox.html',
-  'docs/architecture/overview.html',
-]) {
+for (const required of requiredPublicSitePaths) {
   await access(resolve(site, required));
 }
 

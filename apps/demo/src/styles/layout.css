@@ -135,7 +135,7 @@ footer {
     position: fixed;
     z-index: calc(var(--z-nav) - 1);
     inset: var(--topbar) 0 0;
-    background: rgb(16 24 40 / 38%);
+    background: var(--scrim);
   }
 
   body[data-nav-open='true'] {

@@ -1,29 +1,19 @@
 import { access, readFile, readdir, stat } from 'node:fs/promises';
 import { dirname, extname, resolve, sep } from 'node:path';
+import { forbiddenPublicSiteRoots, requiredPublicSitePaths } from './public-site-paths.mjs';
 import { basePath, root } from './shared.mjs';
 
 const site = resolve(root, 'site-dist');
-const required = [
-  'index.html',
-  '404.html',
-  '.nojekyll',
-  'api/index.html',
-  'coverage/index.html',
-  'docs/index.html',
-  'docs/guide/index.html',
-  'docs/guide/getting-started.html',
-  'docs/guide/accessibility.html',
-  'docs/guide/framework-integration.html',
-  'docs/guide/consumer-examples.html',
-  'docs/guide/frameworks/react.html',
-  'docs/guide/frameworks/vue.html',
-  'docs/guide/frameworks/angular.html',
-  'docs/accessibility/demo-conformance.html',
-  'docs/components/dialog.html',
-  'docs/components/combobox.html',
-  'docs/architecture/overview.html',
-];
-for (const file of required) await access(resolve(site, file));
+for (const file of requiredPublicSitePaths) await access(resolve(site, file));
+
+const publicRoots = new Set(
+  (await readdir(site, { withFileTypes: true })).map((entry) => entry.name),
+);
+for (const forbidden of forbiddenPublicSiteRoots) {
+  if (publicRoots.has(forbidden)) {
+    throw new Error(`Repository-only content entered the public artifact: ${forbidden}`);
+  }
+}
 
 const index = await readFile(resolve(site, 'index.html'), 'utf8');
 if (!index.includes(basePath))
