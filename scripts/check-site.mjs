@@ -4,7 +4,55 @@ import { forbiddenPublicSiteRoots, requiredPublicSitePaths } from './public-site
 import { basePath, root } from './shared.mjs';
 
 const site = resolve(root, 'site-dist');
+const readme = await readFile(resolve(root, 'README.md'), 'utf8');
+await access(resolve(root, '.github', 'workflows', 'ci.yml'));
+
+const expectedReadmeBadges = [
+  '[![CI](https://github.com/DanieleMasone/ui-headless-runtime/actions/workflows/ci.yml/badge.svg)](https://github.com/DanieleMasone/ui-headless-runtime/actions/workflows/ci.yml)',
+  '[![npm version](https://img.shields.io/npm/v/ui-headless-runtime)](https://www.npmjs.com/package/ui-headless-runtime)',
+  '[![Lines coverage](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdanielemasone.github.io%2Fui-headless-runtime%2Fcoverage%2Fcoverage-summary.json&query=%24.total.lines.pct&suffix=%25&label=lines%20coverage)](https://danielemasone.github.io/ui-headless-runtime/coverage/)',
+  '[![Live documentation](https://img.shields.io/website?url=https%3A%2F%2Fdanielemasone.github.io%2Fui-headless-runtime%2F&label=GitHub%20Pages)](https://danielemasone.github.io/ui-headless-runtime/)',
+];
+let previousBadgeIndex = -1;
+for (const badge of expectedReadmeBadges) {
+  const badgeIndex = readme.indexOf(badge);
+  if (badgeIndex === -1) throw new Error(`README is missing the required dynamic badge: ${badge}`);
+  if (badgeIndex <= previousBadgeIndex)
+    throw new Error('README badges are not in canonical order.');
+  previousBadgeIndex = badgeIndex;
+}
+
+const forbiddenReadmeBadges = [
+  /img\.shields\.io\/badge\/typescript-/iu,
+  /img\.shields\.io\/badge\/runtime(?:%20|[ _-])dependencies-/iu,
+  /img\.shields\.io\/badge\/demo(?:%20|[ _-])a11y-/iu,
+  /img\.shields\.io\/badge\/(?:lines(?:%20|[ _-]))?coverage-/iu,
+];
+for (const badgePattern of forbiddenReadmeBadges) {
+  if (badgePattern.test(readme))
+    throw new Error(`README contains a stale-prone badge: ${badgePattern}`);
+}
+
+const canonicalRepository = 'DanieleMasone/ui-headless-runtime';
+for (const match of readme.matchAll(/https:\/\/github\.com\/([^/\s)]+)\/([^/\s)#]+)/gu)) {
+  const [, owner, repository] = match;
+  if (
+    repository?.toLowerCase() === 'ui-headless-runtime' &&
+    `${owner}/${repository}` !== canonicalRepository
+  ) {
+    throw new Error(`README uses non-canonical repository casing: ${owner}/${repository}`);
+  }
+}
+
 for (const file of requiredPublicSitePaths) await access(resolve(site, file));
+
+const coverageSummary = JSON.parse(
+  await readFile(resolve(site, 'coverage', 'coverage-summary.json'), 'utf8'),
+);
+const linesCoverage = coverageSummary?.total?.lines?.pct;
+if (typeof linesCoverage !== 'number' || !Number.isFinite(linesCoverage)) {
+  throw new Error('Published coverage summary does not expose a numeric total.lines.pct value.');
+}
 
 const publicRoots = new Set(
   (await readdir(site, { withFileTypes: true })).map((entry) => entry.name),

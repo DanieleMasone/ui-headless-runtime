@@ -2,10 +2,8 @@
 
 [![CI](https://github.com/DanieleMasone/ui-headless-runtime/actions/workflows/ci.yml/badge.svg)](https://github.com/DanieleMasone/ui-headless-runtime/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/ui-headless-runtime)](https://www.npmjs.com/package/ui-headless-runtime)
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)](https://www.typescriptlang.org/)
-[![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-brightgreen)](packages/ui-headless-runtime/package.json)
+[![Lines coverage](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdanielemasone.github.io%2Fui-headless-runtime%2Fcoverage%2Fcoverage-summary.json&query=%24.total.lines.pct&suffix=%25&label=lines%20coverage)](https://danielemasone.github.io/ui-headless-runtime/coverage/)
 [![Live documentation](https://img.shields.io/website?url=https%3A%2F%2Fdanielemasone.github.io%2Fui-headless-runtime%2F&label=GitHub%20Pages)](https://danielemasone.github.io/ui-headless-runtime/)
-[![Demo accessibility checked](https://img.shields.io/badge/demo%20a11y-checked-0b6bcb)](https://danielemasone.github.io/ui-headless-runtime/docs/accessibility/demo-conformance.html)
 
 Framework-agnostic TypeScript controllers for accessible, customizable UI behavior. The runtime owns state, lifecycle, keyboard interaction, focus, selection, overlay coordination, positioning, and cleanup. Your application owns markup, CSS, branding, animation, and rendering.
 
