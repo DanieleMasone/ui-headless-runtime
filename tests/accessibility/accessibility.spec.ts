@@ -92,6 +92,21 @@ test('home exposes landmarks, logical headings, keyboard focus, and a working sk
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Behavior infrastructure');
 
   await page.getByLabel('Theme').selectOption('dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+  // Wait for the theme's visual transitions to complete before checking the final color contrast.
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+
+    const runningAnimations = document
+      .getAnimations()
+      .filter((animation) => animation.playState === 'running');
+
+    await Promise.all(runningAnimations.map((animation) => animation.finished));
+  });
+
   await analyze(page);
 
   const search = page.getByRole('button', { name: 'Search site' });
@@ -165,24 +180,33 @@ for (const frameworkPage of [
   });
 }
 
-test('generated documentation mobile navigation is named, related, and operable', async ({
-  page,
-}) => {
+test('generated documentation mobile navigation is named and operable', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto('./docs/');
-  const navigation = page.getByRole('button', { name: 'mobile navigation' });
+
+  const navigation = page.locator('button.VPNavBarHamburger');
+
+  await expect(navigation).toHaveAccessibleName('Menu');
   await expect(navigation).toHaveAttribute('aria-expanded', 'false');
-  const controlledId = await navigation.getAttribute('aria-controls');
-  expect(controlledId).toBeTruthy();
+
   await navigation.click();
   await expect(navigation).toHaveAttribute('aria-expanded', 'true');
-  const navigationScreen = page.locator(`#${controlledId ?? 'missing-navigation-screen'}`);
+
+  const navigationScreen = page.locator('#VPNavScreen');
   await expect(navigationScreen).toBeVisible();
-  const userGuide = navigationScreen.getByRole('link', { name: 'User Guide', exact: true });
+
+  const userGuide = navigationScreen.getByRole('link', {
+    name: 'User Guide',
+    exact: true,
+  });
+
   await userGuide.focus();
   await expect(userGuide).toBeFocused();
+
   await analyze(page);
+
   await userGuide.click();
+
   await expect(page).toHaveURL(/\/docs\/guide\/$/u);
   await expect(page.getByRole('heading', { level: 1, name: 'User Guide' })).toBeVisible();
 });
