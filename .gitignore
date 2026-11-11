@@ -9,7 +9,7 @@ node_modules/
 !.yarn/versions/
 
 # Local Node.js and npm configuration
-# Keep ISP corporate registry settings separate from personal projects
+# Keep machine-specific registry and certificate configuration out of version control
 .node-version
 .npmrc
 .npmrc.local

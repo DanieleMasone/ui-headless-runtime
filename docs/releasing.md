@@ -26,6 +26,21 @@ This external configuration is not performed by repository code:
 
 Do not add `NPM_TOKEN`, `NODE_AUTH_TOKEN`, or a GitHub environment named `npm` to the normal release workflow. Trusted publishing requires Node 22.14+ and npm 11.5.1+; this workflow uses Node 24 and the npm version declared by the repository. Provenance is automatic for a public package published through OIDC, so no provenance flag is required.
 
+## Security audit policy
+
+The release workflow blocks all production dependency advisories,
+regardless of severity, using `npm audit --omit=dev`.
+
+HIGH and CRITICAL advisories in the complete dependency tree also
+block publication through `npm audit --audit-level=high`.
+
+LOW and MODERATE development dependency advisories remain visible
+but do not block publication. Outstanding advisories are reviewed
+during manual dependency maintenance.
+
+Do not use incompatible global overrides or `npm audit fix --force`
+to bypass dependency compatibility issues.
+
 ## Release procedure
 
 The following procedure applies to versions after `1.0.0`:

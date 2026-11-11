@@ -20,7 +20,14 @@ export function startRouter(render: (change: RouteChange) => void): () => void {
       return;
     }
     window.scrollTo({ top: 0, behavior: 'instant' });
-    requestAnimationFrame(() => document.querySelector<HTMLElement>('#main')?.focus());
+
+    requestAnimationFrame(() => {
+      const main = document.querySelector<HTMLElement>('#main');
+
+      if (main && !main.contains(document.activeElement)) {
+        main.focus();
+      }
+    });
   };
   window.addEventListener('hashchange', route);
   route();

@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import { normalizeBasePath } from '../../metadata/site';
+import { normalizeBasePath } from '../../metadata/site.ts';
 
 const normalizeBase = (value: string | undefined): string => {
   if (!value) return '/';

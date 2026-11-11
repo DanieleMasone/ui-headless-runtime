@@ -295,7 +295,9 @@ test('Tabs and Listbox implement manual keyboard contracts', async ({ page }) =>
   await page.goto('./#/components/listbox');
   const listbox = page.getByRole('listbox');
   await listbox.focus();
+  await expect(listbox).toBeFocused();
   await page.keyboard.press('End');
+  await expect(listbox).toHaveAttribute('aria-activedescendant', 'oslo');
   await page.keyboard.press('Enter');
   await expect(page.getByRole('option', { name: 'Oslo' })).toHaveAttribute('aria-selected', 'true');
 });

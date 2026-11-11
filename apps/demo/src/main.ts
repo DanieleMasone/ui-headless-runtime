@@ -4,7 +4,7 @@ import { bindResponsivePanels } from './app/responsive-panels';
 import { getTheme, setTheme, type ThemeChoice } from './app/theme';
 import {
   assertExampleRegistry,
-  createExample,
+  loadExampleFactory,
   loadExampleSource,
   type ExampleInstance,
 } from './examples/create-example';
@@ -407,14 +407,18 @@ const renderComponent = (definition: DemoComponentDefinition): void => {
     const loadedSource = await loadExampleSource(definition.id);
     if (pageToken !== pageGeneration || launchToken !== launchGeneration) return;
     source.textContent = loadedSource;
-    const nextExample = await createExample(definition.id, selected.id, mount, (event) => {
-      log.push(event);
-      stateOutput.textContent = serializeForInspector(currentExample?.getSnapshot());
-    });
+    const factory = await loadExampleFactory(definition.id);
     if (pageToken !== pageGeneration || launchToken !== launchGeneration) {
-      nextExample.destroy();
       return;
     }
+    const nextExample = factory({
+      scenario: selected.id,
+      mount,
+      emit: (event) => {
+        log.push(event);
+        stateOutput.textContent = serializeForInspector(currentExample?.getSnapshot());
+      },
+    });
     currentExample = nextExample;
     stateOutput.textContent = serializeForInspector(nextExample.getSnapshot());
     labStatus.textContent = `Scenario changed to ${selected.label}.`;

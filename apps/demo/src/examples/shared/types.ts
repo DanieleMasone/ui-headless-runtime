@@ -15,6 +15,4 @@ export interface ExampleInstance {
   readonly destroy: () => void;
 }
 
-export type ExampleFactory = (
-  context: ExampleContext,
-) => ExampleInstance | Promise<ExampleInstance>;
+export type ExampleFactory = (context: ExampleContext) => ExampleInstance;

@@ -1,5 +1,5 @@
 import { componentRegistry, type ComponentId } from '../registry/components';
-import type { DemoEvent, ExampleFactory, ExampleInstance } from './shared/types';
+import type { ExampleFactory } from './shared/types';
 
 const exampleModules = import.meta.glob<{ default: ExampleFactory }>('./*.ts');
 const sourceModules = import.meta.glob<string>('./*.ts', {
@@ -24,17 +24,16 @@ export function assertExampleRegistry(): void {
   }
 }
 
-export async function createExample(
-  id: ComponentId,
-  scenario: string,
-  mount: HTMLElement,
-  emit: (event: DemoEvent) => void,
-): Promise<ExampleInstance> {
+export async function loadExampleFactory(id: ComponentId): Promise<ExampleFactory> {
   const path = modulePathFor(id);
   const load = exampleModules[path];
-  if (!load) throw new Error(`No example module registered for ${id}`);
+
+  if (!load) {
+    throw new Error(`No example module registered for ${id}`);
+  }
+
   const module = await load();
-  return module.default({ scenario, mount, emit });
+  return module.default;
 }
 
 export async function loadExampleSource(id: ComponentId): Promise<string> {

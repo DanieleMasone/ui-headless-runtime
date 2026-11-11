@@ -9,7 +9,7 @@ import {
   docsUrl,
   repositoryUrl,
   siteUrl,
-} from '../../metadata/site';
+} from '../../metadata/site.ts';
 
 const documentationRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const guideOrder = [
