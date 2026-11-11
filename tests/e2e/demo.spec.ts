@@ -663,7 +663,7 @@ test('framework integration guides are navigable and reflow on mobile', async ({
 
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto('./docs/guide/framework-integration.html');
-  await page.getByRole('button', { name: 'Menu', exact: true }).click();
+  await page.locator('button[aria-controls="VPSidebarNav"]').click();
   const sidebarNavigation = page.getByRole('navigation', { name: 'Sidebar Navigation' });
   const reactLink = sidebarNavigation.getByRole('link', {
     name: 'React integration',
